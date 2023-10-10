@@ -1,0 +1,45 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha3"}
+        net.java.dev.jna/jna {:mvn/version "5.13.0"}
+        com.phronemophobic/membrane {:local/root "../membrane2"}
+        com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
+        com.phronemophobic/schematic {:local/root "../schematic"}
+        com.phronemophobic/viscous {:local/root "../viscous"}
+        com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
+        membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
+        com.phronemophobic/membrane.term {:local/root "../term"}
+        org.clojars.quoll/tiara {;;:mvn/version "0.3.3"
+                                 :local/root "../tiara"
+                                 }
+        com.phronemophobic/vt
+        {:local/root "../vt"
+         ;; :mvn/version "1.0"
+         :exclusions [org.clojure/clojurescript]}
+        com.rpl/specter {:mvn/version "1.1.4"}}
+ 
+ :mvn/repos
+ {"jetbrains-intellij-dependencies" {:url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"}}
+
+ :aliases
+ {
+
+  :project
+  {:jvm-opts [;; "-Djna.library.path=/opt/local/lib"
+              ;; "-Djava.library.path=../llvm-project/build/out/lib"
+              ;; "-Djna.library.path=../llvm-project/build/out/lib"
+              "-XX:+UnlockDiagnosticVMOptions"
+              "-Djdk.attach.allowAttachSelf=true"
+              "-XX:-OmitStackTraceInFastThrow"
+              "-XX:+DebugNonSafepoints"
+              "-Xmx8G"
+              ]
+   :extra-paths ["notebooks"]
+   :extra-deps
+            {com.phronemophobic.membrane/skialib-macosx-aarch64 { :mvn/version "0.14-beta"
+                                                                 ;;:local/root "../membrane2/csource/macos-aarch64"
+                                                                 }}
+  :build {:deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}
+                 slipset/deps-deploy {:mvn/version "RELEASE"}}
+          :ns-default build}
+
+  }}}
