@@ -28,7 +28,7 @@
 (defprotocol IApplet
   (-start [this $ref])
   (-stop [this])
-  (-ui [this]))
+  (-ui [this $context context]))
 
 (defprotocol IEasel
   (-add-applet [this applet])
@@ -104,14 +104,25 @@
                              "Menlo"
                              11))
 
-(defn term-ui [this]
-  (ui/fill-bordered
-   [0.9 0.9 0.9]
-   10
-   (term-events (:pty this)
-                (term-view term/default-color-scheme
-                           menlo
-                           (:state this)))))
+(defn term-ui [this $context context]
+  (let [focus (:focus context)
+        view (term-view term/default-color-scheme
+                        menlo
+                        (:state this))
+        view (if (= focus (:id this))
+               (term-events (:pty this)
+                            view)
+               (ui/on
+                :mouse-down
+                (fn [_]
+                  [[:set [$context (list 'keypath :focus)]
+                    (:id this)]])
+                view))
+        view (ui/fill-bordered
+              [0.9 0.9 0.9]
+              10
+              view)]
+    view))
 
 (defrecord Termlet [dispatch!]
   IApplet
@@ -149,8 +160,8 @@
   (-stop [this]
     (.destroy (:pty this))
     (.close (:os this)))
-  (-ui [this]
-    (term-ui this))
+  (-ui [this $context context]
+    (term-ui this $context context))
   IResizable
   (-resize [this w h]
     (let [w (- w 20)
@@ -194,9 +205,8 @@
      (tab-view {:tabs (vals (-applets easel))
                 :width tab-width})
      (stretch/hlayout
-      (map -ui)
-      (-visible-applets easel))
-     )))
+      (map #(-ui % $context context))
+      (-visible-applets easel)))))
 
 (defonce app-state
   (atom nil))
