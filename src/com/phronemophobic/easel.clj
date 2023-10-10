@@ -106,20 +106,24 @@
 
 (defn term-ui [this $context context]
   (let [focus (:focus context)
-        view (term-view term/default-color-scheme
-                        menlo
-                        (:state this))
-        view (if (= focus (:id this))
-               (term-events (:pty this)
-                            view)
-               (ui/on
-                :mouse-down
+        focus? (= focus (:id this))
+        view
+        (ui/on
+         :mouse-down
                 (fn [_]
                   [[:set [$context (list 'keypath :focus)]
                     (:id this)]])
-                view))
+         (term-view term/default-color-scheme
+                    menlo
+                    (:state this)))
+        view (if focus?
+               (term-events (:pty this)
+                            view)
+               view)
         view (ui/fill-bordered
-              [0.9 0.9 0.9]
+              (if focus?
+                [0.8 0.8 0.8]
+                [0.95 0.95 0.95])
               10
               view)]
     view))
@@ -181,7 +185,7 @@
   (stretch/vlayout
    (map (fn [tab]
           (let [background (ui/rectangle width tab-height)
-                background (if (= selected (:id tab))
+                background (if (selected (:id tab))
                              (->> background
                                   (ui/with-style ::ui/style-stroke))
                              (->> background
@@ -193,7 +197,7 @@
             (ui/on
              :mouse-down
              (fn [_]
-               [[:set $selected (:id tab)]])
+               [[:toggle (:id tab)]])
              [background
               lbl]))))
    tabs))
@@ -202,8 +206,18 @@
 (defui easel-view [{:keys [easel]}]
   (let [[cw ch :as size] (:membrane.stretch/container-size context)]
     (ui/horizontal-layout
-     (tab-view {:tabs (vals (-applets easel))
-                :width tab-width})
+     (ui/on
+      :toggle
+      (fn [id]
+        [[:update $easel
+          update :visible
+          (fn [visible]
+            (if (contains? visible id)
+              (disj visible id)
+              (conj visible id)))]])
+      (tab-view {:tabs (vals (-applets easel))
+                 :selected (:visible easel)
+                 :width tab-width}))
      (stretch/hlayout
       (map #(-ui % $context context))
       (-visible-applets easel)))))
