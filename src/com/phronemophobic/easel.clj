@@ -210,11 +210,14 @@
       :toggle
       (fn [id]
         [[:update $easel
-          update :visible
-          (fn [visible]
-            (if (contains? visible id)
-              (disj visible id)
-              (conj visible id)))]])
+          (fn [easel]
+            (let [visible (:visible easel)
+                  easel (if (contains? visible id)
+                          (-hide-applet easel id)
+                          (-show-applet easel id)
+                          )
+                  [w h] (:size easel)]
+              (-resize easel w h)))]])
       (tab-view {:tabs (vals (-applets easel))
                  :selected (:visible easel)
                  :width tab-width}))
@@ -229,7 +232,6 @@
 
 (def pad 20)
 (defn run []
-  (reset! app-state nil)
   (let [
         #_#__ (swap! app-state
                  assoc :vt
