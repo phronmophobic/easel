@@ -8,45 +8,33 @@
             [com.rpl.specter :as specter]
             [clojure.java.io :as io]
             [clojure.core.async :as async]
+            [com.phronemophobic.easel.model :as model]
             [membrane.component
              :refer
              [defui defeffect]])
   (:import [com.pty4j PtyProcess WinSize]))
 
 
-{:apps #{}
- :frames []}
-
 (def repaint! @#'skia/glfw-post-empty-event)
+
+(defonce app-state
+  (atom nil))
+
+(def handler (membrane.component/default-handler app-state))
 
 (defeffect ::repaint! []
   repaint!)
 
-(defprotocol IResizable
-  (-resize [this w h]))
 
-(defprotocol IApplet
-  (-start [this $ref])
-  (-stop [this])
-  (-ui [this $context context]))
-
-(defprotocol IEasel
-  (-add-applet [this applet])
-  (-remove-applet [this id])
-  (-layout-direction [this] [this dir])
-  (-visible-applets [this])
-  (-show-applet [this id])
-  (-hide-applet [this id])
-  (-applets [this]))
 
 (defrecord AEasel [applets visible last-id $ref layout-direction size]
-  IEasel
+  model/IEasel
   (-add-applet [this applet]
     (let [id (inc last-id)
           applet (assoc applet :id id)
-          applet (-start applet (specter/path
-                                 (membrane.component/path->spec $ref)
-                                 (specter/keypath :applets id :state))) ]
+          applet (model/-start applet (specter/path
+                                       (membrane.component/path->spec $ref)
+                                       (specter/keypath :applets id :state))) ]
 
       (-> this
           (assoc :last-id id)
@@ -54,7 +42,7 @@
           (update :visible conj id))))
   (-remove-applet [this id]
     (if-let [applet (get applets id)]
-      (let [applet (-stop applet)]
+      (let [applet (model/-stop applet)]
         (-> this
             (update :applets dissoc id)
             (update :visible disj id)))
@@ -76,13 +64,13 @@
         (update :visible disj id)))
   (-applets [this]
     applets)
-  IResizable
+  model/IResizable
   (-resize [this w h]
     (let [this (assoc this :size [w h])
           this (if (seq visible)
                  (let [col-width (int (/ w (count visible)))
                        applets (reduce (fn [applets k]
-                                         (update applets k #(-resize % col-width h)))
+                                         (update applets k #(model/-resize % col-width h)))
                                        applets
                                        visible)]
                    (assoc this :applets applets))
@@ -129,7 +117,7 @@
     view))
 
 (defrecord Termlet [dispatch!]
-  IApplet
+  model/IApplet
   (-start [this $ref]
     (let [cmd (into-array String ["/bin/bash" "-l"])
           pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
@@ -166,7 +154,7 @@
     (.close (:os this)))
   (-ui [this $context context]
     (term-ui this $context context))
-  IResizable
+  model/IResizable
   (-resize [this w h]
     (let [w (- w 20)
           h (- h 20)
@@ -213,22 +201,19 @@
           (fn [easel]
             (let [visible (:visible easel)
                   easel (if (contains? visible id)
-                          (-hide-applet easel id)
-                          (-show-applet easel id)
+                          (model/-hide-applet easel id)
+                          (model/-show-applet easel id)
                           )
                   [w h] (:size easel)]
-              (-resize easel w h)))]])
-      (tab-view {:tabs (vals (-applets easel))
+              (model/-resize easel w h)))]])
+      (tab-view {:tabs (vals (model/-applets easel))
                  :selected (:visible easel)
                  :width tab-width}))
      (stretch/hlayout
-      (map #(-ui % $context context))
-      (-visible-applets easel)))))
+      (map #(model/-ui % $context context))
+      (model/-visible-applets easel)))))
 
-(defonce app-state
-  (atom nil))
 
-(def handler (membrane.component/default-handler app-state))
 
 (def pad 20)
 (defn run []
@@ -254,20 +239,14 @@
                 width (int (/ width xscale))
                 height (int (/ height yscale))]
             (swap! app-state update :easel
-                   -resize
+                   model/-resize
                    (- width tab-width)
                    height))
           (skia/-reshape window window-handle width height))}})))
 
 
-(defn resize [w h]
-  (swap! app-state update :vt -resize w h))
-
-
-
-
 (defn add-term []
   (swap! app-state
          update :easel
-         -add-applet (termlet))
+         model/-add-applet (termlet))
   nil)
