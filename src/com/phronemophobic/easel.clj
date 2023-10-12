@@ -105,8 +105,13 @@
                     menlo
                     (:state this)))
         view (if focus?
-               (term-events (:pty this)
-                            view)
+               (ui/wrap-on
+                :key-event
+                (fn [handler key scancode action mods]
+                  (when (not= 39 key)
+                    (handler key scancode action mods)))
+                (term-events (:pty this)
+                             view))
                view)
         view (ui/fill-bordered
               (if focus?
