@@ -9,6 +9,7 @@
             [clojure.java.io :as io]
             [clojure.core.async :as async]
             [com.phronemophobic.easel.model :as model]
+            [com.phronemophobic.easel.browser :as browser]
             [membrane.component
              :refer
              [defui defeffect]])
@@ -21,10 +22,26 @@
   (atom nil))
 
 (def handler (membrane.component/default-handler app-state))
+(def ^java.util.Queue main-queue
+  (java.util.concurrent.ConcurrentLinkedQueue.))
+(defeffect :repaint! []
+  ;; needs debounce
+  (repaint!)
 
-(defeffect ::repaint! []
-  repaint!)
+  )
 
+(defn on-main-callback []
+  (loop []
+    (when-let [workf (.poll main-queue)]
+      (try
+        (workf)
+        (catch Throwable e
+          (prn e)))
+      (recur))))
+
+(defeffect :dispatch-main [f]
+  (.add main-queue f)
+  (repaint!))
 
 
 (defrecord AEasel [applets visible last-id $ref layout-direction size]
@@ -34,7 +51,7 @@
           applet (assoc applet :id id)
           applet (model/-start applet (specter/path
                                        (membrane.component/path->spec $ref)
-                                       (specter/keypath :applets id :state))) ]
+                                       (specter/keypath :applets id))) ]
 
       (-> this
           (assoc :last-id id)
@@ -103,7 +120,7 @@
                     (:id this)]])
          (term-view term/default-color-scheme
                     menlo
-                    (:state this)))
+                    (:vt this)))
         view (if focus?
                (ui/wrap-on
                 :key-event
@@ -121,37 +138,70 @@
               view)]
     view))
 
+(defn debounce-chan
+  "Reads from channel `in`. Will wait `ms` milliseconds
+  and write the latest value read from `in` to `out`."
+  [in out ms]
+  (async/go
+    (loop []
+      (let [x (async/<! in)]
+        (when x
+          (loop [to (async/timeout ms)
+                 x x]
+            (async/alt!
+              to ([_] (async/>! out x))
+              in ([x] (recur to x))))
+          (recur))))))
+
+(defn repaint-chan []
+  (let [debounced (async/chan (async/sliding-buffer 1))
+        in (async/chan)]
+    (debounce-chan in debounced 30)
+    (async/thread
+      (loop []
+        (let [x (async/<!! debounced)]
+          (when x
+            (repaint!)
+            (recur)))))
+    in))
+
 (defrecord Termlet [dispatch!]
   model/IApplet
   (-start [this $ref]
-    (let [cmd (into-array String ["/bin/bash" "-l"])
-          pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
-                               ^java.util.Map (merge (into {} (System/getenv))
-                                                     {"TERM" "xterm-256color"}))
-          width 90
-          height 30
-          pty (doto pty
-                (.setWinSize (WinSize. width height)))
-          is (io/reader (.getInputStream pty))
-          os (.getOutputStream pty)]
+    (let [width 90
+          height 30]
       (async/thread
-        (try
-          (with-open [is is]
-            (loop []
-              (let [input (.read is)]
-                (when (not= -1 input)
-                  (dispatch! :update $ref
-                             (fn [vt]
-                               (vt/feed-one vt input)))
-                  (dispatch! ::repaint!)
-                  (recur)))))
-          (catch Exception e
-            (prn e))))
+        (let [cmd (into-array String ["/bin/bash" "-l"])
+              pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
+                                   ^java.util.Map (merge (into {} (System/getenv))
+                                                         {"TERM" "xterm-256color"}))
+              width 90
+              height 30
+              pty (doto pty
+                    (.setWinSize (WinSize. width height)))
+              is (io/reader (.getInputStream pty))
+              os (.getOutputStream pty)
+              repaint-ch (repaint-chan)]
+          (dispatch! :update $ref
+                     (fn [this]
+                       (assoc this
+                              :pty pty
+                              :os os
+                              :is is)))
+          (try
+            (with-open [is is]
+              (loop []
+                (let [input (.read is)]
+                  (when (not= -1 input)
+                    (dispatch! :update [$ref '(keypath :vt)]
+                               (fn [vt]
+                                 (vt/feed-one vt input)))
+                    (async/put! repaint-ch true)
+                    (recur)))))
+            (catch Exception e
+              (prn e)))))
       (assoc this
-             :state (vt/make-vt width height)
-             :pty pty
-             :os os
-             :is is)))
+             :vt (vt/make-vt width height))))
   
   
   (-stop [this]
@@ -167,7 +217,7 @@
           rows (int (/ h (:membrane.term/cell-height menlo)))]
       (.setWinSize (:pty this)
                    (WinSize. cols rows))
-      (assoc this :state (vt/make-vt cols rows)))))
+      (assoc this :vt (vt/make-vt cols rows)))))
 
 (defn termlet []
   (-> (->Termlet handler)
@@ -237,6 +287,7 @@
         app (membrane.component/make-app #'easel-view app-state handler)]
     (skia/run app
       {:include-container-info true
+       ::skia/on-main on-main-callback
        :handlers
        {:reshape
         (fn [window window-handle width height]
@@ -255,3 +306,17 @@
          update :easel
          model/-add-applet (termlet))
   nil)
+
+(defn add-browser [url]
+  (swap! app-state
+         update :easel
+         model/-add-applet (browser/browslet handler url))
+  nil)
+(comment
+  (run)
+  (add-browser "https://phoboslab.org/xtype/")
+  (add-browser "https://www.youtube.com/")
+  (add-term)
+  ,)
+
+
