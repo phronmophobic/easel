@@ -8,6 +8,7 @@
    [com.phronemophobic.cef :as cef]
    [com.phronemophobic.membrane.browser.impl :as b])
   (:import com.sun.jna.Pointer
+           com.phronemophobic.membrane.Skia
            com.phronemophobic.cljcef.CefBrowser))
 
 
@@ -162,7 +163,9 @@
     (when draw-lock
       (locking draw-lock
         (when resource
-          (skia_draw_surface skia/*skia-resource* resource))))))
+          (skia/save-canvas
+           (Skia/skia_set_scale skia/*skia-resource* (float 0.5) (float 0.5))
+           (skia_draw_surface skia/*skia-resource* resource)))))))
 
 (defn browser-ui [this $context context]
   (let [focus (:focus context)
@@ -222,6 +225,7 @@
                              (dispatch! :update $browser-info
                                         dissoc :browser))
                            :cache-path cache-path
+                           :device-scale-factor 2.0
                            :on-paint
                            (fn [browser paint-type nrects rects buffer width height]
                              (skia-draw dispatch! $browser-info paint-type nrects rects buffer width height)
