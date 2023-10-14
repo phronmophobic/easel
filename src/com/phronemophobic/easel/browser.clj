@@ -3,6 +3,7 @@
    [com.phronemophobic.easel.model :as model]
    [membrane.skia :as skia]
    [membrane.ui :as ui]
+   [clojure.java.io :as io]
    [com.phronemophobic.gen2 :as gen2]
    [com.phronemophobic.cef :as cef]
    [com.phronemophobic.membrane.browser.impl :as b])
@@ -203,7 +204,10 @@
           initial-height 300
 
           $browser-info [$ref
-                         '(keypath :browser-info)]]
+                         '(keypath :browser-info)]
+
+          cache-path (doto (io/file ".browser-cache")
+                       (.mkdirs))]
       (prn "starting")
       (future
         (b/create-browser [initial-width initial-height]
@@ -217,6 +221,7 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
+                           :cache-path cache-path
                            :on-paint
                            (fn [browser paint-type nrects rects buffer width height]
                              (skia-draw dispatch! $browser-info paint-type nrects rects buffer width height)
