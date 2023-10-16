@@ -220,7 +220,7 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         assoc :browser browser))
-                           :on-before-close
+                           #_#_:on-before-close
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
