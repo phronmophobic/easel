@@ -101,6 +101,16 @@
 
 
 
+(defn delete-X []
+  (ui/with-style :membrane.ui/style-stroke
+    (ui/with-color
+      [1 0 0]
+      (ui/with-stroke-width
+        3
+        [(ui/path [0 0]
+                  [10 10])
+         (ui/path [10 0]
+                  [0 10])]))))
 
 (def tab-height 30)
 (defui tab-view [{:keys [tabs selected width]}]
@@ -112,16 +122,25 @@
                                   (ui/with-style ::ui/style-stroke))
                              (->> background
                                   (ui/with-color [0.8 0.8 0.8])
-                                  (ui/with-style ::ui/style-fill))
-                             )
+                                  (ui/with-style ::ui/style-fill)))
                 lbl (ui/center (ui/label (:label tab))
-                               (ui/bounds background))]
-            (ui/on
-             :mouse-down
-             (fn [_]
-               [[:toggle (:id tab)]])
-             [background
-              lbl]))))
+                               (ui/bounds background))
+                close (ui/on
+                       :mouse-down
+                       (fn [_]
+                         [[:stop (:id tab)]])
+                       (delete-X))]
+            [(ui/on
+              :mouse-down
+              (fn [_]
+                [[:toggle (:id tab)]])
+              [background
+               lbl])
+             (ui/translate
+              (- width 20)
+              (- (/ tab-height 2)
+                 4)
+              close)])))
    tabs))
 
 (def tab-width 150)
@@ -140,6 +159,14 @@
                           )
                   [w h] (:size easel)]
               (model/-resize easel w h)))]])
+      :stop
+      (fn [id]
+        [[:update $easel
+          (fn [easel]
+            (let [[w h] (:size easel)]
+             (-> easel
+                 (model/-remove-applet id)
+                 (model/-resize w h))))]])
       (tab-view {:tabs (vals (model/-applets easel))
                  :selected (:visible easel)
                  :width tab-width}))
