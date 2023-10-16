@@ -1,19 +1,17 @@
 (ns com.phronemophobic.easel
   (:require [membrane.skia :as skia]
             [membrane.ui :as ui]
-            [asciinema.vt :as vt]
-            [com.phronemophobic.membrane.term :as term]
             [membrane.alpha.stretch :as stretch]
             [tiara.data :as tiara]
             [com.rpl.specter :as specter]
             [clojure.java.io :as io]
-            [clojure.core.async :as async]
+            [com.phronemophobic.easel.term
+             :as term]
             [com.phronemophobic.easel.model :as model]
             [com.phronemophobic.easel.browser :as browser]
             [membrane.component
              :refer
-             [defui defeffect]])
-  (:import [com.pty4j PtyProcess WinSize]))
+             [defui defeffect]]))
 
 
 (def repaint! @#'skia/glfw-post-empty-event)
@@ -101,127 +99,8 @@
     :last-id 0
     :layout-direction :horizontal}))
 
-(def term-events #'term/term-events)
-(def term-view @#'term/term-view)
 
-(def menlo
-  (#'term/load-terminal-font skia/toolkit
-                             "Menlo"
-                             11))
 
-(defn term-ui [this $context context]
-  (let [focus (:focus context)
-        focus? (= focus (:id this))
-        view
-        (ui/on
-         :mouse-down
-                (fn [_]
-                  [[:set [$context (list 'keypath :focus)]
-                    (:id this)]])
-         (term-view term/default-color-scheme
-                    menlo
-                    (:vt this)))
-        view (if focus?
-               (ui/wrap-on
-                :key-event
-                (fn [handler key scancode action mods]
-                  (when (not= 39 key)
-                    (handler key scancode action mods)))
-                (term-events (:pty this)
-                             view))
-               view)
-        view (ui/fill-bordered
-              (if focus?
-                [0.8 0.8 0.8]
-                [0.95 0.95 0.95])
-              10
-              view)]
-    view))
-
-(defn debounce-chan
-  "Reads from channel `in`. Will wait `ms` milliseconds
-  and write the latest value read from `in` to `out`."
-  [in out ms]
-  (async/go
-    (loop []
-      (let [x (async/<! in)]
-        (when x
-          (loop [to (async/timeout ms)
-                 x x]
-            (async/alt!
-              to ([_] (async/>! out x))
-              in ([x] (recur to x))))
-          (recur))))))
-
-(defn repaint-chan []
-  (let [debounced (async/chan (async/sliding-buffer 1))
-        in (async/chan)]
-    (debounce-chan in debounced 30)
-    (async/thread
-      (loop []
-        (let [x (async/<!! debounced)]
-          (when x
-            (repaint!)
-            (recur)))))
-    in))
-
-(defrecord Termlet [dispatch!]
-  model/IApplet
-  (-start [this $ref]
-    (let [width 90
-          height 30]
-      (async/thread
-        (let [cmd (into-array String ["/bin/bash" "-l"])
-              pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
-                                   ^java.util.Map (merge (into {} (System/getenv))
-                                                         {"TERM" "xterm-256color"}))
-              width 90
-              height 30
-              pty (doto pty
-                    (.setWinSize (WinSize. width height)))
-              is (io/reader (.getInputStream pty))
-              os (.getOutputStream pty)
-              repaint-ch (repaint-chan)]
-          (dispatch! :update $ref
-                     (fn [this]
-                       (assoc this
-                              :pty pty
-                              :os os
-                              :is is)))
-          (try
-            (with-open [is is]
-              (loop []
-                (let [input (.read is)]
-                  (when (not= -1 input)
-                    (dispatch! :update [$ref '(keypath :vt)]
-                               (fn [vt]
-                                 (vt/feed-one vt input)))
-                    (async/put! repaint-ch true)
-                    (recur)))))
-            (catch Exception e
-              (prn e)))))
-      (assoc this
-             :vt (vt/make-vt width height))))
-  
-  
-  (-stop [this]
-    (.destroy (:pty this))
-    (.close (:os this)))
-  (-ui [this $context context]
-    (term-ui this $context context))
-  model/IResizable
-  (-resize [this w h]
-    (let [w (- w 20)
-          h (- h 20)
-          cols (int (/ w (:membrane.term/cell-width menlo)))
-          rows (int (/ h (:membrane.term/cell-height menlo)))]
-      (.setWinSize (:pty this)
-                   (WinSize. cols rows))
-      (assoc this :vt (vt/make-vt cols rows)))))
-
-(defn termlet []
-  (-> (->Termlet handler)
-      (assoc :label "term")))
 
 (def tab-height 30)
 (defui tab-view [{:keys [tabs selected width]}]
@@ -304,7 +183,7 @@
 (defn add-term []
   (swap! app-state
          update :easel
-         model/-add-applet (termlet))
+         model/-add-applet (term/termlet handler))
   nil)
 
 (defn add-browser [url]
@@ -314,9 +193,11 @@
   nil)
 (comment
   (run)
-  (add-browser "https://phoboslab.org/xtype/")
-  (add-browser "https://www.youtube.com/")
   (add-term)
+  (add-browser "https://phoboslab.org/xtype/")
+  (add-browser "https://phoboslab.org/ztype/")
+  (add-browser "https://www.youtube.com/")
+  (add-browser "https://github.com/")
   ,)
 
 
