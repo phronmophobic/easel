@@ -157,8 +157,9 @@
 
   ui/IBounds
   (-bounds [this]
-    (assert (and width height content-scale))
-    [(/ width content-scale) (/ height content-scale)])
+    (if content-scale
+      [(/ width content-scale) (/ height content-scale)]
+      [width height]))
 
   skia/IDraw
   (draw [this]
