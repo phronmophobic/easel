@@ -40,14 +40,14 @@
   (skia_browser_draw resource buffer (int width) (int height)))
 
 
-(defn skia-draw [dispatch! $browser-info paint-type nrects rects buffer width height]
+(defn skia-draw [dispatch! $browser-info content-scale paint-type nrects rects buffer width height]
   (when (zero? paint-type)
     (let [browser-info (dispatch! :get $browser-info)]
-
       (locking (:draw-lock browser-info)
         (if (:resource browser-info)
           (if (and (= width (:width browser-info))
-                   (= height (:height browser-info)))
+                   (= height (:height browser-info))
+                   (= content-scale (:content-scale browser-info)))
             (when (pos? (.intValue nrects))
               (skia-browser-update (:resource browser-info) (.intValue nrects) rects buffer width height)
               (dispatch! :update $browser-info update :browser-id (fnil inc 0)))
@@ -57,9 +57,10 @@
                          dissoc
                          :resource)
               (skia_cleanup (:resource browser-info))
-              (skia-draw dispatch! $browser-info paint-type nrects rects buffer width height)))
+              (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)))
           (let [resource (skia-browser-buffer width height)
                 browser-info {:resource resource
+                              :content-scale content-scale
                               :width width
                               :height height}]
             (skia-browser-draw resource buffer width height)
@@ -70,7 +71,7 @@
   ;; always return nil. don't leak cache
   nil)
 
-(defrecord Browser [browser browser-id focused? width height resource draw-lock]
+(defrecord Browser [browser browser-id focused? content-scale width height resource draw-lock]
   ui/IOrigin
   (-origin [_]
     [0 0])
@@ -156,7 +157,8 @@
 
   ui/IBounds
   (-bounds [this]
-    [width height])
+    (assert (and width height content-scale))
+    [(/ width content-scale) (/ height content-scale)])
 
   skia/IDraw
   (draw [this]
@@ -164,21 +166,26 @@
       (locking draw-lock
         (when resource
           (skia/save-canvas
-           (Skia/skia_set_scale skia/*skia-resource* (float 0.5) (float 0.5))
+           (when (not= 1 content-scale)
+             (let [scale (float (/ 1 content-scale))]
+               (Skia/skia_set_scale skia/*skia-resource* scale scale)))
            (skia_draw_surface skia/*skia-resource* resource)))))))
 
 (defn browser-ui [this $context context]
   (let [focus (:focus context)
         focus? (= focus (:id this))
         browser-info (:browser-info this)
-        ;; _ (prn (:browser-id browser-info))
-        view (->Browser (:browser browser-info)
-                        (:browser-id browser-info)
-                        focus?
-                        (:width browser-info)
-                        (:height browser-info)
-                        (:resource browser-info)
-                        (:draw-lock browser-info))
+        view
+        (assoc
+         (->Browser (:browser browser-info)
+                    (:browser-id browser-info)
+                    focus?
+                    (:content-scale browser-info)
+                    (:width browser-info)
+                    (:height browser-info)
+                    (:resource browser-info)
+                    (:draw-lock browser-info))
+         :id2 (:id this))
 
         view (if focus?
                (ui/wrap-on
@@ -211,7 +218,6 @@
 
           cache-path (doto (io/file ".browser-cache")
                        (.mkdirs))]
-      (prn "starting")
       (future
         (b/create-browser [initial-width initial-height]
                           initial-url
@@ -219,16 +225,17 @@
                           {:on-after-created
                            (fn [browser]
                              (dispatch! :update $browser-info
-                                        assoc :browser browser))
+                                        assoc :browser browser)
+                             (let [host (.getHost browser)]
+                               (.setFocus host 1)))
                            #_#_:on-before-close
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
                            :cache-path cache-path
-                           :device-scale-factor 2.0
-                           :on-paint
-                           (fn [browser paint-type nrects rects buffer width height]
-                             (skia-draw dispatch! $browser-info paint-type nrects rects buffer width height)
+                           :on-paint+content-scale
+                           (fn [browser content-scale  paint-type nrects rects buffer width height]
+                             (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)
                              (dispatch! :repaint!))}))
       (assoc this
              :browser-info
@@ -243,9 +250,12 @@
   (-ui [this $context context]
     (browser-ui this $context context))
   model/IResizable
-  (-resize [this w h]
+  (-resize [this size content-scale]
     (when-let [browser (-> this :browser-info :browser)]
-      (b/resize browser [w h]))
+      (let [[sx sy] content-scale]
+        (if (= sx sy)
+          (b/resize browser size sx)
+          (b/resize browser size 1))))
     this))
 
 

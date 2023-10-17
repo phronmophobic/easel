@@ -119,7 +119,7 @@
   (-ui [this $context context]
     (term-ui this $context context))
   model/IResizable
-  (-resize [this w h]
+  (-resize [this [w h] _content-scale]
     (let [w (- w 20)
           h (- h 20)
           cols (int (/ w (:membrane.term/cell-width menlo)))

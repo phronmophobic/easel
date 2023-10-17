@@ -80,12 +80,14 @@
   (-applets [this]
     applets)
   model/IResizable
-  (-resize [this w h]
-    (let [this (assoc this :size [w h])
+  (-resize [this [w h] content-scale]
+    (let [this (assoc this
+                      :size [w h]
+                      :content-scale content-scale)
           this (if (seq visible)
                  (let [col-width (int (/ w (count visible)))
                        applets (reduce (fn [applets k]
-                                         (update applets k #(model/-resize % col-width h)))
+                                         (update applets k #(model/-resize % [col-width h] content-scale)))
                                        applets
                                        visible)]
                    (assoc this :applets applets))
@@ -155,18 +157,15 @@
             (let [visible (:visible easel)
                   easel (if (contains? visible id)
                           (model/-hide-applet easel id)
-                          (model/-show-applet easel id)
-                          )
-                  [w h] (:size easel)]
-              (model/-resize easel w h)))]])
+                          (model/-show-applet easel id))]
+              (model/-resize easel (:size easel) (:content-scale easel))))]])
       :stop
       (fn [id]
         [[:update $easel
           (fn [easel]
-            (let [[w h] (:size easel)]
-             (-> easel
-                 (model/-remove-applet id)
-                 (model/-resize w h))))]])
+            (-> easel
+                (model/-remove-applet id)
+                (model/-resize (:size easel) (:content-scale easel))))]])
       (tab-view {:tabs (vals (model/-applets easel))
                  :selected (:visible easel)
                  :width tab-width}))
@@ -202,8 +201,8 @@
                 height (int (/ height yscale))]
             (swap! app-state update :easel
                    model/-resize
-                   (- width tab-width)
-                   height))
+                   [(- width tab-width) height]
+                   [xscale yscale]))
           (skia/-reshape window window-handle width height))}})))
 
 
@@ -225,6 +224,9 @@
   (add-browser "https://phoboslab.org/ztype/")
   (add-browser "https://www.youtube.com/")
   (add-browser "https://github.com/")
+
+
+  (do (run) (add-browser "https://github.com/") (add-browser "https://github.com/"))
   ,)
 
 

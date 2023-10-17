@@ -2,7 +2,7 @@
 
 
 (defprotocol IResizable
-  (-resize [this w h]))
+  (-resize [this [w h] content-scale]))
 
 (defprotocol IApplet
   (-start [this $ref])
