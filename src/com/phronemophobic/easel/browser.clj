@@ -217,6 +217,8 @@
           $browser-info [$ref
                          '(keypath :browser-info)]
 
+          cef-path (doto (io/file ".cef")
+                     (.mkdirs))
           cache-path (doto (io/file ".browser-cache")
                        (.mkdirs))]
       (future
@@ -233,6 +235,7 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
+                           :cef-path cef-path
                            :cache-path cache-path
                            :on-paint+content-scale
                            (fn [browser content-scale  paint-type nrects rects buffer width height]
