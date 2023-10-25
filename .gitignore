@@ -30,3 +30,5 @@ tmp/
 docs/
 .browser-cache/
 todo.org
+/GPUCache
+/.cef
