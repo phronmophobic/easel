@@ -5,6 +5,8 @@
             [tiara.data :as tiara]
             [com.rpl.specter :as specter]
             [clojure.java.io :as io]
+            [com.phronemophobic.easel.list-applets :as
+             list-applets]
             [com.phronemophobic.easel.term
              :as term]
             [com.phronemophobic.easel.model :as model]
@@ -27,6 +29,14 @@
   (repaint!)
 
   )
+
+(defeffect ::add-applet [make-applet]
+  (dispatch!
+   :update :easel
+             (fn [easel]
+               (model/-add-applet easel
+                                  (make-applet dispatch!))))
+  nil)
 
 (defn on-main-callback []
   (loop []
@@ -218,7 +228,11 @@
          model/-add-applet (browser/browslet handler url))
   nil)
 (comment
-  (run)
+  (do
+    (run)
+    (handler ::add-applet
+             list-applets/list-applets))
+
   (add-term)
   (add-browser "https://phoboslab.org/xtype/")
   (add-browser "https://phoboslab.org/ztype/")
