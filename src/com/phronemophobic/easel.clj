@@ -52,22 +52,38 @@
   (repaint!))
 
 
+(defn col-width [easel visible-count]
+  (let [[w h] (:size easel)
+        col-width (if (pos? visible-count)
+                    (quot w visible-count)
+                    w)]
+    col-width))
+
 (defrecord AEasel [applets visible last-id $ref layout-direction size]
   model/IEasel
   (-add-applet [this applet]
-    (let [id (inc last-id)
+    (let [cw (col-width this (inc (count visible)))
+          ch (second size)
+          new-size [cw ch]
+          id (inc last-id)
           applet (assoc applet :id id)
           applet (model/-start applet (specter/path
-                                       (membrane.component/path->spec $ref)
-                                       (specter/keypath :applets id))) ]
+                                        (membrane.component/path->spec $ref)
+                                        (specter/keypath :applets id))
+                               new-size)]
 
       (-> this
           (assoc :last-id id)
           (assoc-in [:applets id] applet)
-          (update :visible conj id))))
+          (update :visible conj id)
+          (model/-resize size (:content-scale this)))))
   (-remove-applet [this id]
     (if-let [applet (get applets id)]
-      (let [applet (model/-stop applet)]
+      (let [applet (try
+                     (model/-stop applet)
+                     (catch Exception e
+                       (println "Error when closing applet:")
+                       (prn e)))]
         (-> this
             (update :applets dissoc id)
             (update :visible disj id)))
@@ -186,19 +202,23 @@
 
 
 (def pad 20)
+
+(require 'com.phronemophobic.membrane.schematic3)
+(def eval-ns (the-ns 'com.phronemophobic.membrane.schematic3))
 (defn run []
   (let [
         #_#__ (swap! app-state
-                 assoc :vt
-                 (-start (->Termlet handler)
-                         (specter/keypath :vt)))
+                     assoc :vt
+                     (-start (->Termlet handler)
+                             (specter/keypath :vt)))
         _ (swap! app-state
                  (fn [state]
                    (if state
                      state
                      {:easel (assoc (make-easel)
-                                    :$ref (specter/keypath :easel))})))
-
+                                    :$ref (specter/keypath :easel))
+                      :membrane.component/context {:eval-ns eval-ns}})))
+        
         app (membrane.component/make-app #'easel-view app-state handler)]
     (skia/run app
       {:include-container-info true
@@ -230,8 +250,10 @@
 (comment
   (do
     (run)
+    (Thread/sleep 1000)
     (handler ::add-applet
              list-applets/list-applets))
+  (reset! app-state nil)
 
   (add-term)
   (add-browser "https://phoboslab.org/xtype/")
@@ -243,4 +265,32 @@
   (do (run) (add-browser "https://github.com/") (add-browser "https://github.com/"))
   ,)
 
+
+(defn -main [& args]
+  (do
+    (run)
+    (handler ::add-applet
+             list-applets/list-applets))
+  (Thread/sleep 5000)
+  (add-browser "https://github.com/")
+
+  (Thread/sleep 5000))
+
+(comment
+
+  (def pty
+
+    (-> @app-state
+        :easel
+        :applets
+        seq
+        (nth 2)
+        val
+        :pty))
+  (com.pty4j.unix.Pty/raise
+   (int (.pid pty))
+   (int 28))
+
+           
+  ,)
 

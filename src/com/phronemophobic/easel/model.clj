@@ -5,7 +5,7 @@
   (-resize [this [w h] content-scale]))
 
 (defprotocol IApplet
-  (-start [this $ref])
+  (-start [this $ref size])
   (-stop [this])
   (-ui [this $context context]))
 

@@ -5,12 +5,16 @@
         com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
         com.phronemophobic/schematic {:local/root "../schematic"}
         com.phronemophobic/viscous {:local/root "../viscous"}
-        com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
+        ;; com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
         membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
         com.phronemophobic/membrane.term {:local/root "../term"}
         org.clojars.quoll/tiara {;;:mvn/version "0.3.3"
                                  :local/root "../tiara"
                                  }
+        ;; com.phronemophobic/clj-cef2 {:local/root "../clj-cef"}
+        com.phronemophobic/clj-cef2.alpha {:mvn/version "0.1"
+                                           ;;:local/root "../clj-cef"
+                                           }
         com.phronemophobic/vt
         {:local/root "../vt"
          ;; :mvn/version "1.0"
@@ -25,8 +29,6 @@
 
   :project
   {:jvm-opts [;; "-Djna.library.path=/opt/local/lib"
-              ;; "-Djava.library.path=../llvm-project/build/out/lib"
-              ;; "-Djna.library.path=../llvm-project/build/out/lib"
               "-XX:+UnlockDiagnosticVMOptions"
               "-Djdk.attach.allowAttachSelf=true"
               "-XX:-OmitStackTraceInFastThrow"

@@ -4,12 +4,15 @@
    [membrane.skia :as skia]
    [membrane.ui :as ui]
    [clojure.java.io :as io]
-   [com.phronemophobic.gen2 :as gen2]
+   [com.phronemophobic.gen3 :as gen3]
    [com.phronemophobic.cef :as cef]
-   [com.phronemophobic.membrane.browser.impl :as b])
+   [com.phronemophobic.cef.browser :as b])
   (:import com.sun.jna.Pointer
+           com.sun.jna.Function
            com.phronemophobic.membrane.Skia
-           com.phronemophobic.cljcef.CefBrowser))
+           com.phronemophobic.gen3.structs.cef_browser_host_t
+           ;;com.phronemophobic.cljcef.CefBrowser
+           ))
 
 
 (def skialib @#'skia/membraneskialib)
@@ -80,7 +83,14 @@
   ui/IMouseMove
   (-mouse-move [elem pos]
     (when browser
-      (.sendMouseMoveEvent (.getHost ^CefBrowser browser)
+      (gen3/call (gen3/call browser :get_host)
+                 :send_mouse_move_event
+                 (gen3/map->mouse-event
+                            {:x (first pos)
+                             :y (second pos)})
+                 0)
+
+      #_(.sendMouseMoveEvent (.getHost ^CefBrowser browser)
                            (cef/map->mouse-event
                             {:x (first pos)
                              :y (second pos)})
@@ -89,7 +99,17 @@
   ui/IMouseEvent
   (-mouse-event [elem pos button mouse-down? mods]
     (when browser
-      (.sendMouseClickEvent (.getHost ^CefBrowser browser)
+      (gen3/call (gen3/call browser :get_host)
+                 :send_mouse_click_event
+                 (gen3/map->mouse-event
+                  {:x (first pos)
+                   :y (second pos)})
+                 button
+                 (if mouse-down?
+                   0
+                   1)
+                 1)
+      #_(.sendMouseClickEvent (.getHost ^CefBrowser browser)
                             (cef/map->mouse-event
                              {:x (first pos)
                               :y (second pos)})
@@ -103,7 +123,14 @@
   ui/IScroll
   (-scroll [elem delta mpos]
     (when browser
-      (.sendMouseWheelEvent (.getHost ^CefBrowser browser)
+      (gen3/call (gen3/call browser :get_host)
+                 :send_mouse_wheel_event
+                 (gen3/map->mouse-event
+                  {:x (first mpos)
+                   :y (second mpos)})
+                 (first delta)
+                 (second delta))
+      #_(.sendMouseWheelEvent (.getHost ^CefBrowser browser)
                             (cef/map->mouse-event
                              {:x (first mpos)
                               :y (second mpos)})
@@ -125,7 +152,14 @@
                   )
                 (.charAt k 0))]
         (when c
-          (.sendKeyEvent (.getHost browser)
+          (gen3/call (gen3/call browser :get_host)
+                     :send_key_event
+                     (gen3/map->key-event
+                      {:type 3
+                       :modifiers 0
+                       :character c
+                       :unmodified-character c}))
+          #_(.sendKeyEvent (.getHost browser)
                          (cef/map->key-event
                           {:type 3
                            :modifiers 0
@@ -149,7 +183,10 @@
                          :native-key-code code
                          :character (char key)
                          :unmodified-character (char key)}]
-          (.sendKeyEvent (.getHost ^CefBrowser browser)
+          (gen3/call (gen3/call browser :get_host)
+                     :send_key_event
+                     (gen3/map->key-event key-event))
+          #_(.sendKeyEvent (.getHost ^CefBrowser browser)
                          (cef/map->key-event
                           key-event)))))
     )
@@ -205,14 +242,13 @@
     view))
 
 
+
 (defrecord Browslet [dispatch! initial-url]
   model/IApplet
-  (-start [this $ref]
+  (-start [this $ref [initial-width initial-height]]
     (let [dispatch-main
           (fn [work]
             (dispatch! :dispatch-main work))
-          initial-width 300
-          initial-height 300
 
           $browser-info [$ref
                          '(keypath :browser-info)]
@@ -229,8 +265,14 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         assoc :browser browser)
-                             (let [host (.getHost browser)]
-                               (.setFocus host 1)))
+                             
+                             (let [host (gen3/call browser :get_host)]
+                               (gen3/call host :set_focus (int 1))
+                               
+                               #_(.setFocus host 1)))
+                           :remote-debugging-port 8888
+
+                           
                            #_#_:on-before-close
                            (fn [browser]
                              (dispatch! :update $browser-info
@@ -266,3 +308,18 @@
 (defn browslet [handler url]
   (-> (->Browslet handler url)
       (assoc :label "web")))
+
+(comment
+  (cef/download-and-extract-framework
+   (doto (io/file ".cef")
+     (.mkdirs))
+   )
+  (cef/download-and-prepare-environment!
+   (doto (io/file ".cef")
+     (.mkdirs)))
+
+  (-> (b/list-browsers)
+      first
+      .getHost
+      (.setFocus 1))
+  ,)

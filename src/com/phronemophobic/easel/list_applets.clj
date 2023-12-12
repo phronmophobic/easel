@@ -29,20 +29,27 @@
                          ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
                           handler
                           url))]])})
-    (basic/textarea {:text url}))))
+    (basic/textarea {:text url}))
+   (basic/button {:text "Add Schematic"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.schematic/schematlet)]])})
+   ))
 
 
 
 (defrecord ListApplets [dispatch!]
   model/IApplet
-  (-start [this $ref]
+  (-start [this $ref size]
     (assoc this
            :$ref $ref
            :$extra [$ref (list 'keypath :extra)]
            :$context [$ref (list 'keypath :context)]
            :url "https://github.com"
            :$url [$ref (list 'keypath :url)]
-           :size [300 300]
+           :size size
            :$applets
            [$ref (list 'keypath :applets)]))
   (-stop [this])

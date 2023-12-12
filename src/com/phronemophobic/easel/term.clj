@@ -78,18 +78,21 @@
 
 (defrecord Termlet [dispatch!]
   model/IApplet
-  (-start [this $ref]
-    (let [width 90
-          height 30]
+  (-start [this $ref [w h]]
+    (let [w (- w 20)
+          h (- h 20)
+          cols (quot w (:membrane.term/cell-width menlo))
+          rows (quot h (:membrane.term/cell-height menlo))]
       (async/thread
         (let [cmd (into-array String ["/bin/bash" "-l"])
               pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
                                    ^java.util.Map (merge (into {} (System/getenv))
                                                          {"TERM" "xterm-256color"}))
-              width 90
-              height 30
-              pty (doto pty
-                    (.setWinSize (WinSize. width height)))
+
+              ;; doesn't quite work anyway?
+              ;; pty (while
+              ;;         (not(doto pty
+              ;;            (.setWinSize (WinSize. width height)))))
               is (io/reader (.getInputStream pty))
               os (.getOutputStream pty)
               repaint-ch (repaint-chan)]
@@ -112,21 +115,28 @@
             (catch Exception e
               (prn e)))))
       (assoc this
-             :vt (vt/make-vt width height))))
+             :vt (vt/make-vt cols rows))))
   (-stop [this]
     (.destroy (:pty this))
     (.close (:os this)))
   (-ui [this $context context]
     (term-ui this $context context))
   model/IResizable
-  (-resize [this [w h] _content-scale]
+  (-resize [this [w h :as new-size] _content-scale]
     (let [w (- w 20)
           h (- h 20)
-          cols (int (/ w (:membrane.term/cell-width menlo)))
-          rows (int (/ h (:membrane.term/cell-height menlo)))]
-      (.setWinSize (:pty this)
-                   (WinSize. cols rows))
-      (assoc this :vt (vt/make-vt cols rows)))))
+          cols (quot w (:membrane.term/cell-width menlo))
+          rows (quot h (:membrane.term/cell-height menlo))]
+      (if (= [cols rows]
+             [(-> this :vt :screen :width)
+              (-> this :vt :screen :height)])
+        this
+        ;; else
+        (do
+          (.setWinSize (:pty this)
+                       (WinSize. cols rows))
+
+          (assoc this :vt (vt/make-vt cols rows)))))))
 
 (defn termlet [handler]
   (-> (->Termlet handler)
