@@ -65,9 +65,13 @@
 
 (defn list-applets [handler]
   (-> (->ListApplets handler)
-      (assoc :applets
-             [{:name "term"
-               :make-applet (requiring-resolve 'com.phronemophobic.easel.term/termlet)}
-              {:name "browser"
-               :make-applet (requiring-resolve 'com.phronemophobic.easel.browser/browslet)}])
+      ;; unused
+      ;; UI is currently custom
+      #_(assoc :applets
+               [{:name "term"
+                 :make-applet (requiring-resolve 'com.phronemophobic.easel.term/termlet)}
+                {:name "browser"
+                 :make-applet (requiring-resolve 'com.phronemophobic.easel.browser/browslet)}
+                {:name "schemalet"
+                 :make-applet (requiring-resolve 'com.phronemophobic.easel.schematic/schematlet)}])
       (assoc :label "list-applets")))
