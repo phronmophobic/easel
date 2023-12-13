@@ -36,6 +36,12 @@
                   (fn []
                     [[:com.phronemophobic.easel/add-applet
                       (requiring-resolve 'com.phronemophobic.easel.schematic/schematlet)]])})
+   (basic/button {:text "Add Spreadsheet"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.spreadsheet/spreadsheet-applet)]])})
    ))
 
 

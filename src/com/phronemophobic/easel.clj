@@ -30,12 +30,21 @@
 
   )
 
+(defeffect :watch [key $ref f]
+  (let [path (membrane.component/path->spec $ref)]
+    (add-watch app-state key
+               (fn [key ref old new]
+                 (let [new-val (specter/select-one path new)
+                       old-val (specter/select-one path old)]
+                   (when (not= new-val old-val)
+                     (f key ref old-val new-val)))))))
+
 (defeffect ::add-applet [make-applet]
   (dispatch!
    :update :easel
-             (fn [easel]
-               (model/-add-applet easel
-                                  (make-applet dispatch!))))
+   (fn [easel]
+     (model/-add-applet easel
+                        (make-applet dispatch!))))
   nil)
 
 (defn on-main-callback []
