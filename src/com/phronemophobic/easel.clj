@@ -134,6 +134,7 @@
    {:applets (tiara/ordered-map)
     :visible (tiara/ordered-set)
     :last-id 0
+    :size [1 1]
     :layout-direction :horizontal}))
 
 
@@ -242,6 +243,9 @@
                    model/-resize
                    [(- width tab-width) height]
                    [xscale yscale]))
+          (when (not (seq (model/-applets (:easel @app-state))))
+            (handler ::add-applet
+                     list-applets/list-applets))
           (skia/-reshape window window-handle width height))}})))
 
 
@@ -259,9 +263,9 @@
 (comment
   (do
     (run)
-    (Thread/sleep 1000)
-    (handler ::add-applet
-             list-applets/list-applets))
+    #_(Thread/sleep 1000)
+    #_(handler ::add-applet
+               list-applets/list-applets))
   (reset! app-state nil)
 
   (add-term)
