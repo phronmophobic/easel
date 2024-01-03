@@ -320,6 +320,6 @@
 
   (-> (b/list-browsers)
       first
-      .getHost
-      (.setFocus 1))
+      (gen3/call :get_host)
+      (gen3/call :set_focus (int 1)))
   ,)
