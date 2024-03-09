@@ -28,15 +28,11 @@
 (defui editor [{:keys [elem]}])
 
 (defui drag-elem-wrap-target [{:keys [elem drag-object body]}]
-  (prn "drop object" drag-object)
   (dnd/on-drop
    (fn [pos obj]
      (let [intents [[:set $drag-object nil]]]
        (if-let [new-elem (::sm/element obj)]
          (let [new-elem (sm/set-child new-elem elem)]
-           (println "new child: ------------")
-           (prn $elem)
-           (clojure.pprint/pprint new-elem)
            (conj intents [:set $elem new-elem]))
          intents)))
    (on-drag-hover
