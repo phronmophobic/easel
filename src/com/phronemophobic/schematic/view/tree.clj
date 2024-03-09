@@ -32,7 +32,9 @@
    (fn [pos obj]
      (let [intents [[:set $drag-object nil]]]
        (if-let [new-elem (::sm/element obj)]
-         (let [new-elem (sm/set-child new-elem elem)]
+         (let [new-elem (if (::replace? obj)
+                          new-elem
+                          (sm/set-child new-elem elem))]
            (conj intents [:set $elem new-elem]))
          intents)))
    (on-drag-hover
@@ -59,7 +61,9 @@
     (ui/on
      :mouse-down
      (fn [_]
-       [[::sm/toggle-selection {:element/id id}]])
+       [[::dnd/drag-start {::sm/element elem
+                           ::replace? true}]
+        [::sm/toggle-selection {:element/id id}]])
      (para/paragraph
       {:text text
        :style #:text-style {:font-style #:font-style{:weight :bold}
@@ -213,7 +217,8 @@
                                              component/args
                                              component/body
                                              component/defaults
-                                             element/id]} :elem
+                                             element/id]
+                                      :as elem} :elem
                                      :keys [
                                             $elem
                                             extra
@@ -221,6 +226,13 @@
                                             $context
                                             $extra]}]
   (ui/vertical-layout
+   (uicall
+    component-title
+    {:text "(component"
+     :selection (:selection context)
+     :elem elem
+     :$elem $elem
+     :id id})
    (ui/horizontal-layout
     (ui/label "name: ")
     (uicall symbol-editor
