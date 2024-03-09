@@ -633,7 +633,12 @@
 (defn set-child [elem child]
   (case (:element/type elem)
     (::group ::flex-layout)
-    (assoc elem :element/children [child])
+    (assoc elem :element/children
+           (case (:element/type child)
+             (::for ::group)
+             child
+             ;; else
+             [child]))
 
     (::component)
     (assoc elem :component/body child)
