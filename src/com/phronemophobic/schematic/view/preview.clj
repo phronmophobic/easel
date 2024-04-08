@@ -145,7 +145,7 @@
                           (fn [bindings]
                             (into (or bindings {})
                                   (map (fn [[k v]]
-                                         [(symbol k) v]))
+                                         [(symbol k) (eval+ v)]))
                                   defaults)))
                body)
       (uicall drag-elem-target
