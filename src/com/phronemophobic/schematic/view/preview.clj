@@ -290,7 +290,7 @@
                            :extra inspector-extra})))}))
 
 
-(def app-state (atom {}))
+(defonce app-state (atom {}))
 
 (comment
   (clojure.pprint/pprint
