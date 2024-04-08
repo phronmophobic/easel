@@ -346,9 +346,16 @@
    (ui/translate
     20 3
     (ui/vertical-layout
-     (uicall code-editor
-             {:code text
-              :$code [$elem (list 'keypath :element/text)]}))))) 
+     (compile
+      {:elem text
+       :$elem [$elem (list 'keypath :element/text)]
+       :extra (get extra ::text)
+       :$extra [$extra (list 'keypath ::text)]
+       :context context
+       :$context $context})
+     #_(uicall code-editor
+               {:code text
+                :$code [$elem (list 'keypath :element/text)]}))))) 
 
 (defmethod compile* ::sm/checkbox [{{:keys [element/checked?
                                             element/id]
