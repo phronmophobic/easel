@@ -568,6 +568,27 @@
      :id id
      :elem elem
      :$elem $elem})
+   (ui/fixed-bounds
+    (ui/bounds (para/paragraph "↔️"))
+    (if (= (:flex/direction layout)
+           :flex.direction/column)
+      (ui/on
+       :mouse-down
+       (fn [_]
+         [[:set [$elem
+                 (list 'keypath :flex/layout)
+                 (list 'keypath :flex/direction)]
+           :flex.direction/row]])
+       (para/paragraph "↕️"))
+      (ui/on
+       :mouse-down
+       (fn [_]
+         [[:set [$elem
+                 (list 'keypath :flex/layout)
+                 (list 'keypath :flex/direction)]
+           :flex.direction/column]])
+       (para/paragraph "↔️"))
+      ))
    (ui/translate
     20 0
     (if (vector? children)
