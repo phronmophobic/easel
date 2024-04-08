@@ -365,7 +365,22 @@
                                      [[::sm/delete-selection
                                        {:$elem $elem
                                         :selection selection
-                                        :$selection $selection}]])}))}))))
+                                        :$selection $selection}]])})
+          (basic/button {:text "print"
+                         :on-click (fn []
+                                     (clojure.pprint/pprint
+                                      (sm/compile elem))
+                                     nil)})
+          (basic/button {:text "eval"
+                         :on-click (fn []
+                                     (eval (sm/compile elem))
+                                     nil)})
+          (basic/button {:text "show!"
+                         :on-click (fn []
+                                     (let [v (eval (sm/compile elem))]
+                                       (skia/run (membrane.component/make-app v
+                                                                              (eval+ (:component/defaults elem)))))
+                                     nil)}))}))))
 
   (reset! app-state
           {:elem {:element/type ::sm/let
