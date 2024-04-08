@@ -202,7 +202,7 @@
 
 (defmethod compile* ::sm/flex-layout [ctx
                                       {:keys [element/children
-                                              :flex/layout]}]
+                                              flex/layout]}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
    (ui/vertical-layout
     ;; (ui/label "flex-layout")
