@@ -208,7 +208,10 @@
     ;; (ui/label "flex-layout")
     (if children
       (apply
-       ui/vertical-layout
+       (if (= (:flex/direction layout)
+              :flex.direction/column)
+         ui/vertical-layout
+         ui/horizontal-layout)
        (compile
         (assoc ctx
                :$elem [$elem (list 'keypath :element/children)]
