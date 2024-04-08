@@ -63,8 +63,8 @@
     (if (= (:element/type o)
            ::code)
       (compile* o)
-      ;; (compile* o)
-      `(when-let [elem# ~(compile* o)]
+      (compile* o)
+      #_`(when-let [elem# ~(compile* o)]
          (with-meta
            elem#
            (quote ~{::ast (select-keys o [:element/id])}))))
