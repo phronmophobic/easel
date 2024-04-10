@@ -30,7 +30,7 @@
                           handler
                           url))]])})
     (basic/textarea {:text url}))
-   (basic/button {:text "Add Schematic"
+   #_(basic/button {:text "Add Schematic"
                   ;; :hover? (get applet [::hover?])
                   :on-click
                   (fn []
@@ -42,6 +42,37 @@
                   (fn []
                     [[:com.phronemophobic.easel/add-applet
                       (requiring-resolve 'com.phronemophobic.easel.spreadsheet/spreadsheet-applet)]])})
+   #_(basic/button {:text "Add Preview"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.ui/schema-preview)]])})
+   (basic/button {:text "Toolbar"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.schematic2/toolbar-applet)]])})
+   (basic/button {:text "Component Picker"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.schematic2/component-picker-applet)]])})
+   (basic/button {:text "Tree View"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.schematic2/tree-applet)]])})
+   (basic/button {:text "Preview"
+                  ;; :hover? (get applet [::hover?])
+                  :on-click
+                  (fn []
+                    [[:com.phronemophobic.easel/add-applet
+                      (requiring-resolve 'com.phronemophobic.easel.schematic2/preview-applet)]])})
+   
    ))
 
 
