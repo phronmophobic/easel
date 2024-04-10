@@ -63,7 +63,8 @@
      (fn [_]
        [[::dnd/drag-start {::sm/element elem
                            ::replace? true}]
-        [::sm/toggle-selection {:element/id id}]])
+        [::sm/toggle-selection {:element/id id
+                                :$selection $selection}]])
      (para/paragraph
       {:text text
        :style #:text-style {:font-style #:font-style{:weight :bold}
@@ -230,6 +231,7 @@
     component-title
     {:text "(component"
      :selection (:selection context)
+     :$selection (:$selection context)
      :elem elem
      :$elem $elem
      :id id})
@@ -283,6 +285,7 @@
     component-title
     {:text "(paragraph"
      :selection (:selection context)
+     :$selection (:$selection context)
      :elem elem
      :$elem $elem
      :id id})
@@ -316,6 +319,7 @@
      :elem elem
      :$elem $elem
      :selection (:selection context)
+     :$selection (:$selection context)
      :id id})
    (ui/translate
     20 3
@@ -342,6 +346,7 @@
      :elem elem
      :$elem $elem
      :selection (:selection context)
+     :$selection (:$selection context)
      :id id})
    (ui/translate
     20 3
@@ -372,6 +377,7 @@
      :elem elem
      :$elem $elem
      :selection (:selection context)
+     :$selection (:$selection context)
      :id id})
    (ui/translate
     20 3
@@ -436,6 +442,7 @@
         :elem elem
         :$elem $elem
         :selection (:selection context)
+        :$selection (:$selection context)
         :id id})
       (ui/translate
        13 3
@@ -459,6 +466,7 @@
     component-title
     {:text "(group"
      :selection (:selection context)
+     :$selection (:$selection context)
      :elem elem
      :$elem $elem
      :id id})
@@ -499,6 +507,7 @@
      :elem elem
      :$elem $elem
      :selection (:selection context)
+     :$selection (:$selection context)
      :id id})
    (ui/translate
     5 0
@@ -565,6 +574,7 @@
     component-title
     {:text "(flex-layout"
      :selection (:selection context)
+     :$selection (:$selection context)
      :id id
      :elem elem
      :$elem $elem})
