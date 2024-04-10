@@ -32,3 +32,5 @@ docs/
 todo.org
 /GPUCache
 /.cef
+hs_err*
+/DawnCache
