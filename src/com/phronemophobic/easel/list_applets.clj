@@ -94,7 +94,10 @@
     (ui/scissor-view
      [0 0]
      (:size this)
-     (list-applets-ui this)))
+     (list-applets-ui
+      (assoc this
+             :context context
+             :$context $context))))
   model/IResizable
   (-resize [this [w h] _content-scale]
     (assoc this
