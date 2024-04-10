@@ -316,6 +316,36 @@
                                  elem))))
   (dispatch! :set $selection #{}))
 
+(defui toolbar [{:keys [elem selection]}]
+  (ui/vertical-layout
+   (basic/button {:text "clear"
+                  :on-click (fn []
+                              [[:set $elem nil]])})
+   (ui/horizontal-layout
+    (ui/label (str "selection: " (pr-str selection))))
+   (basic/button {:text "delete"
+                  :on-click (fn []
+                              [[::sm/delete-selection
+                                {:$elem $elem
+                                 :selection selection
+                                 :$selection $selection}]])})
+   (basic/button {:text "print"
+                  :on-click (fn []
+                              (clojure.pprint/pprint
+                               (sm/compile elem))
+                              nil)})
+   (basic/button {:text "eval"
+                  :on-click (fn []
+                              (eval (sm/compile elem))
+                              nil)})
+   (basic/button {:text "show!"
+                  :on-click (fn []
+                              (let [v (eval (sm/compile elem))]
+                                (skia/run (membrane.component/make-app v
+                                                                       (eval+ (:component/defaults elem)))))
+                              nil)}))
+  )
+
 (comment
 
   (require '[com.phronemophobic.schematic.view.tree :as view.tree])
