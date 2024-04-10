@@ -2,6 +2,7 @@
   (:require [membrane.component :refer [defui defeffect]]
             [membrane.basic-components :as basic]
             [membrane.ui :as ui]
+            [com.phronemophobic.membrandt :as ant]
             [com.phronemophobic.schematic.model :as sm]
             [membrane.alpha.component.drag-and-drop :as dnd]))
 
@@ -61,17 +62,21 @@
                      :element/id (random-uuid)})})
 
 (defui component-picker [{:keys []}]
-  (apply
-   ui/vertical-layout
-   (eduction
-    (map
-     (fn [kind]
-       (ui/on
-        :mouse-down
-        (fn [_]
-          [[::dnd/drag-start {::sm/element
-                              ((get component-starters kind))}]])
-        (basic/button {:text (name kind)
-                       :hover? (get extra [:hover kind])}))))
+  (ui/translate
+   4 4
+   (apply
+    ui/vertical-layout
+    (eduction
+     (map
+      (fn [kind]
+        (ui/on
+         :mouse-down
+         (fn [_]
+           [[::dnd/drag-start {::sm/element
+                               ((get component-starters kind))}]])
+         (ant/button {:text (name kind)
+                      :size :small
+                      ;;:hover? (get extra [:hover kind])
+                      }))))
 
-    (sort (keys component-starters)))))
+     (sort (keys component-starters))))))
