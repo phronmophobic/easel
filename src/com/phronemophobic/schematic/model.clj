@@ -236,7 +236,6 @@
         layout
 
         direction (get layout :flex/direction :flex.direction/row)
-        _ (prn "drection" m direction)
         ;; not used
         wrap (get layout :flex/wrap :flex.wrap/nowrap)
 

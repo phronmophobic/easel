@@ -58,7 +58,6 @@
   (let [text (compile ctx text)
         width (compile ctx width)
         paragraph-style (compile ctx width)]
-    (prn {:text text})
     (when (string? text)
       (para/paragraph text
                       width
