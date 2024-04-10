@@ -70,8 +70,7 @@
         :mouse-down
         (fn [_]
           [[::dnd/drag-start {::sm/element
-                              (assoc (get component-starters kind)
-                                     :element/id (random-uuid))}]])
+                              ((get component-starters kind))}]])
         (basic/button {:text (name kind)
                        :hover? (get extra [:hover kind])}))))
 
