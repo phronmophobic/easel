@@ -11,6 +11,7 @@
              :as term]
             [com.phronemophobic.easel.model :as model]
             [com.phronemophobic.easel.browser :as browser]
+            [membrane.alpha.component.drag-and-drop :as dnd]
             [membrane.component
              :refer
              [defui defeffect]]))
@@ -205,9 +206,12 @@
       (tab-view {:tabs (vals (model/-applets easel))
                  :selected (:visible easel)
                  :width tab-width}))
-     (stretch/hlayout
-      (map #(model/-ui % $context context))
-      (model/-visible-applets easel)))))
+     (dnd/drag-and-drop
+      {:$body nil
+       :body
+       (stretch/hlayout
+        (map #(model/-ui % $context context))
+        (model/-visible-applets easel))}))))
 
 
 
