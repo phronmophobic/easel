@@ -76,6 +76,7 @@
                                ((get component-starters kind))}]])
          (ant/button {:text (name kind)
                       :size :small
+                      :extra (get extra [:button kind])
                       ;;:hover? (get extra [:hover kind])
                       }))))
 
