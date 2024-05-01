@@ -46,31 +46,32 @@
 (defn skia-draw [dispatch! $browser-info content-scale paint-type nrects rects buffer width height]
   (when (zero? paint-type)
     (let [browser-info (dispatch! :get $browser-info)]
-      (locking (:draw-lock browser-info)
-        (if (:resource browser-info)
-          (if (and (= width (:width browser-info))
-                   (= height (:height browser-info))
-                   (= content-scale (:content-scale browser-info)))
-            (when (pos? (.intValue nrects))
-              (skia-browser-update (:resource browser-info) (.intValue nrects) rects buffer width height)
-              (dispatch! :update $browser-info update :browser-id (fnil inc 0)))
-            (do
-              (dispatch! :update
-                         $browser-info
-                         dissoc
-                         :resource)
-              (skia_cleanup (:resource browser-info))
-              (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)))
-          (let [resource (skia-browser-buffer width height)
-                browser-info {:resource resource
-                              :content-scale content-scale
-                              :width width
-                              :height height}]
-            (skia-browser-draw resource buffer width height)
-            (dispatch! :update $browser-info update :browser-id (fnil inc 0))
+      (when-let [draw-lock (:draw-lock browser-info)]
+        (locking draw-lock
+          (if (:resource browser-info)
+            (if (and (= width (:width browser-info))
+                     (= height (:height browser-info))
+                     (= content-scale (:content-scale browser-info)))
+              (when (pos? (.intValue nrects))
+                (skia-browser-update (:resource browser-info) (.intValue nrects) rects buffer width height)
+                (dispatch! :update $browser-info update :browser-id (fnil inc 0)))
+              (do
+                (dispatch! :update
+                           $browser-info
+                           dissoc
+                           :resource)
+                (skia_cleanup (:resource browser-info))
+                (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)))
+            (let [resource (skia-browser-buffer width height)
+                  browser-info {:resource resource
+                                :content-scale content-scale
+                                :width width
+                                :height height}]
+              (skia-browser-draw resource buffer width height)
+              (dispatch! :update $browser-info update :browser-id (fnil inc 0))
 
-            (dispatch! :update $browser-info merge browser-info)
-            (dispatch! :repaint!))))))
+              (dispatch! :update $browser-info merge browser-info)
+              (dispatch! :repaint!)))))))
   ;; always return nil. don't leak cache
   nil)
 
