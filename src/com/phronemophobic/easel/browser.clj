@@ -86,8 +86,9 @@
       (gen3/call (gen3/call browser :get_host)
                  :send_mouse_move_event
                  (gen3/map->mouse-event
-                            {:x (first pos)
-                             :y (second pos)})
+                  {:x (first pos)
+                   :y (second pos)
+                   :modifiers gen3/EVENTFLAG_LEFT_MOUSE_BUTTON})
                  0)
 
       #_(.sendMouseMoveEvent (.getHost ^CefBrowser browser)
@@ -103,7 +104,8 @@
                  :send_mouse_click_event
                  (gen3/map->mouse-event
                   {:x (first pos)
-                   :y (second pos)})
+                   :y (second pos)
+                   :modifiers gen3/EVENTFLAG_LEFT_MOUSE_BUTTON})
                  button
                  (if mouse-down?
                    0
