@@ -81,8 +81,12 @@
   (-start [this $ref [w h]]
     (let [w (- w 20)
           h (- h 20)
-          cols (quot w (:membrane.term/cell-width menlo))
-          rows (quot h (:membrane.term/cell-height menlo))]
+          ;; enforce min size. current virtual term library struggles with
+          ;; very small terminals.
+          cols (max 80
+                    (quot w (:membrane.term/cell-width menlo)))
+          rows (max 13
+                    (quot h (:membrane.term/cell-height menlo)))]
       (async/thread
         (let [cmd (into-array String ["/bin/bash" "-l"])
               pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
@@ -125,8 +129,12 @@
   (-resize [this [w h :as new-size] _content-scale]
     (let [w (- w 20)
           h (- h 20)
-          cols (quot w (:membrane.term/cell-width menlo))
-          rows (quot h (:membrane.term/cell-height menlo))]
+          ;; enforce min size. current virtual term library struggles with
+          ;; very small terminals.
+          cols (max 80
+                    (quot w (:membrane.term/cell-width menlo)))
+          rows (max 13
+                    (quot h (:membrane.term/cell-height menlo)))]
       (if (= [cols rows]
              [(-> this :vt :screen :width)
               (-> this :vt :screen :height)])
