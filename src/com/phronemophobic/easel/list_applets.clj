@@ -78,7 +78,14 @@
             :on-click
             (fn []
               [[:com.phronemophobic.easel/add-applet
-                (requiring-resolve 'com.phronemophobic.easel.schematic2/preview-applet)]])})))
+                (requiring-resolve 'com.phronemophobic.easel.schematic2/preview-applet)]])})
+   (button {:text "Detail View"
+            ;; :hover? (get applet [::hover?])
+            :on-click
+            (fn []
+              [[:com.phronemophobic.easel/add-applet
+                (requiring-resolve 'com.phronemophobic.easel.schematic2/detail-applet)]])})
+   ))
 
 
 
@@ -89,7 +96,7 @@
            :$ref $ref
            :$extra [$ref (list 'keypath :extra)]
            :$context [$ref (list 'keypath :context)]
-           :url "https://github.com"
+           :url "https://eugenkiss.github.io/7guis/tasks/"
            :$url [$ref (list 'keypath :url)]
            :size size
            :$applets
