@@ -61,8 +61,9 @@
     (ui/on
      :mouse-down
      (fn [_]
-       [[::dnd/drag-start {::sm/element elem
-                           ::replace? true}]
+       [[::dnd/drag-start {::dnd/obj {::sm/element elem
+                                      ::replace? true}
+                           ::delete id}]
         [::sm/toggle-selection {:element/id id
                                 :$selection $selection}]])
      (para/paragraph
@@ -533,24 +534,38 @@
      :elem elem
      :$elem $elem
      :id id})
-   (uicall drag-elem-target
-           {:elem children
-            :$elem [$elem (list 'keypath :element/children)
-                    specter/AFTER-ELEM]})
-   (ui/translate
-    20 0
-    (apply
-     ui/vertical-layout
-     (eduction
-      (map-indexed (fn [i child]
-                     (compile
-                      {:elem child
-                       :$elem [$elem (list 'keypath :element/children) (list 'nth i)]
-                       :extra (get extra [::child i])
-                       :$extra [$extra (list 'keypath [::child i])]
-                       :context context
-                       :$context $context})))
-      children)))))
+   (if (seq children)
+     (ui/translate
+      20 0
+      (ui/vertical-layout
+       (apply
+        ui/vertical-layout
+        (eduction
+         (map-indexed (fn [i child]
+                        (ui/vertical-layout
+                         (uicall drag-elem-target
+                                 {:elem children
+                                  :$elem [$elem (list 'keypath :element/children)
+                                          (specter/before-index i)]
+                                  :drag-object (get extra [::drag-object i])
+                                  :$drag-object [$extra (list 'keypath [::drag-object i])]})
+                         (compile
+                          {:elem child
+                           :$elem [$elem (list 'keypath :element/children) (list 'nth i)]
+                           :extra (get extra [::child i])
+                           :$extra [$extra (list 'keypath [::child i])]
+                           :context context
+                           :$context $context}))))
+         children))
+       (uicall drag-elem-target
+               {:elem children
+                :$elem [$elem (list 'keypath :element/children)
+                        specter/AFTER-ELEM]})))
+     ;; else
+     (uicall drag-elem-target
+             {:elem children
+              :$elem [$elem (list 'keypath :element/children)
+                      specter/AFTER-ELEM]}))))
 
 (defmethod compile* ::sm/for [{{:keys [element/body
                                        element.for/x
@@ -696,13 +711,28 @@
 (defui editor [{:keys [elem]}]
   (if (nil? elem)
     (drag-elem-target {:elem elem})
-    (compile
-     {:elem elem
-      :$elem $elem
-      :extra extra
-      :$extra $extra
-      :context context
-      :$context $context})))
+    (ui/on
+     ;; this is a little too specific,
+     ;; but need other unimplemented features
+     ;; to avoid this specificity
+     ::dnd/drag-start
+     (fn [m]
+       (if-let [id (::delete m)]
+         [[::dnd/drag-start (update m ::dnd/init
+                                    (fn [intents]
+                                      (let [new-intent [::sm/delete-by-id {:id id
+                                                                           :$elem $elem}]]
+                                        (if intents
+                                          (conj intents new-intent)
+                                          [new-intent]))))]]
+         [[::dnd/drag-start m]]))
+     (compile
+      {:elem elem
+       :$elem $elem
+       :extra extra
+       :$extra $extra
+       :context context
+       :$context $context}))))
 
 (def app-state (atom {}))
 
