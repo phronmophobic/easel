@@ -47,37 +47,89 @@
    ::sm/button (fn []
                 {:element/type ::sm/button
                  :element/on-click '(fn [] [])
-                 :element/text "doit"
+                 :element/text {:element/type ::sm/code
+                                :element/id (random-uuid)
+                                :element/code "doit"}
                  :element/id (random-uuid)})
    ::sm/checkbox (fn []
                   {:element/type ::sm/checkbox
-                   :element/checked? true
+                   :element/checked? {:element/type ::sm/code
+                                      :element/id (random-uuid)
+                                      :element/code true}
                    :element/id (random-uuid)})
    ::sm/text-input (fn []
-                    {:element/type ::sm/text-input
+                     {:element/type ::sm/text-input
                      :element/text
                      {:element/type ::sm/code
                       :element/id (random-uuid)
                       :element/code "hello"}
-                     :element/id (random-uuid)})})
+                     :element/id (random-uuid)})
+   ::sm/radio-bar (fn []
+                    {:element/type ::sm/radio-bar
+                     :element/size {:element/type ::sm/code
+                                    :element/id (random-uuid)
+                                    :element/code :middle}
+                     :radio-bar/options {:element/type ::sm/code
+                                         :element/id (random-uuid)
+                                         :element/code (into []
+                                                             (map (fn [kw]
+                                                                    {:value kw
+                                                                     :text (name kw)}))
+                                                             [:a :b :c])}
+                     :radio-bar/selection {:element/type ::sm/code
+                                           :element/id (random-uuid)
+                                           :element/code nil}
+                     :element/id (random-uuid)})
+   ;; ::sm/number-input (fn [])
+   ::sm/progress-bar (fn []
+                       {:element/type ::sm/progress-bar
+                        :element/value {:element/type ::sm/code
+                                        :element/id (random-uuid)
+                                        :element/code 0.5}
+                        :element/width {:element/type ::sm/code
+                                        :element/id (random-uuid)
+                                        :element/code 200}
+                        :element/height {:element/type ::sm/code
+                                         :element/id (random-uuid)
+                                         :element/code :middle}
+                        :element/id (random-uuid)})
+   ::sm/number-slider (fn []
+                        {:element/type ::sm/number-slider
+                         :element/value {:element/type ::sm/code
+                                         :element/id (random-uuid)
+                                         :element/code 2}
+                         :number-slider/max {:element/type ::sm/code
+                                             :element/id (random-uuid)
+                                             :element/code 10}
+                         :number-slider/min {:element/type ::sm/code
+                                             :element/id (random-uuid)
+                                             :element/code 0}
+                         :number-slider/integer? {:element/type ::sm/code
+                                                  :element/id (random-uuid)
+                                                  :element/code true}
+                         :element/width {:element/type ::sm/code
+                                         :element/id (random-uuid)
+                                         :element/code 200}
+                         :element/id (random-uuid)})})
 
 (defui component-picker [{:keys []}]
   (ui/translate
-   4 4
-   (apply
-    ui/vertical-layout
-    (eduction
-     (map
-      (fn [kind]
-        (ui/on
-         :mouse-down
-         (fn [_]
-           [[::dnd/drag-start {::sm/element
-                               ((get component-starters kind))}]])
-         (ant/button {:text (name kind)
-                      :size :small
-                      :extra (get extra [:button kind])
-                      ;;:hover? (get extra [:hover kind])
-                      }))))
+     4 4
+     (apply
+      ui/vertical-layout
+      (eduction
+       (map
+        (fn [kind]
+          (ui/on
+           :mouse-down
+           (fn [_]
+             [[::dnd/drag-start {::dnd/obj {::sm/element
+                                            ((get component-starters kind))}}]])
+           (ant/button {:text (name kind)
+                        :size :small
+                        :extra (get extra [:button kind])
+                        ;;:hover? (get extra [:hover kind])
+                        }))))
 
-     (sort (keys component-starters))))))
+       (sort (keys component-starters))))))
+

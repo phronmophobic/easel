@@ -7,6 +7,7 @@
             [clojure.set :as set]
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
+            [com.phronemophobic.membrandt :as ant]
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
             [clojure.edn :as edn]
@@ -63,16 +64,110 @@
                       width
                       paragraph-style))))
 
+(defmethod compile* ::sm/progress-bar [ctx
+                                       {:keys [element/value
+                                               element/width
+                                               element/height]}]
+  (let [value (compile ctx value)
+        width (compile ctx width)
+        height (compile ctx height)]
+    (ant/progress-bar {:progress value
+                       :width width
+                       :height height})))
+
+(defmethod compile* ::sm/number-slider [ctx
+                                        {:keys [element/value
+                                                element/width
+                                                number-slider/max
+                                                number-slider/min
+                                                number-slider/integer?]}]
+  (let [value (compile ctx value)
+        width (compile ctx width)
+        max (compile ctx max)
+        min (compile ctx min)
+        integer? (compile ctx integer?)]
+    (ant/number-slider {:value value
+                        :width width
+                        :max max
+                        :min min
+                        :integer? integer?})))
+
+
+(defmethod compile* ::sm/radio-bar [ctx
+                                    {:keys [element/size
+                                            radio-bar/options
+                                            radio-bar/selection]}]
+  (let [size (compile ctx size)
+        options (compile ctx options)
+        selection (compile ctx selection)]
+    (ant/radio-bar {:size size
+                    :options options
+                    :selection selection})))
+
+
+(defui code-editor [{:keys [code editing? buf] :as m}]
+  (if (not editing?)
+    (let [inspector-extra (get extra ::inspector-extra)]
+      (ui/horizontal-layout
+       (basic/button {:text "O"
+                      :on-click
+                      (fn []
+                        [[:set $editing? true]
+                         [:set $buf (buffer/buffer (pr-str code) {:mode :insert})]])})
+       (viscous/inspector {:obj (viscous/wrap code)
+                           :width (get inspector-extra :width 40)
+                           :height (get inspector-extra :height 1)
+                           :show-context? (get inspector-extra :show-context?)
+                           :extra inspector-extra})))
+    (ui/horizontal-layout
+     (basic/button {:text "O"
+                    :on-click
+                    (fn []
+                      [[:set $editing? false]
+                       [:update $code
+                        (fn [old-code]
+                          (prn "new code" (edn/read-string (buffer/text buf)))
+                          (try
+                            (edn/read-string (buffer/text buf))
+                            (catch Exception e
+                              old-code)))]])})
+     (basic/button {:text "X"
+                    :on-click
+                    (fn []
+                      [[:set $editing? false]])})
+     (code-editor/text-editor {:buf buf}))))
+
 (defmethod compile* ::sm/button [ctx
                                  {:keys [element/text
-                                         element/on-click
-                                         $elem
-                                         extra
-                                         context
-                                         $context
-                                         $extra]}]
-  (ui/button
-   (compile ctx text)))
+                                         element/on-click]}]
+  (let [{:keys [$elem extra $extra context $context]} ctx
+        editing? (get extra :editing?)
+        $editing? [$extra (list 'keypath :editing?)]
+        $buf [$extra (list 'keypath :buf)]]
+    (if editing?
+      (let [edit-string (get extra :edit-string)
+            buf (get extra :buf)
+            code (:element/code text)
+            $code [$elem (list 'keypath :element/text) (list 'keypath :element/code)]]
+        (uicall
+         code-editor
+         {:code code
+          :$code $code
+          :editing? editing?
+          :$editing? $editing?
+          :buf buf
+          :$buf $buf}))
+      (ui/on
+       :mouse-down
+       (fn [_]
+         (when (and (map? text)
+                    (= ::sm/code
+                       (:element/type text)))
+           [[:set $buf (buffer/buffer (pr-str (:element/code text)) {:mode :insert})]
+            [:set $editing? true]]))
+       (ui/no-events
+        (ant/button
+         {:text (compile ctx text)}))))))
 
 (defmethod compile* ::sm/text-input [ctx
                                      {:keys [element/text
@@ -82,7 +177,7 @@
                                              $context
                                              $extra]}]
   (ui/no-events
-   (basic/textarea {:text (compile ctx text)}))) 
+   (ant/text-input {:text (compile ctx text)})))
 
 (defmethod compile* ::sm/checkbox [ctx
                                    {:keys [element/checked?]}]
@@ -138,14 +233,18 @@
                                             component/defaults]}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
     (if body
-      (compile (update-in ctx
-                          [:context :bindings]
-                          (fn [bindings]
-                            (into (or bindings {})
-                                  (map (fn [[k v]]
-                                         [(symbol k) (eval+ v)]))
-                                  defaults)))
-               body)
+      (compile
+       (-> ctx
+           (assoc :$elem [$elem (list 'keypath :component/body)]
+                  :extra (get extra :component/body)
+                  :$extra [$extra (list 'keypath :component/body)])
+           (update-in [:context :bindings]
+                      (fn [bindings]
+                        (into (or bindings {})
+                              (map (fn [[k v]]
+                                     [(symbol k) (eval+ v)]))
+                              defaults))))
+       body)
       (uicall drag-elem-target
               {:elem body
                :$elem [$elem (list 'keypath :component/body)]}))))
@@ -160,7 +259,7 @@
            (fn [i child]
              (compile
               (assoc ctx
-                     :$elem [$elem (list 'nth i)]
+                     :$elem [$elem (list 'keypath :element/children) (list 'nth i)]
                      :extra (get extra [::children i])
                      :$extra [$extra (list 'keypath [::children i])]
                      :context context
@@ -202,25 +301,25 @@
                                       {:keys [element/children
                                               flex/layout]}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
-   (ui/vertical-layout
-    ;; (ui/label "flex-layout")
-    (if children
-      (apply
-       (if (= (:flex/direction layout)
-              :flex.direction/column)
-         ui/vertical-layout
-         ui/horizontal-layout)
-       (compile
-        (assoc ctx
-               :$elem [$elem (list 'keypath :element/children)]
-               :extra (get extra ::children)
-               :$extra [$extra (list 'keypath ::children)]
-               :context context
-               :$context $context)
-        children))
-      (uicall drag-elem-target
-              {:elem children
-               :$elem [$elem (list 'keypath :element/children)]})))))
+    (ui/vertical-layout
+     ;; (ui/label "flex-layout")
+     (if children
+       (apply
+        (if (= (:flex/direction layout)
+               :flex.direction/column)
+          ui/vertical-layout
+          ui/horizontal-layout)
+        (compile
+         (assoc ctx
+                :$elem [$elem (list 'keypath :element/children)]
+                :extra (get extra ::children)
+                :$extra [$extra (list 'keypath ::children)]
+                :context context
+                :$context $context)
+         children))
+       (uicall drag-elem-target
+               {:elem children
+                :$elem [$elem (list 'keypath :element/children)]})))))
 
 
 
@@ -261,13 +360,20 @@
 (defui editor [{:keys [elem]}]
   (if (nil? elem)
     (drag-elem-target {:elem elem})
-    (compile
-     {:$elem $elem
-      :extra extra
-      :$extra $extra
-      :context context
-      :$context $context}
-     elem)))
+    (try
+      (ui/try-draw
+       (compile
+        {:$elem $elem
+         :extra extra
+         :$extra $extra
+         :context context
+         :$context $context}
+        elem)
+       (fn [draw e]
+         (draw (ui/label e))))
+      (catch Throwable e
+        #_(clojure.pprint/pprint e)
+        (ui/label "Error")))))
 
 (defui editor+component-picker [{:keys [elem]}]
   (dnd/drag-and-drop
@@ -341,9 +447,11 @@
    (basic/button {:text "show!"
                   :on-click (fn []
                               (let [v (eval (sm/compile elem))]
-                                (skia/run (membrane.component/make-app v
-                                                                       (eval+ (:component/defaults elem)))))
-                              nil)}))
+                                [[:com.phronemophobic.easel.schematic2/add-component-as-applet
+                                  v
+                                  (:component/defaults elem)]]
+                                #_(skia/run (membrane.component/make-app v
+                                                                         (eval+ (:component/defaults elem))))))}))
   )
 
 (comment

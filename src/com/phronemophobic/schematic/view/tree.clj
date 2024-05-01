@@ -324,12 +324,75 @@
    (ui/translate
     20 3
     (ui/vertical-layout
-     (uicall code-editor
-             {:code text
-              :$code [$elem (list 'keypath :element/text)]})
+     (compile
+      {:elem text
+       :$elem [$elem (list 'keypath :element/text)]
+       :extra (get extra ::text)
+       :$extra [$extra (list 'keypath ::text)]
+       :context context
+       :$context $context})
      (uicall code-editor
              {:code on-click
               :$code [$elem (list 'keypath :element/on-click)]})))))
+
+
+(defmethod compile* ::sm/radio-bar [{{:keys [element/size
+                                             radio-bar/options
+                                             element/id]
+                                      :as elem} :elem
+                                     :keys [$elem
+                                            extra
+                                            context
+                                            $context
+                                            $extra]}]
+  (uicall
+   component-title
+   {:text "radio-bar"
+    :elem elem
+    :$elem $elem
+    :selection (:selection context)
+    :$selection (:$selection context)
+    :id id}))
+
+(defmethod compile* ::sm/number-slider [{{:keys [element/value
+                                                 element/width
+                                                 number-slider/max
+                                                 number-slider/min
+                                                 number-slider/integer?
+                                                 element/id]
+                                          :as elem} :elem
+                                         :keys [$elem
+                                                extra
+                                                context
+                                                $context
+                                                $extra]}]
+  (uicall
+   component-title
+   {:text "number-slider"
+    :elem elem
+    :$elem $elem
+    :selection (:selection context)
+    :$selection (:$selection context)
+    :id id}))
+
+(defmethod compile* ::sm/progress-bar [{{:keys [element/value
+                                                element/width
+                                                element/height
+                                                element/id]
+                                         :as elem} :elem
+                                        :keys [$elem
+                                               extra
+                                               context
+                                               $context
+                                               $extra]}]
+  (uicall
+   component-title
+   {:text "progress-bar"
+    :elem elem
+    :$elem $elem
+    :selection (:selection context)
+    :$selection (:$selection context)
+    :id id}))
 
 (defmethod compile* ::sm/text-input [{{:keys [element/text
                                               element/id]

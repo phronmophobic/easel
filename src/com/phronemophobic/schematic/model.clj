@@ -17,6 +17,7 @@
             [membrane.basic-components :as basic]
             [membrane.component :as component
              :refer [defui defeffect]]
+            [com.phronemophobic.membrandt :as ant]
             [membrane.ui :as ui]
             [membrane.skia :as skia]
             [membrane.skia.paragraph :as para]
@@ -387,14 +388,50 @@
                    ~(compile paragraph-style)))
 
 (defmethod compile* ::button [{:element/keys [text on-click]}]
-  `(basic/button
+  `(ant/button
     ~(let [args `{:text ~(compile text)}]
        (if on-click
          (assoc args :on-click (compile on-click))
          args))))
 
 (defmethod compile* ::text-input [{:element/keys [text]}]
-  `(basic/textarea {:text ~(compile text)}))
+  `(ant/text-input {:text ~(compile text)}))
+
+(defmethod compile* ::progress-bar [{:keys [element/value
+                                            element/width
+                                            element/height]}]
+  (let [value (compile value)
+        width (compile width)
+        height (compile height)]
+    `(ant/progress-bar {:progress ~value
+                        :width ~width
+                        :height ~height})))
+
+(defmethod compile* ::number-slider [{:keys [element/value
+                                             element/width
+                                             number-slider/max
+                                             number-slider/min
+                                             number-slider/integer?]}]
+  (let [value (compile value)
+        width (compile width)
+        max (compile max)
+        min (compile min)
+        integer? (compile integer?)]
+    `(ant/number-slider {:value ~value
+                         :width ~width
+                         :max ~max
+                         :min ~min
+                         :integer? ~integer?})))
+
+(defmethod compile* ::radio-bar [{:keys [element/size
+                                         radio-bar/options
+                                         radio-bar/selection]}]
+  (let [size (compile size)
+        options (compile options)
+        selection (compile selection)]
+    `(ant/radio-bar {:size ~size
+                     :options ~options
+                     :selection ~selection})))
 
 (defmethod compile* ::checkbox [{:element/keys [checked?]}]
   `(basic/checkbox {:checked? ~(compile checked?)}))
@@ -644,6 +681,15 @@
 
     (::for)
     (assoc elem :element/body child)))
+
+(defeffect ::delete-by-id [{:keys [$elem id]}]
+  (dispatch! :update
+             $elem
+             (fn [elem]
+               (specter/setval (elem-by-id id)
+                               specter/NONE
+                               elem))))
+
 (def my-new-root
   (->> my-root
        #_(specter/transform
