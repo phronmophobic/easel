@@ -48,6 +48,13 @@
                         (make-applet dispatch!))))
   nil)
 
+(defn add-component! [key f]
+  (handler :update
+           '[(keypath :membrane.component/context)
+             (keypath :com.phronemophobic.easel.schematic2/component-picker-components)]
+           (fn [components]
+             (assoc components key f))))
+
 (defn on-main-callback []
   (loop []
     (when-let [workf (.poll main-queue)]

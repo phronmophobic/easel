@@ -395,6 +395,25 @@
     :$selection (:$selection context)
     :id id}))
 
+(defmethod compile* ::sm/defui [{{:keys [element/name
+                                         element/function
+                                         element/data
+                                         element/id]
+                                  :as elem} :elem
+                                 :keys [$elem
+                                        extra
+                                        context
+                                        $context
+                                        $extra]}]
+  (uicall
+   component-title
+   {:text name
+    :elem elem
+    :$elem $elem
+    :selection (:selection context)
+    :$selection (:$selection context)
+    :id id}))
+
 (defmethod compile* ::sm/text-input [{{:keys [element/text
                                               element/id]
                                        :as elem} :elem

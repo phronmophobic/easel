@@ -154,6 +154,7 @@
 
 (defn component-picker-ui [this $context context]
   (let [size (:size this)
+        components (get context ::component-picker-components)
         selection (get context ::selection)
         $selection [$context
                     (list 'keypath ::selection)]
@@ -165,6 +166,7 @@
                                     :$selection $selection)
                              (dissoc ::elem)))
                   (assoc :$context $context
+                         :components components
                          :extra (:extra this)
                          :$extra [(:$ref this) '(keypath :extra)]))]
     (ui/scissor-view
@@ -175,9 +177,15 @@
 
 
 
-(defrecord ComponentPickerApplet []
+(defrecord ComponentPickerApplet [dispatch!]
   model/IApplet
   (-start [this $ref size]
+    ;; cheat for now
+    (dispatch! :update
+               '[(keypath :membrane.component/context)]
+               (fn [context]
+                 (assoc context
+                        ::component-picker-components component-picker/component-starters)))
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
@@ -191,7 +199,7 @@
            :size size)))
 
 (defn component-picker-applet [handler]
-  (-> (->ComponentPickerApplet)
+  (-> (->ComponentPickerApplet handler)
       (assoc :label "component-picker")))
 
 

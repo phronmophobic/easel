@@ -168,6 +168,18 @@
         (code-editor {:code src}))))))
 
 
+(defeditor ::sm/defui [{:keys [elem]}]
+  (let [data (:element/data elem)]
+    (apply
+     ui/vertical-layout
+     (for [kw (keys data)]
+       (ui/horizontal-layout
+        (ui/label (name kw))
+        (let [code (get data kw)
+              src (get code :element/code)]
+          (code-editor {:code src})))))))
+
+
 
 (defui editor [{:keys [elem] :as m}]
   (compile m))

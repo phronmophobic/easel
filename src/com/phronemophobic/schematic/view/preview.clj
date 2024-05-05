@@ -126,7 +126,6 @@
                       [[:set $editing? false]
                        [:update $code
                         (fn [old-code]
-                          (prn "new code" (edn/read-string (buffer/text buf)))
                           (try
                             (edn/read-string (buffer/text buf))
                             (catch Exception e
@@ -322,6 +321,16 @@
                 :$elem [$elem (list 'keypath :element/children)]})))))
 
 
+(defmethod compile* ::sm/defui [ctx
+                                {:keys [element/name
+                                        element/function
+                                        element/data]}]
+  (let [ctx (assoc-in ctx [:context :bindings 'extra] {})
+        data-evaled (into {}
+                          (map (fn [[k node]]
+                                 [k (compile ctx node)]))
+                          data)]
+    (function data-evaled)))
 
 (defui debug [{}])
 

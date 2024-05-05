@@ -433,6 +433,18 @@
                      :options ~options
                      :selection ~selection})))
 
+
+(defmethod compile* ::defui [{:keys [element/function
+                                     element/data]}]
+  (let [data-compiled (into {}
+                            (map (fn [[k v]]
+                                   [k (compile v)]))
+                            data)
+        fsym (let [m (meta function)]
+               (symbol (name (ns-name (:ns m)))
+                       (name (:name m))))]
+    `(~fsym ~data-compiled)))
+
 (defmethod compile* ::checkbox [{:element/keys [checked?]}]
   `(basic/checkbox {:checked? ~(compile checked?)}))
 
