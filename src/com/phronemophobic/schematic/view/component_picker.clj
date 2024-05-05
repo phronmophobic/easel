@@ -114,24 +114,26 @@
                                          :element/code 200}
                          :element/id (random-uuid)})})
 
-(defui component-picker [{:keys []}]
-  (ui/translate
-     4 4
-     (apply
-      ui/vertical-layout
-      (eduction
-       (map
-        (fn [kind]
-          (ui/on
-           :mouse-down
-           (fn [_]
-             [[::dnd/drag-start {::dnd/obj {::sm/element
-                                            ((get component-starters kind))}}]])
-           (ant/button {:text (name kind)
-                        :size :small
-                        :extra (get extra [:button kind])
-                        ;;:hover? (get extra [:hover kind])
-                        }))))
 
-       (sort (keys component-starters))))))
+
+(defui component-picker [{:keys [components]}]
+  (ui/translate
+   4 4
+   (apply
+    ui/vertical-layout
+    (eduction
+     (map
+      (fn [kind]
+        (ui/on
+         :mouse-down
+         (fn [_]
+           [[::dnd/drag-start {::dnd/obj {::sm/element
+                                          ((get components kind))}}]])
+         (ant/button {:text (name kind)
+                      :size :small
+                      :extra (get extra [:button kind])
+                      ;;:hover? (get extra [:hover kind])
+                      }))))
+
+     (sort (keys components))))))
 
