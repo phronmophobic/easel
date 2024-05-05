@@ -470,15 +470,29 @@
               :$code [$elem (list 'keypath :element/checked?)]})))))
 
 
-(defmethod compile* ::sm/code [{{:keys [element/code]} :elem
+(defmethod compile* ::sm/code [{{:keys [element/code
+                                        element/id]
+                                 :as elem} :elem
                                 :keys [$elem
                                        extra
                                        context
                                        $context
                                        $extra]}]
-  (uicall code-editor
-          {:code code
-           :$code [$elem (list 'keypath :element/code)]}))
+  (ui/vertical-layout
+   (uicall
+    component-title
+    {:text "code"
+     :elem elem
+     :$elem $elem
+     :selection (:selection context)
+     :$selection (:$selection context)
+     :id id})
+   (ui/translate
+    20 3
+    (uicall code-editor
+            {:code code
+             :$code [$elem (list 'keypath :element/code)]})))
+  )
 
 
 (defmethod compile* ::sm/let [{{:keys [element/body
