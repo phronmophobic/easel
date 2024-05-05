@@ -9,61 +9,63 @@
 
 (def component-starters
   {::sm/group (fn []
-               {:element/type ::sm/group
-                :element/id (random-uuid)
-                :element/children []})
+                {:element/type ::sm/group
+                 :element/id (random-uuid)
+                 :element/children []})
    ::sm/for (fn []
-             {:element/type ::sm/for
-              :element/id (random-uuid)
-              :element/body nil
-              :element.for/x 'x
-              :element.for/xs {:element/type ::sm/code
-                               :element/code [1 2 3]}})
-   ::sm/code (fn []
-              {:element/type ::sm/code
+              {:element/type ::sm/for
                :element/id (random-uuid)
-               :element/code "asdf"})
+               :element/body nil
+               :element.for/x 'x
+               :element.for/xs {:element/type ::sm/code
+                                :element/code [1 2 3]}})
+   ::sm/code (fn []
+               {:element/type ::sm/code
+                :element/id (random-uuid)
+                :element/code "asdf"})
    ::sm/flex-layout (fn []
-                     {:element/type ::sm/flex-layout
-                      :element/id (random-uuid)})
-   
+                      {:element/type ::sm/flex-layout
+                       :element/children {:element/type ::sm/group
+                                          :element/id (random-uuid)
+                                          :element/children []}
+                       :element/id (random-uuid)})
    ::sm/let (fn []
-             {:element/type ::sm/let
-              :element/body nil
-              :element/bindings []
-              :element/id (random-uuid)})
+              {:element/type ::sm/let
+               :element/body nil
+               :element/bindings []
+               :element/id (random-uuid)})
    ::sm/component (fn []
-                   {:element/type ::sm/component
-                    :component/name 'my-component
-                    :component/args []
-                    :component/body nil
-                    :element/id (random-uuid)})
+                    {:element/type ::sm/component
+                     :component/name 'my-component
+                     :component/args []
+                     :component/body nil
+                     :element/id (random-uuid)})
    ::sm/paragraph (fn []
-                   {:element/type ::sm/paragraph
-                    :element/text {:element/type ::sm/code
-                                   :element/id (random-uuid)
-                                   :element/code "hello"}
-                    :element/id (random-uuid)})
+                    {:element/type ::sm/paragraph
+                     :element/text {:element/type ::sm/code
+                                    :element/id (random-uuid)
+                                    :element/code "hello"}
+                     :element/id (random-uuid)})
    ::sm/button (fn []
-                {:element/type ::sm/button
-                 :element/on-click '(fn [] [])
-                 :element/text {:element/type ::sm/code
-                                :element/id (random-uuid)
-                                :element/code "doit"}
-                 :element/id (random-uuid)})
+                 {:element/type ::sm/button
+                  :element/on-click '(fn [] [])
+                  :element/text {:element/type ::sm/code
+                                 :element/id (random-uuid)
+                                 :element/code "doit"}
+                  :element/id (random-uuid)})
    ::sm/checkbox (fn []
-                  {:element/type ::sm/checkbox
-                   :element/checked? {:element/type ::sm/code
-                                      :element/id (random-uuid)
-                                      :element/code true}
-                   :element/id (random-uuid)})
+                   {:element/type ::sm/checkbox
+                    :element/checked? {:element/type ::sm/code
+                                       :element/id (random-uuid)
+                                       :element/code true}
+                    :element/id (random-uuid)})
    ::sm/text-input (fn []
                      {:element/type ::sm/text-input
-                     :element/text
-                     {:element/type ::sm/code
-                      :element/id (random-uuid)
-                      :element/code "hello"}
-                     :element/id (random-uuid)})
+                      :element/text
+                      {:element/type ::sm/code
+                       :element/id (random-uuid)
+                       :element/code "hello"}
+                      :element/id (random-uuid)})
    ::sm/radio-bar (fn []
                     {:element/type ::sm/radio-bar
                      :element/size {:element/type ::sm/code
