@@ -9,6 +9,7 @@
             [com.phronemophobic.viscous :as viscous]
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
+            [com.phronemophobic.membrandt :as ant]
             [clojure.edn :as edn]
             [membrane.components.code-editor.code-editor :as code-editor]
             [com.phronemophobic.schematic.view.component-picker
@@ -177,6 +178,46 @@
         (ui/label (name kw))
         (let [code (get data kw)
               src (get code :element/code)]
+          (code-editor {:code src})))))))
+
+
+(defeditor ::sm/flex-layout [{:keys [elem]}]
+  (let [layout (:flex/layout elem)]
+    (apply
+     ui/vertical-layout
+     (ant/radio-bar
+      {:size :small
+       :options [{:text "row"
+                  :value :row}
+                 {:text "column"
+                  :value :column}]
+       :selection (:direction layout)})
+     (ui/label "justify-content")
+     (ant/radio-bar
+      {:size :small
+       :options
+       (into []
+             (map (fn [kw]
+                    {:text (name kw)
+                     :value kw}))
+             [:start :end :center :space-between :space-around :space-evenly])
+       :selection (:justify-content layout)})
+     (ui/label "align:")
+     (ant/radio-bar
+      {:size :small
+       :options
+       (into []
+             (map (fn [kw]
+                    {:text (name kw)
+                     :value kw}))
+             [:start :center :end])
+       :selection (:align layout)})
+     (for [kw [:width
+               :height
+               :gap]]
+       (ui/horizontal-layout
+        (ui/label (name kw))
+        (let [src (get layout kw)]
           (code-editor {:code src})))))))
 
 

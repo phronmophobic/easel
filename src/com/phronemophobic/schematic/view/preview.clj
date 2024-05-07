@@ -303,11 +303,7 @@
     (ui/vertical-layout
      ;; (ui/label "flex-layout")
      (if children
-       (apply
-        (if (= (:flex/direction layout)
-               :flex.direction/column)
-          ui/vertical-layout
-          ui/horizontal-layout)
+       (ui/flex-layout
         (compile
          (assoc ctx
                 :$elem [$elem (list 'keypath :element/children)]
@@ -315,7 +311,8 @@
                 :$extra [$extra (list 'keypath ::children)]
                 :context context
                 :$context $context)
-         children))
+         children)
+        layout)
        (uicall drag-elem-target
                {:elem children
                 :$elem [$elem (list 'keypath :element/children)]})))))

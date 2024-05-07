@@ -691,23 +691,23 @@
      :$elem $elem})
    (ui/fixed-bounds
     (ui/bounds (para/paragraph "↔️"))
-    (if (= (:flex/direction layout)
-           :flex.direction/column)
+    (if (= (:direction layout)
+           :column)
       (ui/on
        :mouse-down
        (fn [_]
          [[:set [$elem
                  (list 'keypath :flex/layout)
-                 (list 'keypath :flex/direction)]
-           :flex.direction/row]])
+                 (list 'keypath :direction)]
+           :row]])
        (para/paragraph "↕️"))
       (ui/on
        :mouse-down
        (fn [_]
          [[:set [$elem
                  (list 'keypath :flex/layout)
-                 (list 'keypath :flex/direction)]
-           :flex.direction/column]])
+                 (list 'keypath :direction)]
+           :column]])
        (para/paragraph "↔️"))
       ))
    (ui/translate
