@@ -2,9 +2,6 @@
   (:refer-clojure :exclude [compile load-file])
   (:require [clojure.spec.alpha :as s]
             [com.phronemophobic.viscous :as viscous]
-            [membrane.components.code-editor.code-editor
-             :as code-editor]
-            [liq.buffer :as buffer]
             [membrane.alpha.stretch :as stretch]
             [com.rpl.specter :as specter]
             [clojure.zip :as z]

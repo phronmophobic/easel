@@ -11,47 +11,18 @@
             [com.phronemophobic.schematic.model :as sm]
             [com.phronemophobic.membrandt :as ant]
             [clojure.edn :as edn]
-            [membrane.components.code-editor.code-editor :as code-editor]
             [com.phronemophobic.schematic.view.component-picker
              :refer [component-picker]]
             [com.phronemophobic.schematic.view.util
              :refer [uicall
                      on-drag-hover
-                     drag-elem-target]]
+                     drag-elem-target
+                     code-editor]]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [liq.buffer :as buffer]
             [membrane.skia :as skia]))
 
-(defui code-editor [{:keys [code editing? buf] :as m}]
-  (if (not editing?)
-    (let [inspector-extra (get extra ::inspector-extra)]
-      (ui/horizontal-layout
-       (basic/button {:text "O"
-                      :on-click
-                      (fn []
-                        [[:set $editing? true]
-                         [:set $buf (buffer/buffer (pr-str code) {:mode :insert})]])})
-       (viscous/inspector {:obj (viscous/wrap code)
-                           :width (get inspector-extra :width 40)
-                           :height (get inspector-extra :height 1)
-                           :show-context? (get inspector-extra :show-context?)
-                           :extra inspector-extra})))
-    (ui/horizontal-layout
-     (basic/button {:text "O"
-                    :on-click
-                    (fn []
-                      [[:set $editing? false]
-                       [:update $code
-                        (fn [old-code]
-                          (try
-                            (edn/read-string (buffer/text buf))
-                            (catch Exception e
-                              old-code)))]])})
-     (basic/button {:text "X"
-                    :on-click
-                    (fn []
-                      [[:set $editing? false]])})
-     (code-editor/text-editor {:buf buf}))))
+
 
 
 (defmulti compile*

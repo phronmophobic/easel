@@ -5,6 +5,9 @@
             [membrane.ui :as ui]
             [com.phronemophobic.schematic.model :as sm]
             [membrane.alpha.component.drag-and-drop :as dnd]
+            [liq.buffer :as buffer]
+            [com.phronemophobic.viscous :as viscous]
+            [membrane.components.code-editor.code-editor :as code-editor]
             [clojure.set :as set]))
 
 (defn uicall* [component m $extra## extra## $context## context## ]
@@ -98,3 +101,34 @@
                    body)
                   body)]
        body)})))
+
+(defui code-editor [{:keys [code editing? buf] :as m}]
+  (if (not editing?)
+    (let [inspector-extra (get extra ::inspector-extra)]
+      (ui/horizontal-layout
+       (basic/button {:text "O"
+                      :on-click
+                      (fn []
+                        [[:set $editing? true]
+                         [:set $buf (buffer/buffer (pr-str code) {:mode :insert})]])})
+       (viscous/inspector {:obj (viscous/wrap code)
+                           :width (get inspector-extra :width 40)
+                           :height (get inspector-extra :height 1)
+                           :show-context? (get inspector-extra :show-context?)
+                           :extra inspector-extra})))
+    (ui/horizontal-layout
+     (basic/button {:text "O"
+                    :on-click
+                    (fn []
+                      [[:set $editing? false]
+                       [:update $code
+                        (fn [old-code]
+                          (try
+                            (read-string (buffer/text buf))
+                            (catch Exception e
+                              old-code)))]])})
+     (basic/button {:text "X"
+                    :on-click
+                    (fn []
+                      [[:set $editing? false]])})
+     (code-editor/text-editor {:buf buf}))))
