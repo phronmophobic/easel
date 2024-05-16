@@ -102,7 +102,9 @@
                   body)]
        body)})))
 
-(defui code-editor [{:keys [code editing? buf] :as m}]
+(defui code-editor [{:keys [code editing? buf
+                            ^:membrane.component/contextual
+                            eval-ns] :as m}]
   (if (not editing?)
     (let [inspector-extra (get extra ::inspector-extra)]
       (ui/horizontal-layout
@@ -124,7 +126,10 @@
                        [:update $code
                         (fn [old-code]
                           (try
-                            (read-string (buffer/text buf))
+                            (if eval-ns
+                              (binding [*ns* eval-ns]
+                                (read-string (buffer/text buf)))
+                              (read-string (buffer/text buf)))
                             (catch Exception e
                               old-code)))]])})
      (basic/button {:text "X"

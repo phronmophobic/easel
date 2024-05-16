@@ -11,13 +11,13 @@
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
             [clojure.edn :as edn]
-            [membrane.components.code-editor.code-editor :as code-editor]
             [com.phronemophobic.schematic.view.component-picker
              :refer [component-picker]]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [com.phronemophobic.schematic.view.util
              :refer [uicall
-                     drag-elem-target]]
+                     drag-elem-target
+                     code-editor]]
             [liq.buffer :as buffer]
             [membrane.skia :as skia]))
 
@@ -47,8 +47,9 @@
     :else
     o))
 
-(defn eval+* [o]
-  (eval o))
+(defn eval+* [eval-ns o]
+  (binding [*ns* eval-ns]
+    (eval o)))
 
 (def eval+ (memoize eval+*))
 
@@ -58,7 +59,7 @@
                                             element/paragraph-style]}]
   (let [text (compile ctx text)
         width (compile ctx width)
-        paragraph-style (compile ctx width)]
+        paragraph-style (compile ctx paragraph-style)]
     (when (string? text)
       (para/paragraph text
                       width
@@ -104,37 +105,6 @@
                     :options options
                     :selection selection})))
 
-
-(defui code-editor [{:keys [code editing? buf] :as m}]
-  (if (not editing?)
-    (let [inspector-extra (get extra ::inspector-extra)]
-      (ui/horizontal-layout
-       (basic/button {:text "O"
-                      :on-click
-                      (fn []
-                        [[:set $editing? true]
-                         [:set $buf (buffer/buffer (pr-str code) {:mode :insert})]])})
-       (viscous/inspector {:obj (viscous/wrap code)
-                           :width (get inspector-extra :width 40)
-                           :height (get inspector-extra :height 1)
-                           :show-context? (get inspector-extra :show-context?)
-                           :extra inspector-extra})))
-    (ui/horizontal-layout
-     (basic/button {:text "O"
-                    :on-click
-                    (fn []
-                      [[:set $editing? false]
-                       [:update $code
-                        (fn [old-code]
-                          (try
-                            (edn/read-string (buffer/text buf))
-                            (catch Exception e
-                              old-code)))]])})
-     (basic/button {:text "X"
-                    :on-click
-                    (fn []
-                      [[:set $editing? false]])})
-     (code-editor/text-editor {:buf buf}))))
 
 (defmethod compile* ::sm/button [ctx
                                  {:keys [element/text
@@ -196,7 +166,7 @@
                  (let ~let-bindings
                    ~code))
         ;; _ (clojure.pprint/pprint fcode)
-        f (eval+ fcode)]
+        f (eval+ (:eval-ns ctx) fcode)]
     (f bindings)))
 
 
@@ -241,7 +211,7 @@
                       (fn [bindings]
                         (into (or bindings {})
                               (map (fn [[k v]]
-                                     [(symbol k) (eval+ v)]))
+                                     [(symbol k) (eval+ (:eval-ns ctx) v)]))
                               defaults))))
        body)
       (uicall drag-elem-target
@@ -363,7 +333,8 @@
 
   ,)
 
-(defui editor [{:keys [elem]}]
+(defui editor [{:keys [elem
+                       eval-ns]}]
   (if (nil? elem)
     (drag-elem-target {:elem elem})
     (try
@@ -373,12 +344,13 @@
          :extra extra
          :$extra $extra
          :context context
-         :$context $context}
+         :$context $context
+         :eval-ns eval-ns}
         elem)
        (fn [draw e]
          (draw (ui/label e))))
       (catch Throwable e
-        #_(clojure.pprint/pprint e)
+        ;; (clojure.pprint/pprint e)
         (ui/label "Error")))))
 
 (defui editor+component-picker [{:keys [elem]}]
@@ -428,7 +400,9 @@
                                  elem))))
   (dispatch! :set $selection #{}))
 
-(defui toolbar [{:keys [elem selection]}]
+(defui toolbar [{:keys [elem selection
+                        ^:membrane.component/contextual
+                        eval-ns]}]
   (ui/vertical-layout
    (basic/button {:text "clear"
                   :on-click (fn []
@@ -448,11 +422,28 @@
                               nil)})
    (basic/button {:text "eval"
                   :on-click (fn []
-                              (eval (sm/compile elem))
-                              nil)})
+                              (binding [*ns* (or eval-ns
+                                                 (the-ns 'clojure.core))]
+                                (let [v (eval (sm/compile elem))]
+                                  [[:com.phronemophobic.easel/add-component!
+                                    (keyword (name (ns-name *ns*))
+                                             (name (:component/name elem)))
+                                    (fn []
+                                      {:element/type ::sm/defui
+                                       :element/name (name (:component/name elem))
+                                       :element/function v
+                                       :element/data (update-vals
+                                                      (:component/defaults elem)
+                                                      (fn [v]
+                                                        {:element/type ::sm/code
+                                                         :element/id (random-uuid)
+                                                         :element/code v}))
+                                       :element/id (random-uuid)})]])))})
    (basic/button {:text "show!"
                   :on-click (fn []
-                              (let [v (eval (sm/compile elem))]
+                              (let [v (binding [*ns* (or eval-ns
+                                                         (the-ns 'clojure.core))]
+                                        (eval (sm/compile elem)))]
                                 [[:com.phronemophobic.easel.schematic2/add-component-as-applet
                                   v
                                   (:component/defaults elem)]]
