@@ -299,10 +299,7 @@
        :extra (get extra ::text)
        :$extra [$extra (list 'keypath ::text)]
        :context context
-       :$context $context})
-     (uicall code-editor
-             {:code on-click
-              :$code [$elem (list 'keypath :element/on-click)]})))))
+       :$context $context})))))
 
 
 (defmethod compile* ::sm/radio-bar [{{:keys [element/size
