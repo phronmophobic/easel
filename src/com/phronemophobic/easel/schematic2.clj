@@ -26,11 +26,13 @@
         state (-> (:state this)
                   (assoc :context
                          (-> context
-                             (assoc :membrane.stretch/container-size size)
+                             (assoc :membrane.stretch/container-size size
+                                    :eval-ns (:eval-ns this))
                              (dissoc ::elem)))
                   (assoc :$context $context
                          :elem elem
                          :$elem $elem
+                         :eval-ns (:eval-ns this)
                          :selection selection
                          :$selection $selection
                          :extra (:extra this)
@@ -55,9 +57,10 @@
     (assoc this
            :size size)))
 
-(defn toolbar-applet [handler]
+(defn toolbar-applet [handler eval-ns]
   (-> (->ToolbarApplet)
-      (assoc :label "Toolbar")))
+      (assoc :label "Toolbar"
+             :eval-ns eval-ns)))
 
 (defn preview-ui [this $context context]
   (let [size (:size this)
@@ -74,12 +77,14 @@
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size size)
+                             (assoc :eval-ns (:eval-ns this))
                              (assoc :selection selection
                                     :$selection $selection)
                              (dissoc ::elem)))
                   (assoc :$context $context
                          :elem elem
                          :$elem $elem
+                         :eval-ns (:eval-ns this)
                          :extra (:extra this)
                          :$extra [(:$ref this) '(keypath :extra)]))]
     (ui/scissor-view
@@ -102,9 +107,10 @@
     (assoc this
            :size size)))
 
-(defn preview-applet [handler]
+(defn preview-applet [handler eval-ns]
   (-> (->PreviewApplet)
-      (assoc :label "Preview")))
+      (assoc :label "Preview"
+             :eval-ns eval-ns)))
 
 (defn tree-ui [this $context context]
   (let [size (:size this)
@@ -120,6 +126,7 @@
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size (:size this))
+                             (assoc :eval-ns (:eval-ns this))
                              (assoc :selection selection
                                     :$selection $selection)
                              (dissoc ::elem)))
@@ -148,9 +155,10 @@
     (assoc this
            :size size)))
 
-(defn tree-applet [handler]
+(defn tree-applet [handler eval-ns]
   (-> (->TreeApplet)
-      (assoc :label "Tree View")))
+      (assoc :label "Tree View"
+             :eval-ns eval-ns)))
 
 (defn component-picker-ui [this $context context]
   (let [size (:size this)
@@ -162,6 +170,7 @@
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size (:size this))
+                             (assoc :eval-ns (:eval-ns this))
                              (assoc :selection selection
                                     :$selection $selection)
                              (dissoc ::elem)))
@@ -231,6 +240,7 @@
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size (:size this))
+                             (assoc :eval-ns (:eval-ns this))
                              (dissoc ::elem)))
                   (assoc :$context $context
                          :elem elem
@@ -257,9 +267,10 @@
     (assoc this
            :size size)))
 
-(defn detail-applet [handler]
+(defn detail-applet [handler eval-ns]
   (-> (->DetailApplet)
-      (assoc :label "Detail View")))
+      (assoc :label "Detail View"
+             :eval-ns eval-ns)))
 
 
 (defrecord ComponentApplet [label component-var initial-state]
@@ -272,10 +283,12 @@
           arg-map (first first-arglist)
           args (:keys arg-map)
           $args (into {}
-                      (map (fn [arg]
-                             (let [kw (keyword (name arg))
-                                   $kw (keyword (str "$" (name arg)))]
-                               [$kw [$ref '(keypath :state) (list 'keypath kw)]])))
+                      (comp
+                       (remove '#{extra context})
+                       (map (fn [arg]
+                              (let [kw (keyword (name arg))
+                                    $kw (keyword (str "$" (name arg)))]
+                                [$kw [$ref '(keypath :state) (list 'keypath kw)]]))))
                       args)
           state (into (assoc initial-state
                         :extra {}
