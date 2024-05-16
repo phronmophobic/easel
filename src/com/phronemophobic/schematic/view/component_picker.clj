@@ -45,6 +45,16 @@
                      :element/text {:element/type ::sm/code
                                     :element/id (random-uuid)
                                     :element/code "hello"}
+                     :element/paragraph-style
+                     {:element/type ::sm/code
+                      :element/id (random-uuid)
+                      :element/code
+                      #:paragraph-style
+                      {:text-style
+                       #:text-style{:font-size 14,
+                                    :height 1.5714285714285714,
+                                    :height-override true,
+                                    :color [0.0 0.0 0.0 0.88]}}}
                      :element/id (random-uuid)})
    ::sm/button (fn []
                  {:element/type ::sm/button
