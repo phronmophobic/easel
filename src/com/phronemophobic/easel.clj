@@ -55,6 +55,9 @@
            (fn [components]
              (assoc components key f))))
 
+(defeffect ::add-component! [key f]
+  (add-component! key f))
+
 (defn on-main-callback []
   (loop []
     (when-let [workf (.poll main-queue)]
