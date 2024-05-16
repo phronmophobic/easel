@@ -68,6 +68,7 @@
     (merge
      (assoc this
             :ss []
+            ::ss/id (random-uuid)
             :ns-info {:name eval-ns
                       :require '([membrane.ui :as ui
                                   :refer [vertical-layout
