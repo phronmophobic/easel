@@ -29,7 +29,13 @@
                                       (set (keys m))
                                       #{:extra :$extra
                                         :context :$context})
-        
+
+        contextual? (into #{}
+                          (comp (filter (fn [sym]
+                                          (:membrane.component/contextual
+                                           (meta sym))))
+                                (map keyword))
+                          args)
 
         k## (gensym "k")]
     `(let [~k## ~state-key
@@ -42,13 +48,20 @@
         (assoc ~m
                ~@(eduction
                   (mapcat (fn [k]
-                            [k `(get ~extra## [~k## ~k])
-                             (keyword (str "$" (name k))) [$extra##
-                                                           [(list
-                                                             'list
-                                                             '(quote keypath)
-                                                             [k##
-                                                              k])]]]))
+                            (if (contextual? k)
+                              [k `(get ~context## ~k)
+                               (keyword (str "$" (name k))) [$context##
+                                                             [(list
+                                                               'list
+                                                               '(quote keypath)
+                                                               k)]]]
+                              [k `(get ~extra## [~k## ~k])
+                               (keyword (str "$" (name k))) [$extra##
+                                                             [(list
+                                                               'list
+                                                               '(quote keypath)
+                                                               [k##
+                                                                k])]]])))
                   implicit-keys)
                :extra extra#
                :$extra $extra#
