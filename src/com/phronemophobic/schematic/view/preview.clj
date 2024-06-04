@@ -350,7 +350,7 @@
        (fn [draw e]
          (draw (ui/label e))))
       (catch Throwable e
-        ;; (clojure.pprint/pprint e)
+        (clojure.pprint/pprint e)
         (ui/label "Error")))))
 
 (defui editor+component-picker [{:keys [elem]}]
