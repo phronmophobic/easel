@@ -4,6 +4,7 @@
             [membrane.basic-components :as basic]
             [membrane.ui :as ui]
             [clojure.string :as str]
+            [clojure.zip :as z]
             [clojure.set :as set]
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
@@ -81,13 +82,54 @@
     (ui/label "checked:")
     (code-editor {:code src}))))
 
+(defn ^:private var->sym [v]
+  (symbol (-> v .ns .name name)
+          (-> v .sym name)))
+
+(defui var-drop [{:keys [body drag-object]}]
+  (dnd/on-drop
+   (fn [pos obj]
+     (let [intents [[:set $drag-object nil]]
+           x (:x obj)]
+       (if-let [v (when (and x
+                             (instance? clojure.lang.IDeref x))
+                    (let [v @x]
+                      (when (var? v)
+                        v)))]
+         (conj intents [::var-drop {:sym (var->sym v)}])
+         intents)))
+   (on-drag-hover
+    {:$body nil
+     :object drag-object
+     :body
+     (let [[bw bh] (ui/bounds body)
+           rect-width (max 50 bw)
+           rect-height (max 50 bh)
+           rect (ui/filled-rectangle [1 0 0 0.2]
+                                     rect-width rect-height)]
+       [(when (:drop-object context)
+          rect)
+        body])})))
 
 (defeditor ::sm/button [{:keys [elem]}]
-  (let [code (:element/text elem)
-        src (:element/code code)]
-    (ui/horizontal-layout
-     (ui/label "text:")
-     (code-editor {:code src}))))
+  (ui/vertical-layout
+   (let [code (:element/text elem)
+         src (:element/code code)]
+     (ui/horizontal-layout
+      (ui/label "text:")
+      (code-editor {:code src})))
+   (let [on-click (:element/on-click elem)
+         click-type (:element/type on-click)]
+     (ui/on
+      ::var-drop
+      (fn [m]
+        [[::config-on-click (assoc m :element elem )]])
+      (var-drop
+       {:$body nil
+        :body
+        (when (= click-type ::sm/code)
+          (let [src (:element/code on-click)]
+            (code-editor {:code src})))})))))
 
 
 (defeditor ::sm/number-slider [{:keys [elem]}]
@@ -193,8 +235,62 @@
 
 
 
-(defui editor [{:keys [elem] :as m}]
-  (compile m))
+(def ->tree** (memoize
+               (fn [root]
+                 (viscous/wrap
+                  (tree-seq
+                   sm/model-branch?
+                   sm/model-children
+                   root)))))
+
+
+(defeffect ::config-on-click [m]
+  (let [{:keys [$root element sym]} m
+        eid (:element/id element)]
+    (dispatch! :update
+               $root
+               (fn [root]
+                 (let [zelem (sm/zelem-by-id root eid)]
+                   (if-not zelem
+                     root
+                     (let [bindings (sm/collect-bindings zelem)]
+                       (specter/transform
+                          [(sm/elem-by-id (:element/id element))]
+                          (fn [elem]
+                            (assoc elem
+                                   :element/on-click
+                                   {:element/type ::sm/code
+                                    :element/id (random-uuid)
+                                    :element/code `(fn []
+                                                     (~sym ~(into {}
+                                                                  (mapcat (fn [sym]
+                                                                            [[(keyword sym) sym]
+                                                                             [(keyword (str "$" (name sym))) (symbol (str "$" (name sym)))]]))
+                                                                  bindings)))}
+                                   ))
+                          root))))))))
+
+(defui editor [{:keys [elem root] :as m}]
+  (ui/vertical-layout
+   (ui/on
+    ::config-on-click
+    (fn [m]
+      [[::config-on-click (assoc m :$root $root)]])
+    (compile m))
+   (let [inspector-extra (get extra ::inspector)]
+     (viscous/inspector
+      {:obj (viscous/wrap root)
+       :width (get inspector-extra :width 40)
+       :height (get inspector-extra :height 1)
+       :show-context? (get inspector-extra :show-context?)
+       :extra inspector-extra}))
+   #_(let [inspector-extra (get extra ::inspector2)]
+       (viscous/inspector
+        {:obj (->tree** root)
+         :width (get inspector-extra :width 40)
+         :height (get inspector-extra :height 1)
+         :show-context? (get inspector-extra :show-context?)
+         :extra inspector-extra}))))
 
 (comment
 
