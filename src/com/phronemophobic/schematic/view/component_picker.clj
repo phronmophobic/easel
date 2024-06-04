@@ -28,6 +28,7 @@
                        :element/children {:element/type ::sm/group
                                           :element/id (random-uuid)
                                           :element/children []}
+                       :flex/layout {:gap 8}
                        :element/id (random-uuid)})
    ::sm/let (fn []
               {:element/type ::sm/let
