@@ -532,6 +532,86 @@
 
 
 
+(let [one-child-keys [:element/children
+                      :prototype/component
+                      ::value
+                      :component/body
+                      :element/body]
+      all-keys (conj one-child-keys
+                     :element/bindings)]
+  (defn model-branch? [elem]
+    (or (vector? elem)
+        (some #(% elem) all-keys)))
+  (defn model-children [elem]
+    (if (vector? elem)
+      (seq elem)
+      (if-let [bindings (:element/bindings elem)]
+        (map :let/val bindings)
+        (when-let [child (some #(% elem) one-child-keys)]
+          (list child)))))
+  (defn model-make-node [node children]
+    (if (vector? node)
+      (vec children)
+      (if (:element/bindings node)
+        (throw (ex-info "make-node not supported for element/bindings" {}))
+        (if-let [k (some #(when (% node)
+                                %)
+                             one-child-keys)]
+          (do
+            (assert (<= (count children) 1) (str "Unexpected number of children for " k))
+            (assoc node k (first children)))
+          (throw (ex-info "Unexpected state." {})))))))
+
+(defn ^:private zfind [z pred]
+  (loop [z z]
+    (if (z/end? z)
+      nil
+      (if (pred (z/node z))
+        z
+        (recur (z/next z))))))
+
+(defn zelem-parents [zelem]
+  (loop [parents '()
+         zelem zelem]
+    (if zelem
+      (recur (conj parents (z/node zelem))
+             (z/up zelem))
+      parents)))
+
+(defn model-zip [root]
+  (z/zipper model-branch? model-children model-make-node root))
+
+(defn zelem-by-id [root eid]
+  (zfind (model-zip root)
+         #(= eid
+             (:element/id %))))
+
+(defn collect-bindings [zelem]
+  (let [parents (zelem-parents zelem)
+        bindings (reduce
+                  (fn [bindings elem]
+                    (case (:element/type elem)
+                      ;; todo
+                      ;; ::sm/let
+
+                      ::component
+                      (into bindings
+                            (map (fn [[k v]]
+                                   (symbol k)))
+                            (:component/defaults elem))
+
+                      ::for
+                      (if-let [x (:element.for/x elem)]
+                        (conj bindings x)
+                        bindings)
+
+
+                      ;; else
+                      bindings))
+                  #{}
+                  parents)]
+    bindings))
+
 (defn elem-by-id
   "Returns a path to elem with the provided id."
   [id]
