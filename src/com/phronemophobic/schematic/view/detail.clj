@@ -225,9 +225,18 @@
                      :value kw}))
              [:start :center :end])
        :selection (:align layout)})
-     (for [kw [:width
-               :height
-               :gap]]
+     (ant/radio-bar
+      {:size :small
+       :options
+       (into []
+             (map (fn [num]
+                    {:text (str num)
+                     :value num}))
+             [4 8 12])
+       :selection (:gap layout)})
+     (for [kw [:gap
+               :width
+               :height]]
        (ui/horizontal-layout
         (ui/label (name kw))
         (let [src (get layout kw)]
