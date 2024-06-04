@@ -243,6 +243,8 @@
                              (assoc :eval-ns (:eval-ns this))
                              (dissoc ::elem)))
                   (assoc :$context $context
+                         :root root
+                         :$root $root
                          :elem elem
                          :$elem $elem
                          :extra (:extra this)
