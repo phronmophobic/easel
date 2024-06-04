@@ -645,7 +645,9 @@
              (::for ::group)
              child
              ;; else
-             [child]))
+             {:element/type ::group
+              :element/id (random-uuid)
+              :element/children [child]}))
 
     (::component)
     (assoc elem :component/body child)
