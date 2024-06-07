@@ -274,6 +274,29 @@
          update :easel
          model/-add-applet (browser/browslet handler url))
   nil)
+
+(defn remove-all-widgets [easel]
+  (let [easel (reduce
+               model/-remove-applet
+               easel
+               (keys (:applets easel)))
+        easel (model/-resize easel
+                             (:size easel)
+                             (:content-scale easel))]
+    easel))
+
+(defn remove-all-widgets! []
+  (swap! app-state
+         (fn [state]
+           (update state :easel remove-all-widgets)))
+  nil)
+
+(defn reset-easel! []
+  (remove-all-widgets!)
+  (handler ::add-applet
+           list-applets/list-applets)
+  nil)
+
 (comment
   (do
     (run)
