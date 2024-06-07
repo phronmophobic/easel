@@ -125,7 +125,9 @@
                       :on-click
                       (fn []
                         [[:set $editing? true]
-                         [:set $buf (buffer/buffer (pr-str code) {:mode :insert})]])})
+                         [:set $buf (buffer/buffer (with-out-str
+                                                     (clojure.pprint/pprint code))
+                                                   {:mode :insert})]])})
        (viscous/inspector {:obj (viscous/wrap code)
                            :width (get inspector-extra :width 40)
                            :height (get inspector-extra :height 1)
