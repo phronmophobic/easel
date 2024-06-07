@@ -127,6 +127,14 @@
                     ((requiring-resolve 'com.phronemophobic.easel.ns-watcher/ns-watcher-applet)
                      handler
                      (eval-ns*)))]])})
+     (button {:text "Tap Watcher"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  (fn [handler]
+                    ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
+                     handler))]])})
      )))
 
 
