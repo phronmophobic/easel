@@ -227,8 +227,6 @@
 
 (def pad 20)
 
-(require 'com.phronemophobic.membrane.schematic3)
-(def eval-ns (the-ns 'com.phronemophobic.membrane.schematic3))
 (defn run []
   (let [
         #_#__ (swap! app-state
@@ -240,8 +238,7 @@
                    (if state
                      state
                      {:easel (assoc (make-easel)
-                                    :$ref (specter/keypath :easel))
-                      :membrane.component/context {:eval-ns eval-ns}})))
+                                    :$ref (specter/keypath :easel))})))
         
         app (membrane.component/make-app #'easel-view app-state handler)]
     (skia/run app
@@ -295,51 +292,7 @@
   (remove-all-widgets!)
   (handler ::add-applet
            list-applets/list-applets)
-  nil)
 
-(comment
-  (do
-    (run)
-    #_(Thread/sleep 1000)
-    #_(handler ::add-applet
-               list-applets/list-applets))
-  (reset! app-state nil)
-
-  (add-term)
-  (add-browser "https://phoboslab.org/xtype/")
-  (add-browser "https://phoboslab.org/ztype/")
-  (add-browser "https://www.youtube.com/")
-  (add-browser "https://github.com/")
-
-
-  (do (run) (add-browser "https://github.com/") (add-browser "https://github.com/"))
-  ,)
-
-
-(defn -main [& args]
-  (do
-    (run)
-    (handler ::add-applet
-             list-applets/list-applets))
-  (Thread/sleep 5000)
-  (add-browser "https://github.com/")
-
-  (Thread/sleep 5000))
-
-(comment
-
-  (def pty
-
-    (-> @app-state
-        :easel
-        :applets
-        seq
-        (nth 2)
-        val
-        :pty))
-  (com.pty4j.unix.Pty/raise
-   (int (.pid pty))
-   (int 28))
 
            
   ,)
