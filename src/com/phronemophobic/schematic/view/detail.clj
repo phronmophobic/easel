@@ -131,6 +131,27 @@
           (let [src (:element/code on-click)]
             (code-editor {:code src})))})))))
 
+(defeditor ::sm/text-input [{:keys [elem]}]
+  (ui/vertical-layout
+   (let [code (:element/text elem)
+         src (:element/code code)]
+     (ui/horizontal-layout
+      (ui/label "text:")
+      (code-editor {:code src})))
+   (ant/radio-bar
+    {:size :small
+     :options
+     (into []
+           (map (fn [num]
+                  {:text (pr-str num)
+                   :value num}))
+           [nil 1.0 2.0])
+     :selection (:flex.grow/width elem)})
+   (ui/horizontal-layout
+    (ui/label :flex.grow/width)
+    (let [src (get elem :flex.grow/width)]
+      (code-editor {:code src})))))
+
 
 (defeditor ::sm/number-slider [{:keys [elem]}]
   (let [value (:element/value elem)

@@ -138,15 +138,21 @@
         (ant/button
          {:text (compile ctx text)}))))))
 
+(defui no-events-text-input [{:as m}]
+  (ui/no-events
+   (ant/text-input (into {} m))))
+
 (defmethod compile* ::sm/text-input [ctx
                                      {:keys [element/text
+                                             flex.grow/width
                                              $elem
                                              extra
                                              context
                                              $context
                                              $extra]}]
-  (ui/no-events
-   (ant/text-input {:text (compile ctx text)})))
+  (no-events-text-input
+   {:text (compile ctx text)
+    :flex.grow/width width}))
 
 (defmethod compile* ::sm/checkbox [ctx
                                    {:keys [element/checked?]}]

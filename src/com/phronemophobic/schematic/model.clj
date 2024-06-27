@@ -273,8 +273,13 @@
          (assoc args :on-click (compile on-click))
          args))))
 
-(defmethod compile* ::text-input [{:element/keys [text]}]
-  `(ant/text-input {:text ~(compile text)}))
+(defmethod compile* ::text-input [{:element/keys [text]
+                                   width :flex.grow/width}]
+  (let [props `{:text ~(compile text)}
+        props (if width
+                (assoc props :flex.grow/width width)
+                props)]
+   `(ant/text-input ~props)))
 
 (defmethod compile* ::progress-bar [{:keys [element/value
                                             element/width
