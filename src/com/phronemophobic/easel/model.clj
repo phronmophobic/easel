@@ -4,16 +4,18 @@
 (defprotocol IResizable
   (-resize [this [w h] content-scale]))
 
-(defprotocol IApplet
-  (-start [this $ref size])
-  (-stop [this])
+(defprotocol IUI
   (-ui [this $context context]))
+
+(defprotocol IApplet
+  (-start [this $ref size content-scale])
+  (-stop [this]))
 
 (defprotocol IEasel
   (-add-applet [this applet])
   (-remove-applet [this id])
-  (-layout-direction [this] [this dir])
   (-visible-applets [this])
+  #_(-ui [this])
   (-show-applet [this id])
   (-hide-applet [this id])
   (-applets [this]))

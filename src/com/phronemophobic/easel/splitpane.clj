@@ -1,4 +1,4 @@
-(ns com.phronemophobic.easel
+(ns com.phronemophobic.easel.splitpane
   (:require [membrane.skia :as skia]
             [membrane.skia.paragraph :as para]
             [membrane.ui :as ui]
@@ -35,25 +35,25 @@
                   specter/NONE
                   pane))
 
-(defn delete-pane-by-id
-  "Finds first descendent pane with :id `id`.
+(defn delete-pane-by-pred
+  "Finds first descendent pane that returns true for `(pred pane)`
 
   Deletes and recursively keeps removing nodes as long as the parent node is an only child.
 
   All nodes must have unique `:id`s."
-  [pane id]
+  [pane pred]
   (let [zpane (pane-zip pane)
 
         ztarget (loop [zip zpane]
                   (if (z/end? zip)
                     nil
-                    (if (= id (:id (z/node zip)))
+                    (if (pred (z/node zip))
                       zip
                       (recur (z/next zip)))))]
     (if ztarget
       (if-let [zparent (z/up ztarget)]
         (loop [zparent (z/edit zparent
-                               #(remove-child-pane-by-id % id))]
+                               #(remove-child-pane-by-id % (:id (z/node ztarget))))]
           (let [zgparent (z/up zparent)]
             (if (and zgparent (empty? (:panes (z/node zparent))))
               ;; if zparent has no siblings. remove and recur
@@ -64,6 +64,15 @@
         nil)
       ;; else not found
       pane)))
+
+(defn delete-pane-by-id
+  "Finds first descendent pane with :id `id`.
+
+  Deletes and recursively keeps removing nodes as long as the parent node is an only child.
+
+  All nodes must have unique `:id`s."
+  [pane id]
+  (delete-pane-by-pred pane #(= id (:id %))))
 
 (comment
   (delete-pane-by-id  {:panes [{:id 42
@@ -118,22 +127,25 @@
 (defmethod get-stretch :column [m]
   (:flex.grow/height m 1))
 
-(defn stack-layout [direction]
-  (let [offset* (volatile! 0)
-        get-size (if (= :column direction)
-                   :height
-                   :width)
-        set-coord (if (= :column direction)
-                    #(assoc %1 :y %2)
-                    #(assoc %1 :x %2))]
-    (fn [rf]
-      (fn
-        ([] (rf))
-        ([result] (rf result))
-        ([result input]
-         (let [offset @offset*]
-           (vreset! offset* (+ offset (get-size input)))
-           (rf result (set-coord input offset))))))))
+(defn stack-layout
+  ([direction]
+   (stack-layout direction 0))
+  ([direction initial-offset]
+   (let [offset* (volatile! initial-offset)
+         get-size (if (= :column direction)
+                    :height
+                    :width)
+         set-coord (if (= :column direction)
+                     #(assoc %1 :y %2 :x 0)
+                     #(assoc %1 :x %2 :y 0))]
+     (fn [rf]
+       (fn
+         ([] (rf))
+         ([result] (rf result))
+         ([result input]
+          (let [offset @offset*]
+            (vreset! offset* (+ offset (get-size input)))
+            (rf result (set-coord input offset)))))))))
 
 (defn add-child [pane child]
   (update pane :panes
@@ -164,6 +176,47 @@
                                         (set-cross-size direction cross-size))))
                              (stack-layout (:direction pane))
                              (map layout-pane))
+                            subpanes)))
+      ;; leaf node with no children
+      pane)))
+
+(defn layout-pane-nested
+  "Returns pane structure with :width key filled in. Leaves space for a top bar"
+  [pane top-bar-height]
+  (let [subpanes (:panes pane)]
+    (if (seq subpanes)
+      (let [size (get-size pane)
+            cross-size (get-cross-size pane)
+
+            column? (= :column (:direction pane))
+            [size cross-size] (if column?
+                                [(max 0 (- size top-bar-height))
+                                 cross-size]
+                                [size
+                                 (max 0 (- cross-size top-bar-height))])
+
+            direction (:direction pane)
+            ;; assume no fixed sizes for now
+            stretch-total (transduce
+                           (map get-stretch)
+                           +
+                           0
+                           subpanes)]
+        (assoc pane
+               :panes (into []
+                            (comp
+                             (map (fn [pane]
+                                    (-> pane
+                                        (set-size direction (* size (/ (get-stretch pane) stretch-total)))
+                                        (set-cross-size direction cross-size))))
+                             (if column?
+                               (comp (stack-layout (:direction pane) top-bar-height)
+                                     (map (fn [pane]
+                                            (assoc pane :x 0))))
+                               (comp (stack-layout (:direction pane))
+                                     (map (fn [pane]
+                                            (assoc pane :y top-bar-height)))))
+                             (map #(layout-pane-nested % top-bar-height)))
                             subpanes)))
       ;; leaf node with no children
       pane)))
@@ -210,6 +263,35 @@
                         (assoc pane
                                :x (+ x (:x pane 0))
                                :y (+ y (:y pane 0))))
+                 (next q))))
+      
+
+      (persistent! view))))
+
+(defn flatten-pane-nested
+  "Returns all panes and subpanes with `:x` and `:y` in the coordinate frame of the root pane.
+  As opposed to `flatten-pane` also includes branches."
+  [pane]
+  (loop [view (transient [])
+         q (list [pane 0 0])]
+    (if (seq q)
+      (let [[pane x y] (first q)
+            subpanes (:panes pane)
+            pane-x (+ x (:x pane 0))
+            pane-y (+ y (:y pane 0))]
+        (if (seq subpanes)
+          (recur (conj! view
+                        (assoc pane :x pane-x :y pane-y))
+                 (into (next q)
+                       (eduction
+                        (map (fn [subpane]
+                               [subpane pane-x pane-y]))
+                        subpanes)))
+
+          (recur (conj! view
+                        (assoc pane
+                               :x pane-x
+                               :y pane-y))
                  (next q))))
       
 

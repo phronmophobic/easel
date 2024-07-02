@@ -12,7 +12,6 @@
 
 (def term-events #'term/term-events)
 (def term-view @#'term/term-view)
-
 (def repaint! @#'skia/glfw-post-empty-event)
 
 (def menlo
@@ -38,6 +37,7 @@
                 (fn [handler key scancode action mods]
                   (when (not= 39 key)
                     (handler key scancode action mods)))
+                ;; todo send events through cmd-ch
                 (term-events (:pty this)
                              view))
                view)
@@ -78,7 +78,7 @@
 
 (defrecord Termlet [dispatch!]
   model/IApplet
-  (-start [this $ref [w h]]
+  (-start [this $ref [w h] _content-scale]
     (let [w (- w 20)
           h (- h 20)
           ;; enforce min size. current virtual term library struggles with
@@ -86,26 +86,40 @@
           cols (max 80
                     (quot w (:membrane.term/cell-width menlo)))
           rows (max 13
-                    (quot h (:membrane.term/cell-height menlo)))]
+                    (quot h (:membrane.term/cell-height menlo)))
+          cmd-ch (async/chan 20)]
       (async/thread
         (let [cmd (into-array String ["/bin/bash" "-l"])
               pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
                                    ^java.util.Map (merge (into {} (System/getenv))
                                                          {"TERM" "xterm-256color"}))
 
-              ;; doesn't quite work anyway?
-              ;; pty (while
-              ;;         (not(doto pty
-              ;;            (.setWinSize (WinSize. width height)))))
               is (io/reader (.getInputStream pty))
               os (.getOutputStream pty)
               repaint-ch (repaint-chan)]
+          (async/thread
+            (try
+              (loop []
+                (when-let [msg (async/<!! cmd-ch)]
+                  (case (:type msg)
+
+                    :resize (do (.setWinSize pty (WinSize. (:cols msg) (:rows msg)))
+                                (recur))
+
+                    ;; else
+                    (prn "unrecognized term message" msg))))
+              (catch Exception e
+                (prn e))
+              (finally
+                (.destroy pty)
+                (.close os))))
           (dispatch! :update $ref
                      (fn [this]
                        (assoc this
-                              :pty pty
-                              :os os
-                              :is is)))
+                              ;; still used by term-events
+                              ;; todo: update term events to use
+                              ;; cmd-ch
+                              :pty pty)))
           (try
             (with-open [is is]
               (loop []
@@ -119,10 +133,11 @@
             (catch Exception e
               (prn e)))))
       (assoc this
+             :cmd-ch cmd-ch
              :vt (vt/make-vt cols rows))))
   (-stop [this]
-    (.destroy (:pty this))
-    (.close (:os this)))
+    (async/close! (:cmd-ch this)))
+  model/IUI
   (-ui [this $context context]
     (term-ui this $context context))
   model/IResizable
@@ -141,9 +156,10 @@
         this
         ;; else
         (do
-          (.setWinSize (:pty this)
-                       (WinSize. cols rows))
-
+          (async/put! (:cmd-ch this)
+                      {:type :resize
+                       :cols cols
+                       :rows rows})
           (assoc this :vt (vt/make-vt cols rows)))))))
 
 (defn termlet [handler]

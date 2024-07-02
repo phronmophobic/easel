@@ -44,12 +44,13 @@
 
 (defrecord ToolbarApplet []
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (toolbar-ui this $context context))
   model/IResizable
@@ -94,12 +95,13 @@
 
 (defrecord PreviewApplet []
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (preview-ui this $context context))
   model/IResizable
@@ -142,12 +144,13 @@
 
 (defrecord TreeApplet []
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (tree-ui this $context context))
   model/IResizable
@@ -188,7 +191,7 @@
 
 (defrecord ComponentPickerApplet [dispatch!]
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     ;; cheat for now
     (dispatch! :update
                '[(keypath :membrane.component/context)]
@@ -200,6 +203,7 @@
            :$ref $ref
            :size size))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (component-picker-ui this $context context))
   model/IResizable
@@ -256,12 +260,13 @@
 
 (defrecord DetailApplet []
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (detail-ui this $context context))
   model/IResizable
@@ -277,7 +282,7 @@
 
 (defrecord ComponentApplet [label component-var initial-state]
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (let [
           component-meta (meta component-var)
           arglists (:arglists component-meta)
@@ -302,6 +307,7 @@
              :state state
              :size size)))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (let [ui (component-var
               (assoc (:state this)

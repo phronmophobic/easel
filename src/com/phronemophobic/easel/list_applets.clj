@@ -141,7 +141,7 @@
 
 (defrecord ListApplets [dispatch!]
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (assoc this
            :$ref $ref
            :$extra [$ref (list 'keypath :extra)]
@@ -152,6 +152,7 @@
            :$applets
            [$ref (list 'keypath :applets)]))
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (ui/scissor-view
      [0 0]

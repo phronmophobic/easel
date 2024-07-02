@@ -248,7 +248,7 @@
 
 (defrecord Browslet [dispatch! initial-url]
   model/IApplet
-  (-start [this $ref [initial-width initial-height]]
+  (-start [this $ref [initial-width initial-height] [initial-content-sx initial-content-sy]]
     (let [dispatch-main
           (fn [work]
             (dispatch! :dispatch-main work))
@@ -259,9 +259,14 @@
           cef-path (doto (io/file ".cef")
                      (.mkdirs))
           cache-path (doto (io/file ".browser-cache")
-                       (.mkdirs))]
+                       (.mkdirs))
+
+          ;; If content scale isn't equal for x and y, just use 1.
+          initial-content-scale (if (= initial-content-sx initial-content-sy)
+                                  initial-content-sx
+                                  1)]
       (future
-        (b/create-browser [initial-width initial-height]
+        (b/create-browser [initial-width initial-height initial-content-scale]
                           initial-url
                           dispatch-main
                           {:on-after-created
@@ -296,6 +301,7 @@
     (when-let [browser (-> this :browser-info :browser)]
       (b/close browser))
     (update this :browser-info dissoc :browser))
+  model/IUI
   (-ui [this $context context]
     (browser-ui this $context context))
   model/IResizable

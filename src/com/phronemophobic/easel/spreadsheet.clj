@@ -64,7 +64,7 @@
 
 (defrecord SpreadSheet [dispatch! eval-ns]
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (merge
      (assoc this
             :ss []
@@ -86,6 +86,7 @@
             :size size)
      (run-results dispatch! $ref))) 
   (-stop [this])
+  model/IUI
   (-ui [this $context context]
     (spreadsheet-ui this $context context))
   model/IResizable

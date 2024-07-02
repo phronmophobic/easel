@@ -43,7 +43,7 @@
 
 (defrecord TapWatcher [dispatch!]
   model/IApplet
-  (-start [this $ref size]
+  (-start [this $ref size _content-scale]
     (let [$tap-vals [$ref '(keypath :tap-vals)]
           tapf (fn [o]
                  (dispatch! :update $tap-vals conj (viscous/wrap o)))]
@@ -58,6 +58,7 @@
     (when-let [tapf (:tapf this)]
       (remove-tap tapf))
     nil)
+  model/IUI
   (-ui [this $context context]
     (tap-ui this $context context))
   model/IResizable
