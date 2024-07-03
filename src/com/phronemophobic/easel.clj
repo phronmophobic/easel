@@ -128,11 +128,15 @@
    (fn [easel]
      (->> easel
           (specter/transform [:root-pane splitpane/WALK-PANE #(= pane-id (:id %))]
-                             #(-> %
-                                  (assoc :applet-id nil)
-                                  (splitpane/add-child {:id (random-uuid)
-                                                        :applet-id (:applet-id %)})
-                                  (splitpane/add-child {:id (random-uuid)})))
+                             (fn [pane]
+                               (if (empty? (:panes pane))
+                                 (-> pane
+                                     (assoc :applet-id nil)
+                                     (splitpane/add-child {:id (random-uuid)
+                                                           :applet-id (:applet-id pane)})
+                                     (splitpane/add-child {:id (random-uuid)}))
+                                 ;; pane already has children
+                                 (splitpane/add-child pane {:id (random-uuid)}))))
           relayout*))))
 
 (defeffect ::delete-pane [{:keys [$easel pane-id]}]
