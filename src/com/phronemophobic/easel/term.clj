@@ -7,7 +7,7 @@
    [com.phronemophobic.membrane.term :as term]
    [membrane.ui :as ui]
    [clojure.java.io :as io])
-  (:import [com.pty4j PtyProcess WinSize]))
+  (:import [com.pty4j WinSize PtyProcessBuilder]))
 
 
 (def term-events #'term/term-events)
@@ -83,17 +83,21 @@
           h (- h 20)
           ;; enforce min size. current virtual term library struggles with
           ;; very small terminals.
-          cols (max 80
-                    (quot w (:membrane.term/cell-width menlo)))
-          rows (max 13
-                    (quot h (:membrane.term/cell-height menlo)))
+          cols (int
+                (max 80
+                     (quot w (:membrane.term/cell-width menlo))))
+          rows (int
+                (max 13
+                     (quot h (:membrane.term/cell-height menlo))))
           cmd-ch (async/chan 20)]
       (async/thread
         (let [cmd (into-array String ["/bin/bash" "-l"])
-              pty (PtyProcess/exec ^"[Ljava.lang.String;" cmd
-                                   ^java.util.Map (merge (into {} (System/getenv))
-                                                         {"TERM" "xterm-256color"}))
-
+              pty-builder (doto (PtyProcessBuilder. cmd)
+                            (.setInitialColumns cols)
+                            (.setInitialRows rows)
+                            (.setEnvironment (merge (into {} (System/getenv))
+                                                    {"TERM" "xterm-256color"})))
+              pty (.start pty-builder)
               is (io/reader (.getInputStream pty))
               os (.getOutputStream pty)
               repaint-ch (repaint-chan)]
