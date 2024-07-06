@@ -12,7 +12,7 @@
   (-stop [this]))
 
 (defprotocol IEasel
-  (-add-applet [this applet])
+  (-add-applet [this info])
   (-remove-applet [this id])
   (-visible-applets [this])
   #_(-ui [this])

@@ -321,12 +321,13 @@
 
 (defeffect ::add-component-as-applet [component-var initial-state]
   (dispatch! :com.phronemophobic.easel/add-applet
-             (fn [_]
-               (map->ComponentApplet
-                {:label (or (-> component-var
-                                meta
-                                :name)
-                            "Component")
-                 :component-var component-var
-                 :initial-state initial-state})))
+             {:make-applet
+              (fn [_]
+                (map->ComponentApplet
+                 {:label (or (-> component-var
+                                 meta
+                                 :name)
+                             "Component")
+                  :component-var component-var
+                  :initial-state initial-state}))})
   )

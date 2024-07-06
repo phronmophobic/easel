@@ -74,6 +74,19 @@
   [pane id]
   (delete-pane-by-pred pane #(= id (:id %))))
 
+(defn find-pane-by-pred [pane pred]
+  (specter/select-one [WALK-PANE (specter/pred pred)]
+                      pane))
+
+(defn find-pane-by-id [pane id]
+  (find-pane-by-pred pane #(= id (:id %))))
+
+(defn edit-pane-by-id [pane id f]
+  (specter/transform [WALK-PANE #(= id (:id %))]
+                     f
+                     pane)
+  )
+
 (comment
   (delete-pane-by-id  {:panes [{:id 42
                                 :panes [{:id 32}]}]}

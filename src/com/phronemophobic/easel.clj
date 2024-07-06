@@ -14,6 +14,8 @@
             [com.phronemophobic.easel.model :as model]
             [com.phronemophobic.easel.browser :as browser]
             [membrane.alpha.component.drag-and-drop :as dnd]
+            [com.phronemophobic.schematic.view.util
+             :as schematic-util]
             [membrane.component
              :refer
              [defui defeffect]]))
@@ -42,12 +44,11 @@
                    (when (not= new-val old-val)
                      (f key ref old-val new-val)))))))
 
-(defeffect ::add-applet [make-applet]
+(defeffect ::add-applet [m]
   (dispatch!
    :update :easel
    (fn [easel]
-     (model/-add-applet easel
-                        (make-applet dispatch!))))
+     (model/-add-applet easel m)))
   nil)
 
 (defn add-component! [key f]
@@ -81,33 +82,57 @@
                     w)]
     col-width))
 
-(defn top-bar [pane]
-  (let [pane-id (:id pane)
-        bar (ui/horizontal-layout
-             (ui/on-click
-              (fn []
-                [[::toggle-pane-direction {:pane-id pane-id}]])
-              (para/paragraph
-               (if (= (:direction pane) :column)
-                 "↕️"
-                 "↔️")))
-             (ui/on-click
-              (fn []
-                [[::splitpane {:pane-id pane-id}]])
-              (para/paragraph
-               "+"))
-             (when (not= ::root-pane pane-id)
-               (ui/on-click
-                (fn []
-                  [[::delete-pane {:pane-id pane-id}]])
-                (para/paragraph
-                 "X"))))
-        height (ui/height bar)]
-    [(ui/with-style ::ui/style-stroke
-       (ui/rectangle (:width pane) height))
+
+(defui top-bar [{:keys [pane]}]
+  (let [drop-object (:drop-object context)
+        pane-id (:id pane)
+        bar
+        (ui/horizontal-layout
+         (ui/on-click
+          (fn []
+            [[::toggle-pane-direction {:pane-id pane-id}]])
+          (para/paragraph
+           (if (= (:direction pane) :column)
+             "↕️"
+             "↔️")))
+         (ui/on-click
+          (fn []
+            [[::splitpane {:pane-id pane-id}]])
+          (para/paragraph
+           "+"))
+         (when (not= ::root-pane pane-id)
+           (ui/on-click
+            (fn []
+              [[::delete-pane {:pane-id pane-id}]])
+            (para/paragraph
+             "_"))))
+        height (ui/height bar)
+
+        drag-object (get extra ::drag-object)]
+    [(ui/on
+      :mouse-down
+      (fn [_]
+        [[::dnd/drag-start {::dnd/obj {::pane pane}}]])
+      (schematic-util/on-drag-hover
+       {:$body nil
+        :extra (get extra ::drag-extra)
+        :body
+        [(when (and (::pane drag-object)
+                    drop-object)
+           (dnd/on-drop
+            (fn [_pos obj]
+              (when-let [drop-pane (::pane obj)]
+                [[::swap-panes {:from-pane-id (:id drop-pane)
+                                :to-pane-id (:id pane)}]]))
+            (ui/filled-rectangle
+             [0.8 0.8 0.8]
+             (:width pane) height)))
+         (ui/with-style ::ui/style-stroke
+           (ui/rectangle (:width pane) height))]
+        :object drag-object}))
      bar]))
 
-(def top-bar-height (ui/height (top-bar {:width 0})))
+(def top-bar-height (ui/height (top-bar {:pane {:width 0}})))
 
 (defn relayout* [easel]
   (let [root-pane (:root-pane easel)]
@@ -124,7 +149,7 @@
 
 (defeffect ::splitpane [{:keys [$easel pane-id]}]
   (dispatch!
-   :update :easel
+   :update $easel
    (fn [easel]
      (->> easel
           (specter/transform [:root-pane splitpane/WALK-PANE #(= pane-id (:id %))]
@@ -137,6 +162,27 @@
                                      (splitpane/add-child {:id (random-uuid)}))
                                  ;; pane already has children
                                  (splitpane/add-child pane {:id (random-uuid)}))))
+          relayout*))))
+
+(defeffect ::swap-panes [{:keys [$easel from-pane-id to-pane-id]}]
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (-> easel
+         (update :root-pane
+                 (fn [root-pane]
+                   (let [from-pane (splitpane/find-pane-by-id root-pane from-pane-id)
+                         to-pane (splitpane/find-pane-by-id root-pane to-pane-id)]
+                     (if (and from-pane to-pane)
+                       (-> root-pane
+                           (splitpane/edit-pane-by-id from-pane-id
+                                                      (fn [pane]
+                                                        (assoc pane :applet-id (:applet-id to-pane))))
+                           (splitpane/edit-pane-by-id to-pane-id
+                                                      (fn [pane]
+                                                        (assoc pane :applet-id (:applet-id from-pane)))))
+                       ;; else
+                       root-pane))))
           relayout*))))
 
 (defeffect ::delete-pane [{:keys [$easel pane-id]}]
@@ -155,40 +201,66 @@
              relayout*))))))
 
 
-(defn easel-ui* [{:keys [root-pane applets] :as easel} $context context]
+(defn easel-ui* [{:keys [root-pane applets] :as easel} $extra extra $context context]
   (into []
         (keep (fn [pane]
-                (if (seq (:panes pane))
-                  ;; non-leaf
-                  (ui/translate (:x pane)
-                                (:y pane)
-                                (top-bar pane))
-                  ;; else, leaf node
-                  (ui/translate (:x pane)
-                                (:y pane)
-                                (ui/vertical-layout
-                                 (top-bar pane)
-                                 (if-let [applet (get applets (:applet-id pane))]
-                                   (ui/fixed-bounds
-                                    [(:width pane)
-                                     (:height pane)]
-                                    (model/-ui applet $context context))
-                                   ;; no applet found
-                                   ;; drag target?
-                                   nil))))))
+                (let [bar-extra (get extra [::bar-extra (:id pane)])
+                      $bar-extra [$extra
+                                  (list 'keypath [::bar-extra (:id pane)])]
+                      bar (top-bar {:pane pane
+                                    :extra bar-extra
+                                    :$extra $bar-extra
+                                    :context context
+                                    :$context $context})]
+                  (if (seq (:panes pane))
+                    ;; non-leaf
+                    (ui/translate (:x pane)
+                                  (:y pane)
+                                  bar)
+                    ;; else, leaf node
+                    (ui/translate (:x pane)
+                                  (:y pane)
+                                  (ui/vertical-layout
+                                   bar
+                                   (if-let [applet (get applets (:applet-id pane))]
+                                     (ui/fixed-bounds
+                                      [(:width pane)
+                                       (:height pane)]
+                                      (model/-ui applet $context context))
+                                     ;; no applet found
+                                     (let [pane-id (:id pane)
+                                           list-applets-extra (get extra [::list-applets-extra pane-id])
+                                           $list-applets-extra [$extra
+                                                                (list 'keypath [::list-applets-extra pane-id])]
+                                           shared-state (get extra ::list-applets-shared-state)
+                                           $shared-state [$extra (list 'keypath ::list-applets-shared-state)]]
+                                       (ui/on
+                                        ::add-applet
+                                        (fn [m]
+                                          [[::add-applet (assoc m :pane-id pane-id)]])
+                                        (list-applets/list-applets2 {:shared-state shared-state
+                                                                     :$shared-state $shared-state
+                                                                     :extra list-applets-extra
+                                                                     :$extra $list-applets-extra
+                                                                     :context context
+                                                                     :$context $context}))))))))))
         (-> easel ::cached-layout :all-panes)))
 
 (defrecord AEasel [applets
                    last-id $ref
                    root-pane]
   model/IEasel
-  (-add-applet [this applet]
-    (let [
+  (-add-applet [this info]
+    (let [{:keys [make-applet pane-id pop-out?]} info
+          applet (make-applet handler)
           id (inc last-id)
           applet (assoc applet :id id)
-          root-pane (-> root-pane
-                        (splitpane/add-child {:id (random-uuid)
-                                              :applet-id id}))
+          root-pane (if (and (not pop-out?)
+                             pane-id)
+                      (splitpane/edit-pane-by-id root-pane pane-id
+                                                 #(assoc % :applet-id id))
+                      (splitpane/add-child root-pane {:id (random-uuid)
+                                                      :applet-id id}))
 
           this-pane (get-in this [::cached-layout :by-applet-id id])
           new-size [(:width this-pane) (:height this-pane)]]
@@ -287,16 +359,19 @@
       this))
   model/IUI
   (-ui [this $context context]
-    (easel-ui* this $context context)))
+    (let [extra (get this ::extra)
+          $extra [$ref (list 'keypath ::extra)]]
+     (easel-ui* this $extra extra $context context))))
 
 (defn make-easel []
   (-> (map->AEasel
        {:applets (tiara/ordered-map)
         :last-id 0
+        ::extra {}
         :root-pane {:id ::root-pane
                     :width 1
                     :height 1
-                    :panes []}})
+                    :panes [{:id (random-uuid)}]}})
       relayout*))
 
 (defn delete-X []
@@ -361,19 +436,24 @@
           (fn [easel]
             (-> easel
                 (model/-remove-applet id)))]])
-      (tab-view {:tabs (vals (model/-applets easel))
-                 :selected (-> easel ::cached-layout :by-applet-id)
-                 :width tab-width}))
-     (ui/on
-      ::toggle-pane-direction
-      (fn [m]
-        [[::toggle-pane-direction (assoc m :$easel $easel)]])
-      ::add-pane-child
-      (fn [m]
-        [[::add-pane-child (assoc m :$easel $easel)]])
-      ::delete-pane
-      (fn [m]
-        [[::delete-pane (assoc m :$easel $easel)]])
+      (ui/vertical-layout
+       (tab-view {:tabs (vals (model/-applets easel))
+                  :selected (-> easel ::cached-layout :by-applet-id)
+                  :width tab-width})))
+     (ui/on-bubble
+      (fn [intents]
+        (specter/transform
+         [specter/ALL
+          (fn [intent]
+            (#{::toggle-pane-direction
+               ::add-pane-child
+               ::delete-pane
+               ::splitpane
+               ::swap-panes}
+             (first intent)))]
+         (fn [intent]
+           [(first intent) (assoc (second intent) :$easel $easel)])
+         intents))
       (dnd/drag-and-drop
        {:$body nil
         :body
@@ -406,22 +486,19 @@
                    model/-resize
                    [(- width tab-width) height]
                    [xscale yscale]))
-          (when (not (seq (model/-applets (:easel @app-state))))
-            (handler ::add-applet
-                     list-applets/list-applets))
           (skia/-reshape window window-handle width height))}})))
 
 
 (defn add-term []
   (swap! app-state
          update :easel
-         model/-add-applet (term/termlet handler))
+         model/-add-applet {:make-applet (term/termlet handler)})
   nil)
 
 (defn add-browser [url]
   (swap! app-state
          update :easel
-         model/-add-applet (browser/browslet handler url))
+         model/-add-applet {:make-applet (browser/browslet handler url)})
   nil)
 
 (defn remove-all-widgets [easel]
@@ -442,10 +519,13 @@
 
 (defn reset-easel! []
   (remove-all-widgets!)
-  (handler ::add-applet
-           list-applets/list-applets)
-
-
+  
+  ;; (require '[com.phronemophobic.llama :as llama])
+  ;; (require '[com.phronemophobic.llama.util :as llutil])
+  ;; (def model-path "../llama.clj/models/llama-2-7b-chat.Q4_0.gguf")
+  ;; (def ctx (llama/create-context model-path {:n-ctx 2048
+  ;;                                      :n-gpu-layers 100
+  ;;                                      }))
            
   ,)
 
