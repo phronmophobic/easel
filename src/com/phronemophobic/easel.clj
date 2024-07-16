@@ -105,7 +105,12 @@
             (fn []
               [[::delete-pane {:pane-id pane-id}]])
             (para/paragraph
-             "X"))))
+             "X")))
+         (ui/on-click
+            (fn []
+              [[::clear-pane {:pane-id pane-id}]])
+            (para/paragraph
+             "O")))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -199,6 +204,19 @@
              (update :root-pane
                      #(splitpane/delete-pane-by-id % pane-id))
              relayout*))))))
+
+(defeffect ::clear-pane [{:keys [$easel pane-id]}]
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (-> easel
+         (update :root-pane
+                 (fn [root-pane]
+                   (-> root-pane
+                       (splitpane/edit-pane-by-id pane-id
+                                                  (fn [pane]
+                                                    (dissoc pane :applet-id))))))
+         relayout*))))
 
 
 (defn easel-ui* [{:keys [root-pane applets] :as easel} $extra extra $context context]
@@ -448,6 +466,7 @@
             (#{::toggle-pane-direction
                ::add-pane-child
                ::delete-pane
+               ::clear-pane
                ::splitpane
                ::swap-panes}
              (first intent)))]
