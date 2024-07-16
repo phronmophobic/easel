@@ -105,7 +105,7 @@
             (fn []
               [[::delete-pane {:pane-id pane-id}]])
             (para/paragraph
-             "_"))))
+             "X"))))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
