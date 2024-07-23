@@ -236,8 +236,8 @@
                                   (:y pane)
                                   bar)
                     ;; else, leaf node
-                    (ui/translate (:x pane)
-                                  (:y pane)
+                    (ui/translate (long (:x pane))
+                                  (long (:y pane))
                                   (ui/vertical-layout
                                    bar
                                    (if-let [applet (get applets (:applet-id pane))]
