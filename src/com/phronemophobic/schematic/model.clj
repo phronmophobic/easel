@@ -208,7 +208,10 @@
   ;; currently, all properties are literals and
   ;;    don't use compiled or calculated values
   `(ui/flex-layout ~(compile children)
-                   ~layout))
+                   ~(into {}
+                          (map (fn [[k v]]
+                                 [k (compile v)]))
+                          layout)))
 
 (defmethod compile* ::rectangle [{:element/keys [width height]}]
   `(ui/filled-rectangle [0 0 0] ~width ~height))
