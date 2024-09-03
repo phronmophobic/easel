@@ -65,7 +65,9 @@
                      :element/id (random-uuid)})
    ::sm/button (fn []
                  {:element/type ::sm/button
-                  :element/on-click '(fn [] [])
+                  :element/on-click {:element/type ::sm/code
+                                     :element/id (random-uuid)
+                                     :element/code '(fn [] [])}
                   :element/text {:element/type ::sm/code
                                  :element/id (random-uuid)
                                  :element/code "doit"}
