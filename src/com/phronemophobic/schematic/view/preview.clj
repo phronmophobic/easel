@@ -19,7 +19,8 @@
                      drag-elem-target
                      code-editor]]
             [liq.buffer :as buffer]
-            [membrane.skia :as skia]))
+            [membrane.skia :as skia]
+            [com.phronemophobic.replog :as replog]))
 
 
 
@@ -416,6 +417,30 @@
                                  elem))))
   (dispatch! :set $selection #{}))
 
+
+(defeffect ::replog-elem [{:keys [eval-ns elem] :as m}]
+  (let [ns (ns-name eval-ns)
+        requires '[[membrane.component
+                    :refer [defui defeffect]]
+                   [com.phronemophobic.membrandt :as ant]
+                   [membrane.ui :as ui]]
+        ops [{::replog/ns ns
+              ::replog/requires requires
+              ::replog/form `(require ~@(eduction
+                                         (map (fn [req]
+                                                (list 'quote req)))
+                                         requires))}
+             {::replog/form (sm/compile elem)
+              ::sm/elem elem
+              ::replog/ns ns }]]
+    (tap> {:effect (ns-name *ns*)})
+    (tap> ops)
+    (replog/append ops)
+    (tap> (replog/load-log ops))
+
+
+    ))
+
 (defui toolbar [{:keys [elem selection
                         ^:membrane.component/contextual
                         eval-ns]}]
@@ -436,6 +461,10 @@
                               (clojure.pprint/pprint
                                (sm/compile elem))
                               nil)})
+   (basic/button {:text "save"
+                  :on-click (fn []
+                              [[::replog-elem {:eval-ns eval-ns
+                                               :elem elem}]])})
    (basic/button {:text "eval"
                   :on-click (fn []
                               (binding [*ns* (or eval-ns
