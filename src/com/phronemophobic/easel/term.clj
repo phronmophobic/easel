@@ -38,8 +38,9 @@
                   (when (not= 39 key)
                     (handler key scancode action mods)))
                 ;; todo send events through cmd-ch
-                (term-events (:pty this)
-                             view))
+                (if-let [pty (:pty this)]
+                  (term-events pty view)
+                  view))
                view)
         view (ui/fill-bordered
               (if focus?
@@ -129,10 +130,15 @@
               (loop []
                 (let [input (.read is)]
                   (when (not= -1 input)
-                    (dispatch! :update [$ref '(keypath :vt)]
-                               (fn [vt]
-                                 (vt/feed-one vt input)))
-                    (async/put! repaint-ch true)
+                    (try
+                      (dispatch! :update [$ref '(keypath :vt)]
+                                 (fn [vt]
+                                   (vt/feed-one vt input)))
+                      (catch IllegalArgumentException e
+                        ;; ignore
+                        nil)
+                      )
+                    (async/offer! repaint-ch true)
                     (recur)))))
             (catch Exception e
               (prn e)))))
