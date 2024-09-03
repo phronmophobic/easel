@@ -6,6 +6,10 @@
             [com.phronemophobic.schematic.model :as sm]
             [membrane.alpha.component.drag-and-drop :as dnd]))
 
+(defn ->code [form]
+  {:element/type ::sm/code
+   :element/code form
+   :element/id (random-uuid)})
 
 (def component-starters
   {::sm/group (fn []
@@ -28,7 +32,9 @@
                        :element/children {:element/type ::sm/group
                                           :element/id (random-uuid)
                                           :element/children []}
-                       :flex/layout {:gap 8}
+                       :flex/layout {:gap 8
+                                     :width (->code nil)
+                                     :height (->code nil)}
                        :element/id (random-uuid)})
    ::sm/let (fn []
               {:element/type ::sm/let

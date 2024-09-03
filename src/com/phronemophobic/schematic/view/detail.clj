@@ -255,12 +255,17 @@
                      :value num}))
              [4 8 12])
        :selection (:gap layout)})
+     (ui/horizontal-layout
+      (ui/label (name :gap))
+      (let [src (get layout :gap)]
+        (code-editor {:code src})))
      (for [kw [:gap
                :width
                :height]]
        (ui/horizontal-layout
         (ui/label (name kw))
-        (let [src (get layout kw)]
+        (let [code (get layout kw)
+              src (get code :element/code)]
           (code-editor {:code src})))))))
 
 
