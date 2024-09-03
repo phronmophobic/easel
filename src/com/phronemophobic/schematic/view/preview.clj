@@ -288,7 +288,17 @@
                 :context context
                 :$context $context)
          children)
-        layout)
+        (into {}
+              (map (fn [[k v]]
+                     [k (compile
+                         (assoc ctx
+                                :$elem [$elem (list 'keypath :flex/layout) (list 'keypath k)]
+                                :extra (get extra [::flex k])
+                                :$extra [$extra (list 'keypath [::flex k])]
+                                :context context
+                                :$context $context)
+                         v)]))
+              layout))
        (uicall drag-elem-target
                {:elem children
                 :$elem [$elem (list 'keypath :element/children)]})))))
