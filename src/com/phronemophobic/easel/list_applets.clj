@@ -318,4 +318,24 @@
                    (fn [handler]
                      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
                       handler))}]])})
+     (button {:text "Derpbot"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.derpbot/derpbot-applet)
+                      handler
+                      (random-uuid)))}]])})
+     (button {:text "Mic"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.mic/mic-applet)
+                      handler
+                      (random-uuid)))}]])})
      )))
