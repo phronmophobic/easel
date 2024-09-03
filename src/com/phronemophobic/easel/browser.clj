@@ -3,16 +3,36 @@
    [com.phronemophobic.easel.model :as model]
    [membrane.skia :as skia]
    [membrane.ui :as ui]
+   [membrane.component :refer [defeffect defui]]
    [clojure.java.io :as io]
    [com.phronemophobic.gen3 :as gen3]
    [com.phronemophobic.cef :as cef]
-   [com.phronemophobic.cef.browser :as b])
+   [com.phronemophobic.cef.browser :as b]
+   [com.phronemophobic.replog :as replog])
   (:import com.sun.jna.Pointer
            com.sun.jna.Function
            com.phronemophobic.membrane.Skia
            com.phronemophobic.gen3.structs.cef_browser_host_t
            ;;com.phronemophobic.cljcef.CefBrowser
            ))
+
+(replog/load-log (into []
+                       (filter #(= (ns-name *ns*)
+                                   (::replog/ns %)))
+                       (replog/get-main-log)))
+
+(defeffect ::more! [$num]
+  (dispatch! :update $num inc))
+
+(defeffect ::browser-back [{:keys [browser]}]
+  (gen3/call browser :go_back))
+
+(defeffect ::browser-forward [{:keys [browser]}]
+  (gen3/call browser :go_forward))
+
+(defeffect ::load-url [{:keys [browser url]}]
+  (let [frame (gen3/call browser :get_main_frame)]
+    (gen3/call frame :load_url url)))
 
 
 (def skialib @#'skia/membraneskialib)
@@ -216,6 +236,8 @@
   (let [focus (:focus context)
         focus? (= focus (:id this))
         browser-info (:browser-info this)
+        ui-state (:ui-state this)
+
         view
         (assoc
          (->Browser (:browser browser-info)
@@ -242,7 +264,24 @@
                   [[:set [$context (list 'keypath :focus)]
                     (:id this)]])
                 (ui/no-events view)))]
-    view))
+    (ui/vertical-layout
+     (ui/on
+      ::browser-forward
+      (fn []
+        [[::browser-forward {:browser (:browser browser-info)}]])
+      ::load-url
+      (fn [url]
+        [[::load-url {:browser (:browser browser-info)
+                      :url url}]])
+      ::browser-back
+      (fn []
+        [[::browser-back {:browser (:browser browser-info)}]])
+      (browser-bar
+       (assoc ui-state
+              :width (:width browser-info)
+              :context context
+              :$context $context)))
+     view)))
 
 
 
@@ -253,12 +292,21 @@
           (fn [work]
             (dispatch! :dispatch-main work))
 
+          $url [$ref '(keypath :ui-state) '(keypath :url)]
+          ui-state {:url initial-url
+                    :$url $url
+                    :extra {}
+                    :$extra [$ref '(keypath :ui-state) '(keypath :extra)]}
           $browser-info [$ref
                          '(keypath :browser-info)]
 
-          cef-path (doto (io/file ".cef")
+          cef-path (doto (io/file
+                          "/Users/adrian/workspace/easel"
+                          ".cef")
                      (.mkdirs))
-          cache-path (doto (io/file ".browser-cache")
+          cache-path (doto (io/file
+                            "/Users/adrian/workspace/easel"
+                            ".browser-cache")
                        (.mkdirs))
 
           ;; If content scale isn't equal for x and y, just use 1.
@@ -285,6 +333,14 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
+                           :load-handler/on-load-start
+                           (fn [browser frame transition-type]
+                             (when (= 1 (gen3/call frame :is_main))
+
+                               (let [;; todo: needs memory management
+                                     ;; The resulting string must be freed by calling cef_string_userfree_free().
+                                     url (gen3/call frame :get_url)]
+                                 (dispatch! :set $url url))))
                            :cef-path cef-path
                            :cache-path cache-path
                            :on-paint+content-scale
@@ -292,6 +348,7 @@
                              (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)
                              (dispatch! :repaint!))}))
       (assoc this
+             :ui-state ui-state
              :browser-info
              {:draw-lock (Object.)
               :width initial-width
