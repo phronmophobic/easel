@@ -1,20 +1,37 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha3"}
         net.java.dev.jna/jna {:mvn/version "5.13.0"}
-        com.phronemophobic/membrane {:local/root "../membrane2"}
+        com.phronemophobic/membrane {:local/root "../membrane"}
         com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
         com.phronemophobic/schematic {:local/root "../schematic"}
         com.phronemophobic/viscous {:local/root "../viscous"}
+        com.phronemophobic/membrandt {:local/root "../membrandt"}
         ;; com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
         membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
         com.phronemophobic/membrane.term {:local/root "../term"}
         org.clojars.quoll/tiara {;;:mvn/version "0.3.3"
                                  :local/root "../tiara"
                                  }
+        com.phronemophobic/clong {:mvn/version "1.4.2"
+                                  ;; :local/root "../clong/"
+                                  ;; :mvn/version "1.4-20240711.022539-7"
+                                  }
+        
         ;; com.phronemophobic/clj-cef2 {:local/root "../clj-cef"}
-        com.phronemophobic/clj-cef2.alpha {:mvn/version "0.1"
-                                           ;;:local/root "../clj-cef"
+        com.phronemophobic/clj-cef2.alpha { ;; :mvn/version "0.1"
+                                           :local/root "../clj-cef"
                                            }
+
+        ;; llm stuff
+        com.phronemophobic/llama-clj {:local/root "../llama.clj"}
+        com.phronemophobic/replog {:local/root "../replog"}
+
+        com.phronemophobic/clj-media {;; :mvn/version "2.3"
+                                      :local/root "../clj-media"
+                                      }
+        com.phronemophobic/derpbot {:local/root "../derpbot"}
+        com.phronemophobic/whisper {:local/root "../whisper.clj"}
+
         com.phronemophobic/vt
         {:local/root "../vt"
          ;; :mvn/version "1.0"
@@ -34,12 +51,18 @@
               "-XX:-OmitStackTraceInFastThrow"
               "-XX:+DebugNonSafepoints"
               "-Xmx8G"
+
+              "--add-opens=java.base/java.nio=ALL-UNNAMED"
+              "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+              "-Djna.library.path=../whisper.cpp/build/src/"
               ]
-   :extra-paths ["notebooks"]
+   :extra-paths ["notebooks" "demos" "../derpbot/config"]
    :extra-deps
-            {com.phronemophobic.membrane/skialib-macosx-aarch64 { :mvn/version "0.14-beta"
-                                                                 ;;:local/root "../membrane2/csource/macos-aarch64"
-                                                                 }}
+   {com.phronemophobic.cljonda/llama-cpp-gguf-darwin-aarch64 {:mvn/version "b3040"}
+
+    com.phronemophobic.membrane/skialib-macosx-aarch64 { ;; :mvn/version "0.14-beta"
+                                                        :local/root "../membrane/csource/macos-aarch64"
+                                                        }}
   :build {:deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}
                  slipset/deps-deploy {:mvn/version "RELEASE"}}
           :ns-default build}
