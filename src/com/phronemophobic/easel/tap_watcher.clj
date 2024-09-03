@@ -21,15 +21,21 @@
     :body
     (apply
      ui/vertical-layout
+     (ant/button {:size :small
+                  :text "X"
+                  :on-click (fn []
+                              [[:set $tap-vals []]])})
      (eduction
-      (map (fn [obj]
-             (let [inspector-extra (get extra [::inspector obj])]
-               (viscous/inspector
-                {:obj obj
-                 :width (get inspector-extra :width 40)
-                 :height (get inspector-extra :height 1)
-                 :show-context? (get inspector-extra :show-context?)
-                 :extra inspector-extra}))))
+      (map-indexed
+       (fn [i obj]
+         (let [inspector-extra (get extra [::inspector [i obj]])]
+           (ui/vertical-layout
+            (viscous/inspector
+             {:obj obj
+              :width (get inspector-extra :width 40)
+              :height (get inspector-extra :height 1)
+              :show-context? (get inspector-extra :show-context?)
+              :extra inspector-extra})))))
       tap-vals))}))
 
 (defn tap-ui [this $context context]
@@ -52,6 +58,7 @@
              :extra {}
              :tap-vals []
              :tapf tapf
+             :$tap-vals $tap-vals
              :$ref $ref
              :size size)))
   (-stop [this]
