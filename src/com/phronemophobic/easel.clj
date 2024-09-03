@@ -536,6 +536,14 @@
            (update state :easel remove-all-widgets)))
   nil)
 
+(defn remove-widget! [id]
+  (swap! app-state
+         (fn [state]
+           (update state :easel
+                   (fn [easel]
+                     (model/-remove-applet easel id)))))
+  nil)
+
 (defn reset-easel! []
   (remove-all-widgets!)
   
@@ -556,4 +564,13 @@
       nil))
   (reset! app-state nil)
   (run))
+
+
+(comment
+  (run)
+  (skia/run #(/ 1 0))
+
+  (reset-run)
+
+  ,)
 
