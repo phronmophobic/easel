@@ -34,3 +34,5 @@ todo.org
 /.cef
 hs_err*
 /DawnCache
+/threadkv.db
+/aimages
