@@ -336,7 +336,9 @@
                            :load-handler/on-load-start
                            (fn [browser frame transition-type]
                              (when (= 1 (gen3/call frame :is_main))
-
+                               (-> browser
+                                   (gen3/call :get_host)
+                                   (gen3/call :set_focus (int 1)))
                                (let [;; todo: needs memory management
                                      ;; The resulting string must be freed by calling cef_string_userfree_free().
                                      url (gen3/call frame :get_url)]
