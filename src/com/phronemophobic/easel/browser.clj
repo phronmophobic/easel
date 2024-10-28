@@ -333,6 +333,14 @@
                            (fn [browser]
                              (dispatch! :update $browser-info
                                         dissoc :browser))
+                           :life-span-handler/on-before-popup
+                           (fn [{:keys [target-url]}]
+                             (dispatch! :com.phronemophobic.easel/add-applet
+                                        {:make-applet
+                                         (fn [handler]
+                                           ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                            handler
+                                            target-url))}))
                            :load-handler/on-load-start
                            (fn [browser frame transition-type]
                              (when (= 1 (gen3/call frame :is_main))
