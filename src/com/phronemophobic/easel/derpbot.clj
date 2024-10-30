@@ -159,7 +159,8 @@
         (apply
          ui/vertical-layout
          (for [message messages]
-           (para/paragraph message
+           (para/paragraph {:style #:text-style {:font-size 18}
+                            :text message}
                            (- cw 10))))]
     (ui/vertical-layout
      header
