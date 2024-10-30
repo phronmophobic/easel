@@ -108,55 +108,68 @@
   (let [prompt (get state :prompt "")
         messages (get state :messages [])
 
-        [cw ch] size]
+        [cw ch] size
+
+        header
+        (ui/vertical-layout
+         (ant/button {:size :small
+                      :text "debug"
+                      :on-click
+                      (fn []
+                        [[::debug {:thread-id thread-id
+                                   :prompt prompt
+                                   :$prompt $prompt
+                                   :messages messages
+                                   :$messages $messages}]])})
+         (ui/horizontal-layout
+          (let [record-hover (get state :record-hover)
+                not-record-hover (get state :not-record-hover)
+                btn (ant/button {:size :small
+                                 :hover? record-hover
+                                 :$hover? $not-record-hover
+                                 :text "record"})
+                btn (if (not record-hover)
+                      (ui/on
+                       :mouse-down
+                       (fn [_]
+                         [[:set $record-hover true]
+                          [::record-start {}]])
+                       btn)
+                      (ui/on
+                       :mouse-up
+                       (fn [_]
+                         [[:set $record-hover false]
+                          [::record-stop {:$prompt $prompt}]])
+                       btn))]
+            btn)
+          (ant/button {:size :small
+                       :text "ask"
+                       :on-click
+                       (fn []
+                         [[::ask {:thread-id thread-id
+                                  :prompt prompt
+                                  :$prompt $prompt
+                                  :messages messages
+                                  :$messages $messages}]])})
+          (ant/text-input {:size :small
+                           :text (get state :prompt "")})))
+
+
+        responses
+        (apply
+         ui/vertical-layout
+         (for [message messages]
+           (para/paragraph message
+                           (- cw 10))))]
     (ui/vertical-layout
-     (ant/button {:size :small
-                  :text "debug"
-                  :on-click
-                  (fn []
-                    [[::debug {:thread-id thread-id
-                               :prompt prompt
-                               :$prompt $prompt
-                               :messages messages
-                               :$messages $messages}]])})
-     (ui/horizontal-layout
-      (let [record-hover (get state :record-hover)
-            not-record-hover (get state :not-record-hover)
-            btn (ant/button {:size :small
-                             :hover? record-hover
-                             :$hover? $not-record-hover
-                             :text "record"})
-            btn (if (not record-hover)
-                  (ui/on
-                   :mouse-down
-                   (fn [_]
-                     [[:set $record-hover true]
-                      [::record-start {}]])
-                   btn)
-                  (ui/on
-                   :mouse-up
-                   (fn [_]
-                     [[:set $record-hover false]
-                      [::record-stop {:$prompt $prompt}]])
-                   btn))]
-        btn)
-      (ant/button {:size :small
-                   :text "ask"
-                   :on-click
-                   (fn []
-                     [[::ask {:thread-id thread-id
-                              :prompt prompt
-                              :$prompt $prompt
-                              :messages messages
-                              :$messages $messages}]])})
-      (ant/text-input {:size :small
-                       :text (get state :prompt "")}))
-     (apply
-      ui/vertical-layout
-      (for [message messages]
-        (para/paragraph message
-                        cw)))
-     )))
+     header
+     (basic/scrollview
+      {:scroll-bounds [(- cw 10)
+                       (- (- ch
+                             (ui/height header))
+                          10)]
+       :$body nil
+       :body responses}))))
 
 (defn derpbot-ui [this $context context]
   (derpbot-ui*
