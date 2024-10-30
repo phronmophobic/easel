@@ -331,6 +331,11 @@
     (let [root-pane (-> root-pane
                         (assoc :width w
                                :height h))
+          root-pane (if (empty? (:panes root-pane))
+                      ;; ensure that root pane can't be edited.
+                      (splitpane/add-child root-pane {:id (random-uuid)})
+                      ;; pane already has children
+                      root-pane)
           root-pane (splitpane/layout-pane-nested root-pane top-bar-height)
           all-panes (splitpane/flatten-pane-nested root-pane)
           cached-layout {:all-panes all-panes
