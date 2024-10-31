@@ -83,26 +83,25 @@
 
 (defeffect ::record-stop [{:keys [$prompt]}]
 
-  (let [bs (@@recording)
-        f (io/file "/var/tmp/transcribe.mp3")]
-    (reset! recording nil)
-    (clj-media/write!
-
-     
-     (let [format (clj-media/audio-format
-                   {:channel-layout "mono"
-                    :sample-rate 44100
-                    :sample-format :sample-format/s16})]
-       (clj-media/make-media
-        format
-        [(clj-media/make-frame
-          {:format format
-           :bytes bs
-           :time-base 44100
-           :pts 0})]))
-     (.getCanonicalPath f))
-    (let [text (derpbot.audio/transcribe-file f)]
-      (dispatch! :set $prompt text))))
+  (future
+    (let [bs (@@recording)
+          f (io/file "/var/tmp/transcribe.mp3")]
+      (reset! recording nil)
+      (clj-media/write!
+       (let [format (clj-media/audio-format
+                     {:channel-layout "mono"
+                      :sample-rate 44100
+                      :sample-format :sample-format/s16})]
+         (clj-media/make-media
+          format
+          [(clj-media/make-frame
+            {:format format
+             :bytes bs
+             :time-base 44100
+             :pts 0})]))
+       (.getCanonicalPath f))
+      (let [text (derpbot.audio/transcribe-file f)]
+        (dispatch! :set $prompt text)))))
 
 (defui derpbot-ui* [{:keys [state size thread-id]}]
   (let [prompt (get state :prompt "")
