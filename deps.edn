@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha3"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         net.java.dev.jna/jna {:mvn/version "5.13.0"}
         com.phronemophobic/membrane {:local/root "../membrane"}
         com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
