@@ -461,6 +461,17 @@
                               (clojure.pprint/pprint
                                (sm/compile elem))
                               nil)})
+   (basic/button {:text "debug load"
+                  :on-click
+                  (fn []
+                    #_(let [node (->> (com.phronemophobic.replog/get-main-log)
+                                      (last))
+                            loaded-elem (::sm/elem node)
+                            loaded-ns (:com.phronemophobic.replog/ns node)
+                            ]
+                      [[:set $eval-ns loaded-ns]
+                       [:set $elem loaded-elem]])
+)})
    (basic/button {:text "save"
                   :on-click (fn []
                               [[::replog-elem {:eval-ns eval-ns
