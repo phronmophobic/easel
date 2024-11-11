@@ -22,6 +22,8 @@
                                            :local/root "../clj-cef"
                                            }
 
+        com.phronemophobic/clj-libretro {:local/root "../clj-libretro"}
+
         ;; llm stuff
         com.phronemophobic/llama-clj {:local/root "../llama.clj"}
         com.phronemophobic/replog {:local/root "../replog"}

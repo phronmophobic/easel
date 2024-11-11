@@ -338,4 +338,13 @@
                      ((requiring-resolve 'com.phronemophobic.easel.mic/mic-applet)
                       handler
                       (random-uuid)))}]])})
+     (button {:text "Actual Tetris"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.emulator/emulator-applet)
+                      handler))}]])})
      )))
