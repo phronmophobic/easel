@@ -27,6 +27,18 @@
 (defeffect ::browser-back [{:keys [browser]}]
   (gen3/call browser :go_back))
 
+(defeffect ::browser-refresh [{:keys [browser]}]
+  (gen3/call browser :reload_ignore_cache))
+
+(defeffect ::show-inspector []
+  (dispatch!
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    (fn [handler]
+      ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+       handler
+       "http://localhost:8888/"))}))
+
 (defeffect ::browser-forward [{:keys [browser]}]
   (gen3/call browser :go_forward))
 
