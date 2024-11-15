@@ -281,6 +281,9 @@
       ::browser-forward
       (fn []
         [[::browser-forward {:browser (:browser browser-info)}]])
+      ::browser-refresh
+      (fn []
+        [[::browser-refresh {:browser (:browser browser-info)}]])
       ::load-url
       (fn [url]
         [[::load-url {:browser (:browser browser-info)
