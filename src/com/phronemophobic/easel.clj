@@ -241,7 +241,8 @@
                                   (ui/vertical-layout
                                    bar
                                    (if-let [applet (get applets (:applet-id pane))]
-                                     (ui/fixed-bounds
+                                     (ui/scissor-view
+                                      [0 0]
                                       [(:width pane)
                                        (:height pane)]
                                       (model/-ui applet $context context))
