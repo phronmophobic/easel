@@ -494,8 +494,12 @@
                  (fn [state]
                    (if state
                      state
-                     {:easel (assoc (make-easel)
-                                    :$ref (specter/keypath :easel))})))
+                     {:easel (-> (assoc (make-easel)
+                                        :$ref (specter/keypath :easel))
+                                 ;; hack for now.
+                                 ;; otherwise, size just starts at zero
+                                 ;; need to use `on-present`?
+                                 (model/-resize [787 847] [2 2]))})))
         
         app (membrane.component/make-app #'easel-view app-state handler)]
     (skia/run app
