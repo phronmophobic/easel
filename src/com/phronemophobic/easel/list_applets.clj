@@ -347,4 +347,26 @@
                    (fn [handler]
                      ((requiring-resolve 'com.phronemophobic.easel.emulator/emulator-applet)
                       handler))}]])})
+     (button {:text "Learn Clojure in 30 minutes"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.video/video-applet)
+                      handler
+                      "Simplicity\nFirehose"
+                      "/var/tmp/firehose/firehose.mp4"))}]])})
+     (button {:text "Steamboat Willie"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.video/video-applet)
+                      handler
+                      "Steamboat Willie"
+                      "steamboat-willie.mp4"))}]])})
      )))
