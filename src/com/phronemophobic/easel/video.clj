@@ -52,9 +52,8 @@
     (assoc this
            :size size)))
 
-(defn video-applet [handler ]
-  (-> (->VideoWidget handler "/var/tmp/firehose/firehose.mp4")
-      (assoc :label
-             (str "Simplicity\nFirehose"))))
+(defn video-applet [handler title path]
+  (-> (->VideoWidget handler path)
+      (assoc :label title )))
 
 
