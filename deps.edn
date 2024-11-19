@@ -34,6 +34,11 @@
         com.phronemophobic/derpbot {:local/root "../derpbot"}
         com.phronemophobic/whisper {:local/root "../whisper.clj"}
 
+
+        com.phronemophobic/clj-webgpu {:local/root "../clj-webgpu"}
+        org.clojars.cartesiantheatrics/manifold3d$macosx-arm64 {:local/root "/Users/adrian/workspace/manifold/bindings/java/target/manifold3d-1.0.39.jar" }
+        com.phronemophobic.cljonda/webgpu-native-darwin-aarch64 {:mvn/version "v0.19.4.1"}
+
         com.phronemophobic/vt
         {:local/root "../vt"
          ;; :mvn/version "1.0"
