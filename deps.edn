@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        net.java.dev.jna/jna {:mvn/version "5.13.0"}
+        net.java.dev.jna/jna {:mvn/version "5.15.0"}
         com.phronemophobic/membrane {:local/root "../membrane"}
         com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
         com.phronemophobic/schematic {:local/root "../schematic"}
@@ -12,7 +12,7 @@
         org.clojars.quoll/tiara {;;:mvn/version "0.3.3"
                                  :local/root "../tiara"
                                  }
-        com.phronemophobic/clong {:mvn/version "1.4.2"
+        com.phronemophobic/clong {:mvn/version "1.4.3"
                                   ;; :local/root "../clong/"
                                   ;; :mvn/version "1.4-20240711.022539-7"
                                   }
