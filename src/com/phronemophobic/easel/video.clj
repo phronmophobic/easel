@@ -34,10 +34,13 @@
                       :$ref $ref
                       :size size
                       :$video-state $video-state
+                      ::model/queue
+                      [(fn []
+                         (dispatch! ::video/play
+                                    {:path path
+                                     :$video-state $video-state}))]
                       :path path)
           ]
-
-      (dispatch! ::video/play this)
 
       this))
   (-stop [this]

@@ -91,60 +91,63 @@
                 (max 13
                      (quot h (:membrane.term/cell-height menlo))))
           cmd-ch (async/chan 20)]
-      (async/thread
-        (let [cmd (into-array String ["/bin/bash" "-l"])
-              pty-builder (doto (PtyProcessBuilder. cmd)
-                            (.setInitialColumns cols)
-                            (.setInitialRows rows)
-                            (.setEnvironment (merge (into {} (System/getenv))
-                                                    {"TERM" "xterm-256color"})))
-              pty (.start pty-builder)
-              is (io/reader (.getInputStream pty))
-              os (.getOutputStream pty)
-              repaint-ch (repaint-chan)]
-          (async/thread
-            (try
-              (loop []
-                (when-let [msg (async/<!! cmd-ch)]
-                  (case (:type msg)
-
-                    :resize (do (.setWinSize pty (WinSize. (:cols msg) (:rows msg)))
-                                (recur))
-
-                    ;; else
-                    (prn "unrecognized term message" msg))))
-              (catch Exception e
-                (prn e))
-              (finally
-                (.destroy pty)
-                (.close os))))
-          (dispatch! :update $ref
-                     (fn [this]
-                       (assoc this
-                              ;; still used by term-events
-                              ;; todo: update term events to use
-                              ;; cmd-ch
-                              :pty pty)))
-          (try
-            (with-open [is is]
-              (loop []
-                (let [input (.read is)]
-                  (when (not= -1 input)
-                    (try
-                      (dispatch! :update [$ref '(keypath :vt)]
-                                 (fn [vt]
-                                   (vt/feed-one vt input)))
-                      (catch IllegalArgumentException e
-                        ;; ignore
-                        nil)
-                      )
-                    (async/offer! repaint-ch true)
-                    (recur)))))
-            (catch Exception e
-              (prn e)))))
       (assoc this
              :cmd-ch cmd-ch
-             :vt (vt/make-vt cols rows))))
+             :vt (vt/make-vt cols rows)
+             ::model/queue
+             [(fn []
+                (async/thread
+                  (let [cmd (into-array String ["/bin/bash" "-l"])
+                        pty-builder (doto (PtyProcessBuilder. cmd)
+                                      (.setInitialColumns cols)
+                                      (.setInitialRows rows)
+                                      (.setEnvironment (merge (into {} (System/getenv))
+                                                              {"TERM" "xterm-256color"})))
+                        pty (.start pty-builder)
+                        is (io/reader (.getInputStream pty))
+                        os (.getOutputStream pty)
+                        repaint-ch (repaint-chan)]
+                    (async/thread
+                      (try
+                        (loop []
+                          (when-let [msg (async/<!! cmd-ch)]
+                            (case (:type msg)
+
+                              :resize (do (.setWinSize pty (WinSize. (:cols msg) (:rows msg)))
+                                          (recur))
+
+                              ;; else
+                              (prn "unrecognized term message" msg))))
+                        (catch Exception e
+                          (prn e))
+                        (finally
+                          (.destroy pty)
+                          (.close os))))
+                    (dispatch! :update $ref
+                               (fn [this]
+                                 (assoc this
+                                        ;; still used by term-events
+                                        ;; todo: update term events to use
+                                        ;; cmd-ch
+                                        :pty pty)))
+                    (try
+                      (with-open [is is]
+                        (loop []
+                          (let [input (.read is)]
+                            (when (not= -1 input)
+                              (try
+                                (dispatch! :update [$ref '(keypath :vt)]
+                                           (fn [vt]
+                                             (vt/feed-one vt input)))
+                                (catch IllegalArgumentException e
+                                  ;; ignore
+                                  nil)
+                                )
+                              (async/offer! repaint-ch true)
+                              (recur)))))
+                      (catch Exception e
+                        (prn e)))))
+                )])))
   (-stop [this]
     (async/close! (:cmd-ch this)))
   model/IUI

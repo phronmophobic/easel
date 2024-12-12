@@ -57,34 +57,37 @@
     (let [$close-fn [$ref '(keypath :close-fn)]
           view-fn (atom nil)
           $view [$ref '(keypath :view)]]
-      (future
-        (try
-          (let [core (com.phronemophobic.clj-libretro.api/load-core "fceumm")]
-            (retro-ui/play-game
-             core
-             (.getCanonicalPath
-              (io/file ".."
-                       "tom7"
-                       "Officially licensed games"
-                       "Tetris (USA).nes"))
-             {:run-with-close-handler
-              (fn [view opts close-handler]
-                (dispatch! :set $close-fn close-handler)
-                (reset! view-fn view)
-                nil)
-              :render-frame retro-skia/render-frame
-              :hud #(hud core %)
-              :->repaint!
-              (fn [_]
-                (fn []
-                  (when-let [view-fn @view-fn]
-                    (dispatch! :set $view (view-fn))
-                    (dispatch! :repaint!))))}))
-          (catch Exception e
-            (prn e))))
       (assoc this
              :extra {}
              :$ref $ref
+             ::model/queue
+             [(fn []
+                (future
+                  (try
+                    (println "loading core.")
+                    (let [core (com.phronemophobic.clj-libretro.api/load-core "fceumm")]
+                      (retro-ui/play-game
+                       core
+                       (.getCanonicalPath
+                        (io/file ".."
+                                 "tom7"
+                                 "Officially licensed games"
+                                 "Tetris (USA).nes"))
+                       {:run-with-close-handler
+                        (fn [view opts close-handler]
+                          (dispatch! :set $close-fn close-handler)
+                          (reset! view-fn view)
+                          nil)
+                        :render-frame retro-skia/render-frame
+                        :hud #(hud core %)
+                        :->repaint!
+                        (fn [_]
+                          (fn []
+                            (when-let [view-fn @view-fn]
+                              (dispatch! :set $view (view-fn))
+                              (dispatch! :repaint!))))}))
+                    (catch Exception e
+                      (prn e)))))]
              :size size)))
   (-stop [this]
     (when-let [close-fn (:close-fn this)]

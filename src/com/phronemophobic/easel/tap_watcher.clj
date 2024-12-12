@@ -53,14 +53,16 @@
     (let [$tap-vals [$ref '(keypath :tap-vals)]
           tapf (fn [o]
                  (dispatch! :update $tap-vals conj (viscous/wrap o)))]
-      (add-tap tapf)
       (assoc this
              :extra {}
              :tap-vals []
              :tapf tapf
              :$tap-vals $tap-vals
              :$ref $ref
-             :size size)))
+             :size size
+             ::model/queue
+             [(fn []
+                (add-tap tapf))])))
   (-stop [this]
     (when-let [tapf (:tapf this)]
       (remove-tap tapf))

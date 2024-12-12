@@ -65,26 +65,28 @@
 (defrecord SpreadSheet [dispatch! eval-ns]
   model/IApplet
   (-start [this $ref size _content-scale]
-    (merge
-     (assoc this
-            :ss []
-            ::ss/id (random-uuid)
-            :ns-info {:name eval-ns
-                      :require '([membrane.ui :as ui
-                                  :refer [vertical-layout
-                                          horizontal-layout]]
-                                 [clojure.java.io :as io]
-                                 [com.phronemophobic.membrane.spreadsheet :as ss]
-                                 [clojure.edn :as edn]
-                                 [xtdb.api :as xt]
-                                 clojure.set
-                                 [clojure.string :as str]
-                                 [clojure.data.json :as json])
-                      :import '(java.io.PushbackReader
-                                java.time.Instant)}
-            :$ref $ref
-            :size size)
-     (run-results dispatch! $ref))) 
+    (assoc this
+           :ss []
+           ::ss/id (random-uuid)
+           :ns-info {:name eval-ns
+                     :require '([membrane.ui :as ui
+                                 :refer [vertical-layout
+                                         horizontal-layout]]
+                                [clojure.java.io :as io]
+                                [com.phronemophobic.membrane.spreadsheet :as ss]
+                                [clojure.edn :as edn]
+                                [xtdb.api :as xt]
+                                clojure.set
+                                [clojure.string :as str]
+                                [clojure.data.json :as json])
+                     :import '(java.io.PushbackReader
+                               java.time.Instant)}
+           :$ref $ref
+           :size size
+
+           ::model/queue
+           [(fn []
+              (run-results dispatch! $ref))]))
   (-stop [this])
   model/IUI
   (-ui [this $context context]

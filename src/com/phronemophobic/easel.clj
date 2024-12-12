@@ -18,7 +18,10 @@
              :as schematic-util]
             [membrane.component
              :refer
-             [defui defeffect]]))
+             [defui defeffect]])
+  (:import (java.util.concurrent
+            ExecutorService
+            Executors)))
 
 
 (def repaint! @#'skia/glfw-post-empty-event)
@@ -43,6 +46,43 @@
                        old-val (specter/select-one path old)]
                    (when (not= new-val old-val)
                      (f key ref old-val new-val)))))))
+
+
+
+(defonce app-starter-executor
+  (delay
+    (Executors/newSingleThreadExecutor)))
+
+(def ^:private QUEUES-PATH
+  (specter/path
+   [:easel
+    (specter/multi-path
+     [:applets specter/MAP-VALS (specter/must ::model/queue)]
+     (specter/must ::queue))]))
+
+(defn purge-queue [state]
+  (specter/setval
+   QUEUES-PATH
+   specter/NONE
+   state))
+
+(defn ^:private run-queue []
+  (let [[old new] (swap-vals! app-state purge-queue)
+        queue (specter/select [QUEUES-PATH specter/ALL] old)]
+    (println "woo!" (count queue))
+    (run! (fn [work]
+            (try
+              (work)
+              (catch Throwable e
+                (println e))))
+          queue)))
+
+(add-watch app-state ::applet-queue
+           (fn [key ref old new]
+             (let [has-queue? (not= specter/NONE (specter/select-any QUEUES-PATH new))]
+               (when has-queue?
+                 (.submit ^ExecutorService @app-starter-executor
+                          run-queue)))))
 
 (defeffect ::add-applet [m]
   (dispatch!
@@ -291,18 +331,20 @@
           relayout*)))
   (-remove-applet [this id]
     (let [applet (get applets id)
-          applet (when applet
-                   (try
-                     (model/-stop applet)
-                     (catch Exception e
-                       (println "Error when closing applet:")
-                       (prn e))))
-
           root-pane (-> root-pane
                         (splitpane/delete-pane-by-pred #(= id (:applet-id %))))]
       (-> this
           (update :applets dissoc id)
           (assoc :root-pane root-pane)
+          (update ::queue
+                  (fnil conj [])
+                  (fn []
+                    (when applet
+                      (try
+                        (model/-stop applet)
+                        (catch Exception e
+                          (println "Error when closing applet:")
+                          (prn e))))))
           relayout*)))
   (-show-applet [this id]
     (-> this

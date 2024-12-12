@@ -192,16 +192,19 @@
 (defrecord ComponentPickerApplet [dispatch!]
   model/IApplet
   (-start [this $ref size _content-scale]
-    ;; cheat for now
-    (dispatch! :update
-               '[(keypath :membrane.component/context)]
-               (fn [context]
-                 (assoc context
-                        ::component-picker-components component-picker/component-starters)))
+
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
-           :size size))
+           :size size
+           ::model/queue
+           [(fn []
+              ;; cheat for now
+              (dispatch! :update
+               '[(keypath :membrane.component/context)]
+               (fn [context]
+                 (assoc context
+                        ::component-picker-components component-picker/component-starters))))]))
   (-stop [this])
   model/IUI
   (-ui [this $context context]

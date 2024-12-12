@@ -145,16 +145,19 @@
   (-start [this $ref size _content-scale]
     (let [watch-key [::ns-watcher ns]
           interns (ns->interns ns)
-          $interns [$ref '(keypath :interns)]
-          unwatch (watch-ns ns watch-key
-                            (fn []
-                              (dispatch! :set $interns (ns->interns ns))))]
+          $interns [$ref '(keypath :interns)]]
       (assoc this
              :extra {}
              :ns ns
              :interns interns
-             :unwatch unwatch
+             ;; :unwatch unwatch
              :$ref $ref
+             ::model/queue
+             [(fn []
+                (let [unwatch (watch-ns ns watch-key
+                                        (fn []
+                                          (dispatch! :set $interns (ns->interns ns))))]
+                  (dispatch! :set [$ref '(keyath :unwatch)] unwatch)))]
              :size size)))
   (-stop [this]
     (when-let [unwatch (:unwatch this)]

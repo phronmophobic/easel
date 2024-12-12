@@ -328,52 +328,54 @@
           initial-content-scale (if (= initial-content-sx initial-content-sy)
                                   initial-content-sx
                                   1)]
-      (future
-        (b/create-browser [initial-width initial-height initial-content-scale]
-                          initial-url
-                          dispatch-main
-                          {:on-after-created
-                           (fn [browser]
-                             (dispatch! :update $browser-info
-                                        assoc :browser browser)
-                             
-                             (let [host (gen3/call browser :get_host)]
-                               (gen3/call host :set_focus (int 1))
-                               
-                               #_(.setFocus host 1)))
-                           :remote-debugging-port 8888
-
-                           
-                           #_#_:on-before-close
-                           (fn [browser]
-                             (dispatch! :update $browser-info
-                                        dissoc :browser))
-                           :life-span-handler/on-before-popup
-                           (fn [{:keys [target-url]}]
-                             (dispatch! :com.phronemophobic.easel/add-applet
-                                        {:make-applet
-                                         (fn [handler]
-                                           ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
-                                            handler
-                                            target-url))}))
-                           :load-handler/on-load-start
-                           (fn [browser frame transition-type]
-                             (when (= 1 (gen3/call frame :is_main))
-                               (-> browser
-                                   (gen3/call :get_host)
-                                   (gen3/call :set_focus (int 1)))
-                               (let [;; todo: needs memory management
-                                     ;; The resulting string must be freed by calling cef_string_userfree_free().
-                                     url (gen3/call frame :get_url)]
-                                 (dispatch! :set $url url))))
-                           :cef-path cef-path
-                           :cache-path cache-path
-                           :on-paint+content-scale
-                           (fn [browser content-scale  paint-type nrects rects buffer width height]
-                             (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)
-                             (dispatch! :repaint!))}))
       (assoc this
              :ui-state ui-state
+             ::model/queue
+             [(fn []
+                (future
+                  (b/create-browser [initial-width initial-height initial-content-scale]
+                                    initial-url
+                                    dispatch-main
+                                    {:on-after-created
+                                     (fn [browser]
+                                       (dispatch! :update $browser-info
+                                                  assoc :browser browser)
+                                       
+                                       (let [host (gen3/call browser :get_host)]
+                                         (gen3/call host :set_focus (int 1))
+                                         
+                                         #_(.setFocus host 1)))
+                                     :remote-debugging-port 8888
+
+                                     
+                                     #_#_:on-before-close
+                                     (fn [browser]
+                                       (dispatch! :update $browser-info
+                                                  dissoc :browser))
+                                     :life-span-handler/on-before-popup
+                                     (fn [{:keys [target-url]}]
+                                       (dispatch! :com.phronemophobic.easel/add-applet
+                                                  {:make-applet
+                                                   (fn [handler]
+                                                     ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                                      handler
+                                                      target-url))}))
+                                     :load-handler/on-load-start
+                                     (fn [browser frame transition-type]
+                                       (when (= 1 (gen3/call frame :is_main))
+                                         (-> browser
+                                             (gen3/call :get_host)
+                                             (gen3/call :set_focus (int 1)))
+                                         (let [;; todo: needs memory management
+                                               ;; The resulting string must be freed by calling cef_string_userfree_free().
+                                               url (gen3/call frame :get_url)]
+                                           (dispatch! :set $url url))))
+                                     :cef-path cef-path
+                                     :cache-path cache-path
+                                     :on-paint+content-scale
+                                     (fn [browser content-scale  paint-type nrects rects buffer width height]
+                                       (skia-draw dispatch! $browser-info content-scale paint-type nrects rects buffer width height)
+                                       (dispatch! :repaint!))})))]
              :browser-info
              {:draw-lock (Object.)
               :width initial-width
