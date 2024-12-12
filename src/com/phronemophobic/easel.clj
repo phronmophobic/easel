@@ -11,18 +11,21 @@
             [com.phronemophobic.easel.splitpane :as splitpane]
             [com.phronemophobic.easel.term
              :as term]
+            [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.membrandt.icon :as icon]
+            [com.phronemophobic.membrandt.icon.impl.common :as icon-common]
             [com.phronemophobic.easel.model :as model]
             [com.phronemophobic.easel.browser :as browser]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [com.phronemophobic.schematic.view.util
              :as schematic-util]
+            [membrane.basic-components :as basic]
             [membrane.component
              :refer
              [defui defeffect]])
   (:import (java.util.concurrent
             ExecutorService
             Executors)))
-
 
 (def repaint! @#'skia/glfw-post-empty-event)
 
@@ -115,6 +118,34 @@
   (repaint!))
 
 
+(defn icon**
+  ([name]
+   (icon* name false))
+  ([name highlight?]
+   ))
+
+(def ^{:arglists '([name] [name highlight?])} icon
+  (memoize icon*))
+
+(def icon-size [18 18])
+(defui icon [{:keys [name size hover?]}]
+  (let [primary-color (if hover?
+                        "#1677ff"
+                        "#555555")
+        secondary-color (if hover?
+                          "#1677ff"
+                          "#555555")]
+    (basic/on-hover
+     {:hover? hover?
+      :$body nil
+      :body
+      (skia/svg
+       (icon-common/use-colors
+        (icon/svg-str name "outlined")
+        primary-color
+        secondary-color)
+       (or size icon-size))})))
+
 (defn col-width [easel visible-count]
   (let [[w h] (:size easel)
         col-width (if (pos? visible-count)
@@ -131,26 +162,22 @@
          (ui/on-click
           (fn []
             [[::toggle-pane-direction {:pane-id pane-id}]])
-          (para/paragraph
-           (if (= (:direction pane) :column)
-             "↕️"
-             "↔️")))
+          (if (= (:direction pane) :column)
+            (icon {:name "column-height"})
+            (icon {:name "column-width"})))
          (ui/on-click
           (fn []
             [[::splitpane {:pane-id pane-id}]])
-          (para/paragraph
-           "+"))
+          (icon {:name "plus"}))
          (when (not= ::root-pane pane-id)
            (ui/on-click
             (fn []
               [[::delete-pane {:pane-id pane-id}]])
-            (para/paragraph
-             "X")))
+            (icon {:name "close"})))
          (ui/on-click
             (fn []
               [[::clear-pane {:pane-id pane-id}]])
-            (para/paragraph
-             "O")))
+            (icon {:name "minus-square"})))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -173,7 +200,8 @@
              [0.8 0.8 0.8]
              (:width pane) height)))
          (ui/with-style ::ui/style-stroke
-           (ui/rectangle (:width pane) height))]
+           (ui/with-color [0.33 0.33 0.33]
+            (ui/rectangle (:width pane) height)))]
         :object drag-object}))
      bar]))
 
@@ -440,17 +468,6 @@
                     :panes [{:id (random-uuid)}]}})
       relayout*))
 
-(defn delete-X []
-  (ui/with-style :membrane.ui/style-stroke
-    (ui/with-color
-      [1 0 0]
-      (ui/with-stroke-width
-        3
-        [(ui/path [0 0]
-                  [10 10])
-         (ui/path [10 0]
-                  [0 10])]))))
-
 (def tab-height 30)
 (defui tab-view [{:keys [tabs selected width]}]
   (stretch/vlayout
@@ -458,7 +475,8 @@
           (let [background (ui/rectangle width tab-height)
                 background (if (selected (:id tab))
                              (->> background
-                                  (ui/with-style ::ui/style-stroke))
+                                  (ui/with-style ::ui/style-stroke)
+                                  (ui/with-color [0.33 0.33 0.33]))
                              (->> background
                                   (ui/with-color [0.8 0.8 0.8])
                                   (ui/with-style ::ui/style-fill)))
@@ -468,7 +486,9 @@
                        :mouse-down
                        (fn [_]
                          [[:stop (:id tab)]])
-                       (delete-X))]
+                       (icon {:name "delete"
+                              :hover? (get extra [:delete-hover? (:id tab)])}))
+                [close-width close-height] (ui/bounds close)]
             [(ui/on
               :mouse-down
               (fn [_]
@@ -478,7 +498,7 @@
              (ui/translate
               (- width 20)
               (- (/ tab-height 2)
-                 4)
+                 (/ close-height 2))
               close)])))
    tabs))
 
