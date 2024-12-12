@@ -369,4 +369,13 @@
                       handler
                       "Steamboat Willie"
                       "steamboat-willie.mp4"))}]])})
+     (button {:text "Klein Bottle"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (fn [handler]
+                     ((requiring-resolve 'com.phronemophobic.easel.d3/d3-applet)
+                      handler))}]])})
      )))
