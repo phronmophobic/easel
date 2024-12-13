@@ -557,6 +557,7 @@
         app (membrane.component/make-app #'easel-view app-state handler)]
     (skia/run app
       {:include-container-info true
+       :window-title "Easel"
        ::skia/on-main on-main-callback
        :handlers
        {:reshape
