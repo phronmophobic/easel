@@ -72,7 +72,6 @@
 (defn ^:private run-queue []
   (let [[old new] (swap-vals! app-state purge-queue)
         queue (specter/select [QUEUES-PATH specter/ALL] old)]
-    (println "woo!" (count queue))
     (run! (fn [work]
             (try
               (work)
