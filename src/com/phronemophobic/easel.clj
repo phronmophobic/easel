@@ -469,37 +469,38 @@
 
 (def tab-height 30)
 (defui tab-view [{:keys [tabs selected width]}]
-  (stretch/vlayout
-   (map (fn [tab]
-          (let [background (ui/rectangle width tab-height)
-                background (if (selected (:id tab))
-                             (->> background
-                                  (ui/with-style ::ui/style-stroke)
-                                  (ui/with-color [0.33 0.33 0.33]))
-                             (->> background
-                                  (ui/with-color [0.8 0.8 0.8])
-                                  (ui/with-style ::ui/style-fill)))
-                lbl (ui/center (ui/label (:label tab))
-                               (ui/bounds background))
-                close (ui/on
-                       :mouse-down
-                       (fn [_]
-                         [[:stop (:id tab)]])
-                       (icon {:name "delete"
-                              :hover? (get extra [:delete-hover? (:id tab)])}))
-                [close-width close-height] (ui/bounds close)]
-            [(ui/on
-              :mouse-down
-              (fn [_]
-                [[:toggle (:id tab)]])
-              [background
-               lbl])
-             (ui/translate
-              (- width 20)
-              (- (/ tab-height 2)
-                 (/ close-height 2))
-              close)])))
-   tabs))
+  [(ui/spacer width 0)
+   (stretch/vlayout
+    (map (fn [tab]
+           (let [background (ui/rectangle width tab-height)
+                 background (if (selected (:id tab))
+                              (->> background
+                                   (ui/with-style ::ui/style-stroke)
+                                   (ui/with-color [0.33 0.33 0.33]))
+                              (->> background
+                                   (ui/with-color [0.8 0.8 0.8])
+                                   (ui/with-style ::ui/style-fill)))
+                 lbl (ui/center (ui/label (:label tab))
+                                (ui/bounds background))
+                 close (ui/on
+                        :mouse-down
+                        (fn [_]
+                          [[:stop (:id tab)]])
+                        (icon {:name "delete"
+                               :hover? (get extra [:delete-hover? (:id tab)])}))
+                 [close-width close-height] (ui/bounds close)]
+             [(ui/on
+               :mouse-down
+               (fn [_]
+                 [[:toggle (:id tab)]])
+               [background
+                lbl])
+              (ui/translate
+               (- width 20)
+               (- (/ tab-height 2)
+                  (/ close-height 2))
+               close)])))
+    tabs)])
 
 (def tab-width 150)
 (defui easel-view [{:keys [easel]}]
