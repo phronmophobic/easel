@@ -618,13 +618,6 @@
 
 (defn reset-easel! []
   (remove-all-widgets!)
-  
-  ;; (require '[com.phronemophobic.llama :as llama])
-  ;; (require '[com.phronemophobic.llama.util :as llutil])
-  ;; (def model-path "../llama.clj/models/llama-2-7b-chat.Q4_0.gguf")
-  ;; (def ctx (llama/create-context model-path {:n-ctx 2048
-  ;;                                      :n-gpu-layers 100
-  ;;                                      }))
            
   ,)
 
@@ -643,6 +636,8 @@
   (skia/run #(/ 1 0))
 
   (reset-run)
+
+  (tap> (easel-view @app-state))
 
   ,)
 
