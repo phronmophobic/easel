@@ -117,15 +117,6 @@
   (repaint!))
 
 
-(defn icon**
-  ([name]
-   (icon* name false))
-  ([name highlight?]
-   ))
-
-(def ^{:arglists '([name] [name highlight?])} icon
-  (memoize icon*))
-
 (def icon-size [18 18])
 (defui icon [{:keys [name size hover?]}]
   (let [primary-color (if hover?
