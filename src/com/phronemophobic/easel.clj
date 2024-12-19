@@ -424,7 +424,8 @@
                           (-> applet
                               (model/-start (specter/path
                                               (membrane.component/path->spec $ref)
-                                              (specter/keypath :applets (:id applet)))
+                                              (specter/keypath :applets)
+                                              (specter/must (:id applet)))
                                             new-size
                                             content-scale)
                               (assoc ::applet-started? true))
