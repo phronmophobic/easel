@@ -9,9 +9,7 @@
         ;; com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
         membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
         com.phronemophobic/membrane.term {:local/root "../term"}
-        org.clojars.quoll/tiara {;;:mvn/version "0.3.3"
-                                 :local/root "../tiara"
-                                 }
+        org.clojars.quoll/tiara {:mvn/version "0.3.7"}
         com.phronemophobic/clong {:mvn/version "1.4.3"
                                   ;; :local/root "../clong/"
                                   ;; :mvn/version "1.4-20240711.022539-7"
