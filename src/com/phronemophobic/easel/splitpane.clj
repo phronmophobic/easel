@@ -194,7 +194,7 @@
       pane)))
 
 (defn layout-pane-nested
-  "Returns pane structure with :width key filled in. Leaves space for a top bar"
+  "Returns pane structure with :width or :height key filled in. Leaves space for a top bar"
   [pane top-bar-height]
   (let [subpanes (:panes pane)]
     (if (seq subpanes)
