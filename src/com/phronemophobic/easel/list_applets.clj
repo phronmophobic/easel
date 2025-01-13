@@ -154,7 +154,7 @@
            :$ref $ref
            :$extra [$ref (list 'keypath :extra)]
            :$context [$ref (list 'keypath :context)]
-           :url "https://eugenkiss.github.io/7guis/tasks/"
+           :url "https://duckduckgo.com"
            :$url [$ref (list 'keypath :url)]
            :size size
            :$applets
@@ -188,7 +188,7 @@
       (assoc :label "list-applets")))
 
 (defui list-applets2 [{:keys [shared-state]}]
-  (let [url (get shared-state ::url "https://eugenkiss.github.io/7guis/tasks/")
+  (let [url (get shared-state ::url "https://duckduckgo.com")
         eval-ns-name (get shared-state ::eval-ns-name "sevengui")
         eval-ns* (fn []
                    (try
