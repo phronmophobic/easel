@@ -500,7 +500,7 @@
                               (let [v (binding [*ns* (or eval-ns
                                                          (the-ns 'clojure.core))]
                                         (eval (sm/compile elem)))]
-                                [[:com.phronemophobic.easel.schematic2/add-component-as-applet
+                                [[:com.phronemophobic.easel/add-component-as-applet
                                   v
                                   (:component/defaults elem)]]
                                 #_(skia/run (membrane.component/make-app v

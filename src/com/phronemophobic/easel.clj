@@ -103,6 +103,57 @@
 (defeffect ::add-component! [key f]
   (add-component! key f))
 
+(defrecord ComponentApplet [label component-var initial-state]
+  model/IApplet
+  (-start [this $ref size _content-scale]
+    (let [
+          component-meta (meta component-var)
+          arglists (:arglists component-meta)
+          first-arglist (first arglists)
+          arg-map (first first-arglist)
+          args (:keys arg-map)
+          $args (into {}
+                      (comp
+                       (remove '#{extra context})
+                       (map (fn [arg]
+                              (let [kw (keyword (name arg))
+                                    $kw (keyword (str "$" (name arg)))]
+                                [$kw [$ref '(keypath :state) (list 'keypath kw)]]))))
+                      args)
+          state (into (assoc initial-state
+                        :extra {}
+                        :$extra [$ref '(keypath :state) '(keypath :extra)])
+                      $args)]
+      (assoc this
+             ;; :dispatch! dispatch!
+             :$ref $ref
+             :state state
+             :size size)))
+  (-stop [this])
+  model/IUI
+  (-ui [this $context context]
+    (let [ui (component-var
+              (assoc (:state this)
+                     :context context
+                     :$context $context))]
+      ui))
+  model/IResizable
+  (-resize [this size _content-scale]
+    (assoc this
+           :size size)))
+
+(defeffect ::add-component-as-applet [component-var initial-state]
+  (dispatch! :com.phronemophobic.easel/add-applet
+             {:make-applet
+              (fn [_]
+                (map->ComponentApplet
+                 {:label (or (-> component-var
+                                 meta
+                                 :name)
+                             "Component")
+                  :component-var component-var
+                  :initial-state initial-state}))}))
+
 (defn on-main-callback []
   (loop []
     (when-let [workf (.poll main-queue)]
