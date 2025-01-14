@@ -366,12 +366,19 @@
                                         ::add-applet
                                         (fn [m]
                                           [[::add-applet (assoc m :pane-id pane-id)]])
-                                        (list-applets/list-applets2 {:shared-state shared-state
-                                                                     :$shared-state $shared-state
-                                                                     :extra list-applets-extra
-                                                                     :$extra $list-applets-extra
-                                                                     :context context
-                                                                     :$context $context}))))))))))
+                                        (ui/scissor-view
+                                         [0 0]
+                                         [(:width pane)
+                                          (max 1
+                                               (- (:height pane)
+                                                  top-bar-height
+                                                  1))]
+                                         (list-applets/list-applets2 {:shared-state shared-state
+                                                                      :$shared-state $shared-state
+                                                                      :extra list-applets-extra
+                                                                      :$extra $list-applets-extra
+                                                                      :context context
+                                                                      :$context $context})))))))))))
         (-> easel ::cached-layout :all-panes)))
 
 (defrecord AEasel [applets
