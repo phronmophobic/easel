@@ -243,10 +243,9 @@
         (if (seq subpanes)
           (recur view
                  (into (next q)
-                       (eduction
-                        (map (fn [subpane]
-                               [subpane (+ x (:x pane 0)) (+ y (:y pane 0))]))
-                        subpanes)))
+                       (map (fn [subpane]
+                              [subpane (+ x (:x pane 0)) (+ y (:y pane 0))]))
+                       subpanes))
 
           (recur (conj! view (ui/translate (+ x (:x pane 0))
                                            (+ y (:y pane 0))
@@ -267,10 +266,9 @@
         (if (seq subpanes)
           (recur view
                  (into (next q)
-                       (eduction
-                        (map (fn [subpane]
-                               [subpane (+ x (:x pane 0)) (+ y (:y pane 0))]))
-                        subpanes)))
+                       (map (fn [subpane]
+                              [subpane (+ x (:x pane 0)) (+ y (:y pane 0))]))
+                       subpanes))
 
           (recur (conj! view
                         (assoc pane
