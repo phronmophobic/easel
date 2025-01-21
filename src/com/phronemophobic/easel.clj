@@ -152,17 +152,19 @@
     (assoc this
            :size size)))
 
+(defn add-component-as-applet [component-var initial-state]
+  (handler :com.phronemophobic.easel/add-applet
+           {:make-applet
+            (fn [_]
+              (map->ComponentApplet
+               {:label (or (-> component-var
+                               meta
+                               :name)
+                           "Component")
+                :component-var component-var
+                :initial-state initial-state}))}))
 (defeffect ::add-component-as-applet [component-var initial-state]
-  (dispatch! :com.phronemophobic.easel/add-applet
-             {:make-applet
-              (fn [_]
-                (map->ComponentApplet
-                 {:label (or (-> component-var
-                                 meta
-                                 :name)
-                             "Component")
-                  :component-var component-var
-                  :initial-state initial-state}))}))
+  (add-component-as-applet component-var initial-state))
 
 (defn on-main-callback []
   (loop []
