@@ -272,7 +272,7 @@
 
 (defeffect ::toggle-pane-direction [{:keys [$easel pane-id]}]
   (dispatch!
-   :update :easel
+   :update $easel
    (fn [easel]
      (->> easel
           (specter/transform [:root-pane splitpane/WALK-PANE #(= pane-id (:id %))]
@@ -765,7 +765,7 @@
   (-ui [this $context context]
     (let [extra (get this ::extra)
           $extra [$ref (list 'keypath ::extra)]]
-     (easel-ui* this $extra extra $context context))))
+      (easel-ui* this $extra extra $context context))))
 
 (defn make-easel []
   (-> (map->AEasel
