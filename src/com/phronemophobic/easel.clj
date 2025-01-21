@@ -136,7 +136,17 @@
               (assoc (:state this)
                      :context context
                      :$context $context))]
-      ui))
+      (ui/try-draw
+       (try
+         ui
+         (catch Exception e
+           (tap> e)
+           (prn e)
+           (ui/label "Error!")))
+       (fn [draw e]
+         (tap> e)
+         (prn e)
+         (draw (ui/label "Error!"))))))
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
