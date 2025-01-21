@@ -6,6 +6,7 @@
             [tiara.data :as tiara]
             [com.rpl.specter :as specter]
             [clojure.java.io :as io]
+            [clojure.zip :as z]
             [com.phronemophobic.easel.list-applets :as
              list-applets]
             [com.phronemophobic.easel.splitpane :as splitpane]
@@ -230,7 +231,12 @@
          (ui/on-click
             (fn []
               [[::clear-pane {:pane-id pane-id}]])
-            (icon {:name "minus-square"})))
+            (icon {:name "minus-square"}))
+         (when (= ::root-pane pane-id)
+           (ui/on-click
+            (fn []
+              [[::toggle-pane-resize {:pane-id pane-id}]])
+            (icon {:name "edit"}))))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -272,6 +278,146 @@
           (specter/transform [:root-pane splitpane/WALK-PANE #(= pane-id (:id %))]
                              #(splitpane/toggle-direction %))
           relayout*))))
+
+(defeffect ::toggle-pane-resize [{:keys [$easel pane-id]}]
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (->> easel
+          (specter/transform [:root-pane splitpane/WALK-PANE #(= pane-id (:id %))]
+                             #(update % ::pane-resize not))))))
+
+(defn ^:private zfind
+  "Finds first loc that matches pred. Returns nil if no match found."
+  [loc pred]
+  (loop [loc loc]
+    (if (z/end? loc)
+      nil
+      (if (pred (z/node loc))
+        loc
+        (recur (z/next loc))))))
+
+
+;; TODO: move more pane code into splitpane namespace.
+(defeffect ::begin-resize-drag [{:keys [$easel from-pane to-pane mpos] :as m}]
+  ;; resizing a pane may convert relative stretch size to
+  ;; absolute size, which may overconstrain a pane
+  ;; TODO: check invariants for over constraining.
+  (assert (or from-pane to-pane))
+  ;; check root-pane-layout in cached layout
+  ;; make sure :width or :height is set on from-pane and to-pane
+  ;; call relayout*
+  (let [setup-drag
+        (fn [easel]
+          (let [root-pane-layout (-> easel ::cached-layout :root-pane-layout)
+                _ (assert root-pane-layout)
+
+                pane-ids (into #{} (remove nil?) [from-pane to-pane])
+                pane-layouts-by-id
+                (into {}
+                      (map (fn [pane]
+                             [(:id pane) pane]))
+                      (specter/select [splitpane/WALK-PANE
+                                       (fn [pane]
+                                         (contains? pane-ids (:id pane)))]
+                                      root-pane-layout))
+
+                ;; determine direction
+                zpane (zfind (splitpane/pane-zip root-pane-layout)
+                             #(contains? pane-ids (:id %)))
+                _ (assert (and zpane (z/up zpane)))
+                direction (or (-> zpane z/up z/node :direction)
+                              :row)
+
+                ;; set explicit sizes on from, to panes
+                easel (specter/transform
+                       [:root-pane
+                        splitpane/WALK-PANE
+                        #(contains? pane-ids (:id %))]
+                       (fn [pane]
+
+                         (let [size (splitpane/get-size (get pane-layouts-by-id (:id pane))
+                                                        direction)]
+                           (splitpane/set-size pane direction size)))
+                       easel)
+
+                ;; store drag state
+                coord (if (= direction :column)
+                        (nth mpos 1)
+                        (nth mpos 0))
+                easel (update easel :root-pane
+                              (fn [pane]
+                                (assoc pane :drag-state
+                                       (merge
+                                        (select-keys m [:from-pane :to-pane])
+                                        {:direction direction
+                                         :start-coord coord}
+                                        (when to-pane
+                                          {:to-size (splitpane/get-size (get pane-layouts-by-id to-pane)
+                                                                        direction)})
+                                        (when from-pane
+                                          {:from-size (splitpane/get-size (get pane-layouts-by-id from-pane)
+                                                                          direction)})))))]
+            easel))]
+    (dispatch!
+     :update $easel
+     (fn [easel]
+       (-> easel
+           setup-drag
+           relayout*)))))
+
+(defeffect ::resize-drag [{:keys [$easel mpos]}]
+
+  ;; set width and height on panes as appropriate
+  ;; call relayout*
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (let [root-pane (:root-pane easel)
+           {:keys [to-size from-size start-mpos to-pane from-pane direction start-coord]
+            :as drag-state} (:drag-state root-pane)
+
+           coord (if (= direction :column)
+                   (nth mpos 1)
+                   (nth mpos 0))
+           delta (- coord
+                    start-coord)
+
+           pane-ids (into #{} (remove nil?) [from-pane to-pane])
+           easel
+           (specter/transform
+            [:root-pane
+             splitpane/WALK-PANE
+             #(contains? pane-ids (:id %))]
+            (fn [pane]
+
+              (cond
+                (= from-pane (:id pane))
+                (splitpane/set-size pane direction
+                                    (- from-size
+                                       delta))
+
+                (= to-pane (:id pane))
+                (splitpane/set-size pane direction
+                                    (+ to-size
+                                       delta))))
+            easel)]
+       (-> easel
+           relayout*)))))
+
+(defeffect ::end-resize-drag [{:keys [$easel from-pane to-pane]}]
+  ;; resizing a pane may convert relative stretch size to
+  ;; absolute size, which may overconstrain a pane
+  ;; TODO: check invariants for over constraining.
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (-> easel
+         (update :root-pane
+                 (fn [pane]
+                   (-> pane
+                       (dissoc :drag-state ::pane-resize))))
+         relayout*))))
 
 (defeffect ::splitpane [{:keys [$easel pane-id]}]
   (dispatch!
@@ -340,58 +486,161 @@
          relayout*))))
 
 
+
+(defui pane-resizer-node [{:keys [pane]}]
+  (let [subpanes (:panes pane)
+        direction (get pane :direction :row)]
+    (when (seq subpanes)
+      (ui/translate
+       (:x pane 0)
+       (:y pane 0)
+       [(into []
+              (map (fn [subpane]
+                     (pane-resizer-node {:pane subpane})))
+              subpanes)
+        (into []
+              (comp
+               (map-indexed
+                (fn [idx {:keys [x y width height] :as subpane}]
+                  (let [hover? (get extra [::hover (:id subpane)])
+                        fill-color [1 0 0 (if hover?
+                                            0.4
+                                            0.2)]
+                        [x y w h] (case direction
+                                    :row [(+ (:x subpane 0) (:width subpane)) (:y subpane 0)
+                                          10 (:height subpane)]
+                                    :column [(:x subpane 0 ) (+ (:y subpane 0)
+                                                                (:height subpane))
+                                             (:width subpane) 10])]
+                    (ui/translate x y
+                                  (basic/on-hover
+                                   {:hover? hover?
+                                    :$body nil
+                                    :body
+                                    (ui/on
+                                     :mouse-down
+                                     (fn [_]
+                                       ;; The basic idea is that when resizing a row of panes
+                                       ;; we'll break it down into a few cases.
+                                       ;; If it's the first item in layout, then we
+                                       ;; treat the resizing as if it's setting the absolute size
+                                       ;; of the first item.
+                                       ;; If it's the last item, we treat it as if it's resizing
+                                       ;; the absolute size of the last item.
+                                       ;; Finally, if it's in the middle and doesn't border the
+                                       ;; edge items, we treat it as if both panes on either side of the
+                                       ;; border are being resized.
+                                       (cond
+
+                                         (zero? idx)
+                                         [[::begin-resize-drag {:to-pane (:id subpane)}]]
+
+                                         (= idx (- (count subpanes) 2))
+                                         [[::begin-resize-drag {:from-pane (-> subpanes last :id)}]]
+
+                                         :else
+                                         [[::begin-resize-drag {:to-pane (-> subpanes (nth idx) :id)
+                                                                :from-pane (-> subpanes (nth (inc idx)) :id)}]]))
+                                     (ui/filled-rectangle fill-color
+                                                          w h))}))))))
+              (drop-last subpanes))]))))
+
+
+(defui pane-resizer [{:keys [root-pane]}]
+  (let [main-view (ui/fixed-bounds
+                   [(:width root-pane) (:height root-pane)]
+                   (pane-resizer-node {:pane root-pane}))
+        main-view (if (:drag-state root-pane)
+                    (ui/on
+                     :mouse-move
+                     (fn [mpos]
+                       [[::resize-drag {:mpos mpos}]])
+                     :mouse-up
+                     (fn [_]
+                       [[::end-resize-drag {:pane-id (:id root-pane)}]]
+                       )
+                     main-view)
+                    ;; else, not resizing
+                    (ui/wrap-on
+                     :mouse-down
+                     (fn [handler mpos]
+                       (let [intents (handler mpos)]
+                         (if (seq intents)
+                           (eduction
+                            (map (fn [intent]
+                                   (if (= ::begin-resize-drag (first intent))
+                                     [::begin-resize-drag (assoc (second intent)
+                                                                 :mpos mpos)]
+                                     intent)))
+                            intents)
+                           [[::toggle-pane-resize {:pane-id ::root-pane}]])))
+                     main-view))]
+    main-view))
+
 (defn easel-ui* [{:keys [root-pane applets] :as easel} $extra extra $context context]
-  (into []
-        (keep (fn [pane]
-                (let [bar-extra (get extra [::bar-extra (:id pane)])
-                      $bar-extra [$extra
-                                  (list 'keypath [::bar-extra (:id pane)])]
-                      bar (top-bar {:pane pane
-                                    :extra bar-extra
-                                    :$extra $bar-extra
-                                    :context context
-                                    :$context $context})]
-                  (if (seq (:panes pane))
-                    ;; non-leaf
-                    (ui/translate (:x pane)
-                                  (:y pane)
-                                  bar)
-                    ;; else, leaf node
-                    (ui/translate (long (:x pane))
-                                  (long (:y pane))
-                                  (ui/vertical-layout
-                                   bar
-                                   (if-let [applet (get applets (:applet-id pane))]
-                                     (ui/scissor-view
-                                      [0 0]
-                                      [(:width pane)
-                                       (:height pane)]
-                                      (model/-ui applet $context context))
-                                     ;; no applet found
-                                     (let [pane-id (:id pane)
-                                           list-applets-extra (get extra [::list-applets-extra pane-id])
-                                           $list-applets-extra [$extra
-                                                                (list 'keypath [::list-applets-extra pane-id])]
-                                           shared-state (get extra ::list-applets-shared-state)
-                                           $shared-state [$extra (list 'keypath ::list-applets-shared-state)]]
-                                       (ui/on
-                                        ::add-applet
-                                        (fn [m]
-                                          [[::add-applet (assoc m :pane-id pane-id)]])
-                                        (ui/scissor-view
-                                         [0 0]
-                                         [(:width pane)
-                                          (max 1
-                                               (- (:height pane)
-                                                  top-bar-height
-                                                  1))]
-                                         (list-applets/list-applets2 {:shared-state shared-state
-                                                                      :$shared-state $shared-state
-                                                                      :extra list-applets-extra
-                                                                      :$extra $list-applets-extra
-                                                                      :context context
-                                                                      :$context $context})))))))))))
-        (-> easel ::cached-layout :all-panes)))
+  (let [main-view
+        (into []
+              (keep (fn [pane]
+                      (let [bar-extra (get extra [::bar-extra (:id pane)])
+                            $bar-extra [$extra
+                                        (list 'keypath [::bar-extra (:id pane)])]
+                            bar (top-bar {:pane pane
+                                          :extra bar-extra
+                                          :$extra $bar-extra
+                                          :context context
+                                          :$context $context})]
+                        (if (seq (:panes pane))
+                          ;; non-leaf
+                          (ui/translate (:x pane)
+                                        (:y pane)
+                                        bar)
+                          ;; else, leaf node
+                          (ui/translate (long (:x pane))
+                                        (long (:y pane))
+                                        (ui/vertical-layout
+                                         bar
+                                         (if-let [applet (get applets (:applet-id pane))]
+                                           (ui/scissor-view
+                                            [0 0]
+                                            [(:width pane)
+                                             (:height pane)]
+                                            (model/-ui applet $context context))
+                                           ;; no applet found
+                                           (let [pane-id (:id pane)
+                                                 list-applets-extra (get extra [::list-applets-extra pane-id])
+                                                 $list-applets-extra [$extra
+                                                                      (list 'keypath [::list-applets-extra pane-id])]
+                                                 shared-state (get extra ::list-applets-shared-state)
+                                                 $shared-state [$extra (list 'keypath ::list-applets-shared-state)]]
+                                             (ui/on
+                                              ::add-applet
+                                              (fn [m]
+                                                [[::add-applet (assoc m :pane-id pane-id)]])
+                                              (ui/scissor-view
+                                               [0 0]
+                                               [(:width pane)
+                                                (max 1
+                                                     (- (:height pane)
+                                                        top-bar-height
+                                                        1))]
+                                               (list-applets/list-applets2 {:shared-state shared-state
+                                                                            :$shared-state $shared-state
+                                                                            :extra list-applets-extra
+                                                                            :$extra $list-applets-extra
+                                                                            :context context
+                                                                            :$context $context})))))))))))
+              (-> easel ::cached-layout :all-panes))
+        main-view (if (::pane-resize root-pane)
+                    (ui/no-events main-view)
+                    main-view)]
+    [main-view
+     (when (::pane-resize root-pane)
+       (when-let [root-pane-layout (-> easel ::cached-layout :root-pane-layout)]
+         (pane-resizer {:root-pane root-pane-layout
+                        :extra (get extra ::pane-resizer)
+                        :$extra [$extra (list 'keypath ::pane-resizer)]})))]))
+
+
 
 (defrecord AEasel [applets
                    last-id $ref
@@ -459,17 +708,18 @@
     applets)
   model/IResizable
   (-resize [this [w h] content-scale]
-    (let [root-pane (-> root-pane
-                        (assoc :width w
-                               :height h))
-          root-pane (if (empty? (:panes root-pane))
+    (let [root-pane (if (empty? (:panes root-pane))
                       ;; ensure that root pane can't be edited.
                       (splitpane/add-child root-pane {:id (random-uuid)})
                       ;; pane already has children
                       root-pane)
-          root-pane (splitpane/layout-pane-nested root-pane top-bar-height)
-          all-panes (splitpane/flatten-pane-nested root-pane)
+          root-pane (-> root-pane
+                        (assoc :width w
+                               :height h))
+          root-pane-layout (splitpane/layout-pane-nested root-pane top-bar-height)
+          all-panes (splitpane/flatten-pane-nested root-pane-layout)
           cached-layout {:all-panes all-panes
+                         :root-pane-layout root-pane-layout
                          :by-applet-id
                          (into {}
                                (keep (fn [pane]
@@ -487,19 +737,18 @@
                        (let [new-size [(:width pane)
                                        (max 0
                                             (- (:height pane) top-bar-height))]]
-                        (if (::applet-started? applet)
-                          (model/-resize applet
-                                         new-size
-                                         content-scale)
-                          (-> applet
-                              (model/-start (specter/path
-                                              (membrane.component/path->spec $ref)
-                                              (specter/keypath :applets)
-                                              (specter/must (:id applet)))
-                                            new-size
-                                            content-scale)
-                              (assoc ::applet-started? true))
-                          )))
+                         (if (::applet-started? applet)
+                           (model/-resize applet
+                                          new-size
+                                          content-scale)
+                           (-> applet
+                               (model/-start (specter/path
+                                               (membrane.component/path->spec $ref)
+                                               (specter/keypath :applets)
+                                               (specter/must (:id applet)))
+                                             new-size
+                                             content-scale)
+                               (assoc ::applet-started? true)))))
                      applets
                      (transduce
                       (filter (fn [pane]
@@ -598,7 +847,11 @@
                ::delete-pane
                ::clear-pane
                ::splitpane
-               ::swap-panes}
+               ::swap-panes
+               ::toggle-pane-resize
+               ::begin-resize-drag
+               ::resize-drag
+               ::end-resize-drag}
              (first intent)))]
          (fn [intent]
            [(first intent) (assoc (second intent) :$easel $easel)])

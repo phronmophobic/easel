@@ -98,47 +98,47 @@
                       32)
   ,)
 
-(defmulti get-size :direction)
-(defmulti get-cross-size :direction)
-(defmulti get-stretch :direction)
+(defn get-size [m direction]
+  (if (= :column direction)
+    (or (:height m)
+        (:flex-layout.stretch/height m))
+    ;; else
+    (or (:width m)
+        (:flex-layout.stretch/width m))))
+(defn get-cross-size [m direction]
+  (if (= :column direction)
+    (or (:width m)
+        (:flex-layout.stretch/width m))
+    ;; else
+    (or (:height m)
+        (:flex-layout.stretch/height m))))
 
-(defmethod get-size :row [m]
-  (or (:width m)
-      (:flex-layout.stretch/width m)))
-(defmethod get-size :default [m]
-  (or (:width m)
-      (:flex-layout.stretch/width m)))
-(defmethod get-size :column [m]
-  (or (:height m)
-      (:flex-layout.stretch/height m)))
+(defn get-stretch [m direction]
+  (if (= :column direction)
+    (:flex.grow/height m)
+    (:flex.grow/width m 1)))
 
 (defn set-size [m direction size]
   (let [k (if (= direction :column)
             :height
             :width)]
-   (assoc m k size)))
+    (assoc m k size)))
 (defn set-cross-size [m direction size]
   (let [k (if (= direction :column)
             :width
             :height)]
     (assoc m k size)))
 
-(defmethod get-cross-size :row [m]
-  (or (:height m)
-      (:flex-layout.stretch/height m)))
-(defmethod get-cross-size :default [m]
-  (or (:height m)
-      (:flex-layout.stretch/height m)))
-(defmethod get-cross-size :column [m]
-  (or (:width m)
-      (:flex-layout.stretch/width m)))
-
-(defmethod get-stretch :row [m]
-  (:flex.grow/width m 1))
-(defmethod get-stretch :default [m]
-  (:flex.grow/width m 1))
-(defmethod get-stretch :column [m]
-  (:flex.grow/height m 1))
+(defn set-flex-size [m direction size]
+  (let [k (if (= direction :column)
+            :flex-layout.stretch/height
+            :flex-layout.stretch/width)]
+    (assoc m k size)))
+(defn set-flex-cross-size [m direction size]
+  (let [k (if (= direction :column)
+            :flex-layout.stretch/width
+            :flex-layout.stretch/height)]
+    (assoc m k size)))
 
 (defn stack-layout
   ([direction]
@@ -166,62 +166,50 @@
             (conj (or panes [])
                   child))))
 
-(defn layout-pane
-  "Returns pane structure with :width key filled in"
-  [pane]
-  (let [subpanes (:panes pane)]
-    (if (seq subpanes)
-      (let [size (get-size pane)
-            cross-size (get-cross-size pane)
-            direction (:direction pane)
-            ;; assume no fixed sizes for now
-            stretch-total (transduce
-                           (map get-stretch)
-                           +
-                           0
-                           subpanes)]
-        (assoc pane
-               :panes (into []
-                            (comp
-                             (map (fn [pane]
-                                    (-> pane
-                                        (set-size direction (* size (/ (get-stretch pane) stretch-total)))
-                                        (set-cross-size direction cross-size))))
-                             (stack-layout (:direction pane))
-                             (map layout-pane))
-                            subpanes)))
-      ;; leaf node with no children
-      pane)))
-
 (defn layout-pane-nested
   "Returns pane structure with :width or :height key filled in. Leaves space for a top bar"
   [pane top-bar-height]
   (let [subpanes (:panes pane)]
     (if (seq subpanes)
-      (let [size (get-size pane)
-            cross-size (get-cross-size pane)
+      (let [direction (:direction pane)
+            size (get-size pane direction)
+            cross-size (get-cross-size pane direction)
 
-            column? (= :column (:direction pane))
+            column? (= :column direction)
             [size cross-size] (if column?
                                 [(max 0 (- size top-bar-height))
                                  cross-size]
                                 [size
                                  (max 0 (- cross-size top-bar-height))])
 
-            direction (:direction pane)
-            ;; assume no fixed sizes for now
-            stretch-total (transduce
-                           (map get-stretch)
-                           +
-                           0
-                           subpanes)]
+            {:keys [stretch-total size-total]}
+            (persistent!
+             (reduce
+              (fn [m subpane]
+                (if-let [size (get-size subpane direction)]
+                  (assoc! m :size-total (+ (:size-total m)
+                                           size))
+                  (let [stretch (or (get-stretch subpane direction)
+                                    1)]
+                    (assoc! m :stretch-total (+ (:stretch-total m)
+                                                stretch)))))
+              (transient
+               {:stretch-total 0
+                :size-total 0})
+              subpanes))
+
+            stretch-size (max 0 (- size size-total))]
+
         (assoc pane
                :panes (into []
                             (comp
                              (map (fn [pane]
-                                    (-> pane
-                                        (set-size direction (* size (/ (get-stretch pane) stretch-total)))
-                                        (set-cross-size direction cross-size))))
+                                    (let [pane (if (get-size pane direction)
+                                                 pane
+                                                 (let [stretch (or (get-stretch pane direction)
+                                                                   1)]
+                                                   (set-size pane direction (* stretch-size (/ stretch stretch-total)))))]
+                                      (set-cross-size pane direction cross-size))))
                              (if column?
                                (comp (stack-layout (:direction pane) top-bar-height)
                                      (map (fn [pane]
@@ -330,49 +318,50 @@
                                   root))))
 
 (defui pane-test [{:keys [pane]}]
+  
   (ui/vertical-layout
-   (ant/button {:text "add pane"
-                :on-click
-                (fn []
-                  [[:update $pane add-child {:id (random-uuid)}]])})
-   (into []
-         (map (fn [{:keys [x y width height id direction]}]
-                (ui/translate (inc x) (inc y)
-                              [
-                               (ui/flex-layout
-                                [(ui/on-click
-                                  (fn []
-                                    [[::update-pane {:$root $pane
-                                                     :id id
-                                                     :f toggle-direction}]])
-                                  (para/paragraph
-                                   (if (= direction :column)
-                                     "↕️"
-                                     "↔️")))
-                                 (ui/on-click
-                                  (fn []
-                                    [[::update-pane {:$root $pane
-                                                     :id id
-                                                     :f #(-> %
-                                                             (add-child {:id (random-uuid)})
-                                                             (add-child {:id (random-uuid)}))}]])
-                                  (para/paragraph
-                                   "+"))
-                                 (ui/on-click
-                                  (fn []
-                                    [[::delete-pane {:$root $pane
-                                                     :id id}]])
-                                  (para/paragraph
-                                   "X"))]
-                                {:direction (if (= direction :column)
-                                              :column
-                                              :row)})
-                               (ui/filled-rectangle [0.4 0.4 0.4 0.4]
-                                                    (- width 2)
-                                                    (- height 2))])))
-         (-> pane
-             layout-pane
-             flatten-pane))))
+     (ant/button {:text "add pane"
+                  :on-click
+                  (fn []
+                    [[:update $pane add-child {:id (random-uuid)}]])})
+     (into []
+           (map (fn [{:keys [x y width height id direction]}]
+                  (ui/translate (inc x) (inc y)
+                                [
+                                 (ui/flex-layout
+                                  [(ui/on-click
+                                    (fn []
+                                      [[::update-pane {:$root $pane
+                                                       :id id
+                                                       :f toggle-direction}]])
+                                    (para/paragraph
+                                     (if (= direction :column)
+                                       "↕️"
+                                       "↔️")))
+                                   (ui/on-click
+                                    (fn []
+                                      [[::update-pane {:$root $pane
+                                                       :id id
+                                                       :f #(-> %
+                                                               (add-child {:id (random-uuid)})
+                                                               (add-child {:id (random-uuid)}))}]])
+                                    (para/paragraph
+                                     "+"))
+                                   (ui/on-click
+                                    (fn []
+                                      [[::delete-pane {:$root $pane
+                                                       :id id}]])
+                                    (para/paragraph
+                                     "X"))]
+                                  {:direction (if (= direction :column)
+                                                :column
+                                                :row)})
+                                 (ui/filled-rectangle [0.4 0.4 0.4 0.4]
+                                                      (- width 2)
+                                                      (- height 2))])))
+           (-> pane
+               (layout-pane-nested 15)
+               flatten-pane))))
 
 
 (comment
