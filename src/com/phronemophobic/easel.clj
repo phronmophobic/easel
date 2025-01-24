@@ -416,7 +416,7 @@
          (update :root-pane
                  (fn [pane]
                    (-> pane
-                       (dissoc :drag-state ::pane-resize))))
+                       (dissoc :drag-state))))
          relayout*))))
 
 (defeffect ::splitpane [{:keys [$easel pane-id]}]
@@ -772,6 +772,8 @@
        {:applets (tiara/ordered-map)
         :last-id 0
         ::extra {}
+        :workspaces {:by-id {}
+                     :last-id 0}
         :root-pane {:id ::root-pane
                     :width 1
                     :height 1
@@ -813,6 +815,97 @@
                close)])))
     tabs)])
 
+(defeffect ::save-workspace [{:keys [$easel]}]
+  (dispatch! :update
+             $easel
+             (fn [easel]
+               (update easel :workspaces
+                       (fn [{:keys [last-id by-id] :as workspaces}]
+                         (let [next-id (inc last-id)
+
+                               root-pane (:root-pane easel)
+                               new-workspace {:root-pane (dissoc root-pane :width :height)
+                                              :id next-id}]
+                           (-> workspaces
+                               (update :by-id assoc next-id new-workspace)
+                               (update :last-id inc))))))))
+
+(defeffect ::select-workspace [{:keys [$easel workspace-id]}]
+  (dispatch! :update $easel
+             (fn [easel]
+               (let [
+
+                     workspace (-> easel :workspaces :by-id (get workspace-id))
+                     workspace-root-pane (:root-pane workspace)
+
+                     {:keys [width height]} (:root-pane easel)
+                     workspace-root-pane (assoc workspace-root-pane
+                                                :width width
+                                                :height height)]
+                 (assert workspace-root-pane)
+                 (-> easel
+                     (assoc :root-pane workspace-root-pane)
+                     relayout*)))))
+
+(defeffect ::delete-workspace [{:keys [$easel workspace-id]}]
+  (dispatch! :update
+             $easel
+             (fn [easel]
+               (update-in easel [:workspaces :by-id]
+                          dissoc workspace-id))))
+
+(defui workspace-view [{:keys [workspaces width]}]
+  (ui/vertical-layout
+   (ui/on-click
+    (fn []
+      [[::save-workspace {}]])
+    (icon {:name "save"}))
+   (stretch/vlayout
+    (map (fn [{:as workspace}]
+           (let [background (ui/rectangle width tab-height)
+                 background (->> background
+                                 (ui/with-style ::ui/style-stroke)
+                                 (ui/with-color [0.33 0.33 0.33]))
+                 lbl (ui/center (ui/label (:id workspace))
+                                (ui/bounds background))
+                 close (ui/on
+                        :mouse-down
+                        (fn [_]
+                          [[::delete-workspace {:workspace-id (:id workspace)}]])
+                        (icon {:name "delete"
+                               :hover? (get extra [:delete-hover? (:id workspace)])}))
+                 [close-width close-height] (ui/bounds close)]
+             [(ui/on
+               :mouse-down
+               (fn [_]
+                 [[::select-workspace {:workspace-id (:id workspace)}]])
+               [background
+                lbl])
+              (ui/translate
+               (- width 20)
+               (- (/ tab-height 2)
+                  (/ close-height 2))
+               close)])))
+    (->> workspaces
+         :by-id
+         (sort-by first)
+         (map second)))))
+
+(defn add-$easel
+  "Adds the :$easel key to the set of intents."
+  [$easel intents body]
+  (ui/on-bubble
+   (fn [intents']
+     (specter/transform
+      [specter/ALL
+       (fn [intent]
+         (intents
+          (first intent)))]
+      (fn [intent]
+        [(first intent) (assoc (second intent) :$easel $easel)])
+      intents'))
+   body))
+
 (def tab-width 150)
 (defui easel-view [{:keys [easel]}]
   (let [[cw ch :as size] (:membrane.stretch/container-size context)]
@@ -836,26 +929,26 @@
       (ui/vertical-layout
        (tab-view {:tabs (vals (model/-applets easel))
                   :selected (-> easel ::cached-layout :by-applet-id)
-                  :width tab-width})))
-     (ui/on-bubble
-      (fn [intents]
-        (specter/transform
-         [specter/ALL
-          (fn [intent]
-            (#{::toggle-pane-direction
-               ::add-pane-child
-               ::delete-pane
-               ::clear-pane
-               ::splitpane
-               ::swap-panes
-               ::toggle-pane-resize
-               ::begin-resize-drag
-               ::resize-drag
-               ::end-resize-drag}
-             (first intent)))]
-         (fn [intent]
-           [(first intent) (assoc (second intent) :$easel $easel)])
-         intents))
+                  :width tab-width})
+       (add-$easel
+        $easel
+        #{::save-workspace
+          ::select-workspace
+          ::delete-workspace}
+        (workspace-view {:workspaces (:workspaces easel)
+                         :width tab-width}))))
+     (add-$easel
+      $easel
+      #{::toggle-pane-direction
+        ::add-pane-child
+        ::delete-pane
+        ::clear-pane
+        ::splitpane
+        ::swap-panes
+        ::toggle-pane-resize
+        ::begin-resize-drag
+        ::resize-drag
+        ::end-resize-drag}
       (dnd/drag-and-drop
        {:$body nil
         :body
