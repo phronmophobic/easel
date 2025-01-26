@@ -830,6 +830,14 @@
                                (update :by-id assoc next-id new-workspace)
                                (update :last-id inc))))))))
 
+(defeffect ::clear-workspace [{:keys [$easel]}]
+  (dispatch! :update
+             $easel
+             (fn [easel]
+               (-> easel
+                   (update :root-pane dissoc :panes)
+                   relayout*))))
+
 (defeffect ::select-workspace [{:keys [$easel workspace-id]}]
   (dispatch! :update $easel
              (fn [easel]
@@ -856,10 +864,15 @@
 
 (defui workspace-view [{:keys [workspaces width]}]
   (ui/vertical-layout
-   (ui/on-click
-    (fn []
-      [[::save-workspace {}]])
-    (icon {:name "save"}))
+   (ui/horizontal-layout
+    (ui/on-click
+     (fn []
+       [[::save-workspace {}]])
+     (icon {:name "save"}))
+    (ui/on-click
+     (fn []
+       [[::clear-workspace {}]])
+     (icon {:name "minus-circle"})))
    (stretch/vlayout
     (map (fn [{:as workspace}]
            (let [background (ui/rectangle width tab-height)
@@ -933,6 +946,7 @@
        (add-$easel
         $easel
         #{::save-workspace
+          ::clear-workspace
           ::select-workspace
           ::delete-workspace}
         (workspace-view {:workspaces (:workspaces easel)
