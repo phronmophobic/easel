@@ -8,6 +8,8 @@
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.membrandt.icon :as icon]
+            [com.phronemophobic.membrandt.icon.impl.common :as icon-common]
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
             [clojure.edn :as edn]
@@ -216,7 +218,14 @@
                   :$extra [$extra (list 'keypath :component/body)])
            (update-in [:context :bindings]
                       (fn [bindings]
-                        (into (or bindings {})
+                        (into (-> (or bindings {})
+                                  ;; add container size, if available
+                                  (update
+                                   'context
+                                   (fn [compile-context]
+                                     (let [compile-context (or compile-context {})]
+                                       (merge compile-context
+                                              (select-keys context [:membrane.stretch/container-size]))))))
                               (map (fn [[k v]]
                                      [(symbol k) (eval+ (:eval-ns ctx) v)]))
                               defaults))))
@@ -350,25 +359,73 @@
 
   ,)
 
+(def icon-size [18 18])
+(defui icon [{:keys [name size hover?]}]
+  (let [primary-color (if hover?
+                        "#1677ff"
+                        "#555555")
+        secondary-color (if hover?
+                          "#1677ff"
+                          "#555555")]
+    (basic/on-hover
+     {:hover? hover?
+      :$body nil
+      :body
+      (skia/svg
+       (icon-common/use-colors
+        (icon/svg-str name "outlined")
+        primary-color
+        secondary-color)
+       (or size icon-size))})))
+
 (defui editor [{:keys [elem
                        eval-ns]}]
-  (if (nil? elem)
-    (drag-elem-target {:elem elem})
-    (try
-      (ui/try-draw
-       (compile
-        {:$elem $elem
-         :extra extra
-         :$extra $extra
-         :context context
-         :$context $context
-         :eval-ns eval-ns}
-        elem)
-       (fn [draw e]
-         (draw (ui/label e))))
-      (catch Throwable e
-        (clojure.pprint/pprint e)
-        (ui/label "Error")))))
+  (let [preview-container (:preview-container extra)
+
+        subcontext (case preview-container
+
+                     :mobile
+                     (assoc context :membrane.stretch/container-size [375 812])
+
+                     ;; else
+                     context)]
+    (ui/vertical-layout
+     (ui/label (pr-str preview-container))
+     (apply
+      ui/horizontal-layout
+      (for [container-button-info [{:icon-name "minus-square" :container-type nil}
+                                   {:icon-name "mobile" :container-type :mobile}
+                                   {:icon-name "desktop" :container-type :desktop}]]
+        (ui/on-click
+         (fn []
+           [[:set $preview-container (:container-type container-button-info)]])
+         (icon {:name (:icon-name container-button-info)}))))
+     (if (nil? elem)
+       (drag-elem-target {:elem elem})
+       (try
+         [(when preview-container
+            (case preview-container
+              :mobile
+              (ui/with-style :membrane.ui/style-stroke
+                (ui/rectangle 375 812))
+
+              ;; else
+              nil
+              ))
+          (ui/try-draw
+           (compile
+            {:$elem $elem
+             :extra extra
+             :$extra $extra
+             :context subcontext
+             :$context $context
+             :eval-ns eval-ns}
+            elem)
+           (fn [draw e]
+             (draw (ui/label e))))]
+         (catch Throwable e
+           (clojure.pprint/pprint e)
+           (ui/label "Error")))))))
 
 (defui editor+component-picker [{:keys [elem]}]
   (dnd/drag-and-drop
