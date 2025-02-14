@@ -10,6 +10,10 @@
         membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
         com.phronemophobic/membrane.term {:local/root "../term"}
         org.clojars.quoll/tiara {:mvn/version "0.3.7"}
+        aysylu/loom {:mvn/version "1.0.2"
+                     ;; This brings in large, unnecessary clojurescript deps
+                     :exclusions [tailrecursion/cljs-priority-map]
+                     }
         com.phronemophobic/clong {:mvn/version "1.4.3"
                                   ;; :local/root "../clong/"
                                   ;; :mvn/version "1.4-20240711.022539-7"
