@@ -704,6 +704,57 @@
                  :$elem [$elem (list 'keypath :element/children)]})
         )))))
 
+(defmethod compile* ::sm/relative-layout [{{:keys [element/children
+                                                   element/id
+                                                   relative/layout]
+                                            :as elem} :elem
+                                           :keys [$elem
+                                                  extra
+                                                  context
+                                                  $context
+                                                  $extra]}]
+  (ui/vertical-layout
+   (uicall
+    component-title
+    {:text "(relative"
+     :selection (:selection context)
+     :$selection (:$selection context)
+     :id id
+     :elem elem
+     :$elem $elem})
+   (if (seq children)
+     (ui/translate
+      20 0
+      (ui/vertical-layout
+       (apply
+        ui/vertical-layout
+        (eduction
+         (map-indexed (fn [i child]
+                        (ui/vertical-layout
+                         (uicall drag-elem-target
+                                 {:elem children
+                                  :$elem [$elem (list 'keypath :element/children)
+                                          (specter/before-index i)]
+                                  :drag-object (get extra [::drag-object i])
+                                  :$drag-object [$extra (list 'keypath [::drag-object i])]})
+                         (compile
+                          {:elem child
+                           :$elem [$elem (list 'keypath :element/children) (list 'nth i)]
+                           :extra (get extra [::child i])
+                           :$extra [$extra (list 'keypath [::child i])]
+                           :context context
+                           :$context $context}))))
+         children))
+       (uicall drag-elem-target
+               {:elem children
+                :$elem [$elem (list 'keypath :element/children)
+                        specter/AFTER-ELEM]})))
+     ;; else
+     (uicall drag-elem-target
+             {:elem children
+              :$elem [$elem (list 'keypath :element/children)
+                      specter/AFTER-ELEM]}))))
+
 
 
 (defui editor [{:keys [elem]}]

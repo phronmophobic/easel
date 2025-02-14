@@ -5,6 +5,8 @@
             [membrane.ui :as ui]
             [clojure.string :as str]
             [clojure.set :as set]
+            loom.graph
+            loom.alg
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.membrandt :as ant]
@@ -313,6 +315,286 @@
                {:elem children
                 :$elem [$elem (list 'keypath :element/children)]})))))
 
+(defn eval-relative-layout [bindings form]
+  (cond
+    (contains? bindings form)
+    (get bindings form)
+
+    (number? form)
+    form
+
+    (map? form)
+    ;; assume op
+    (let [{:keys [op args]} form]
+      (let [opf (case op
+                  clojure.core/- -
+                  clojure.core/+ +
+                  membrane.ui/width ui/width
+                  membrane.ui/height ui/height
+                  membrane.ui/origin-x ui/origin-x
+                  membrane.ui/origin-y ui/origin-y
+
+                  ;; else
+                  (cond
+                    (keyword? op) op
+
+                    :else
+                    (throw (ex-info "Unrecognized relative layout op"
+                                    {:op op
+                                     :form form}))))]
+        (apply opf (eduction
+                    (map #(eval-relative-layout bindings %))
+                    args))))))
+
+(comment
+  (let [id1 (random-uuid)]
+    (eval-relative-layout
+     {`layout-height 20
+      id1 (ui/filled-rectangle [1 0 0] 25 25)}
+     {:op `+
+      :args [{:op `-
+              :args [`layout-height
+                     {:op `ui/width
+                      :args [id1]}]}
+             100]}))
+  (def default-layout
+    {`sm/layout-width 300
+     `sm/layout-height 400})
+
+  ,)
+
+(defmethod compile* ::sm/relative-layout [ctx
+                                          {:keys [element/children
+                                                  relative/layout]
+                                           :as self}]
+  (let [{:keys [$elem extra $extra context $context]} ctx
+        selection (get extra :selection)
+        $selection [$extra (list 'keypath :selection)]]
+    (when (seq children)
+      (let [elems-by-id
+            (into {}
+                  (map-indexed
+                   (fn [i child]
+                     [(:element/id child)
+                      (compile
+                       (assoc ctx
+                              :$elem [$elem (list 'keypath :element/children) (list 'nth i)]
+                              :extra (get extra [::children i])
+                              :$extra [$extra (list 'keypath [::children i])]
+                              :context context
+                              :$context $context)
+                       child)]))
+                  children)
+            [cw ch :as container-size] (:membrane.stretch/container-size context)
+
+            g (let [
+                    adjacencies
+                    (into {}
+                          (map (fn [[k {:keys [deps]}]]
+                                 [k deps]))
+                          layout)
+                    ;; loom.graph is goofy
+                    g (if (seq adjacencies)
+                        (loom.graph/digraph adjacencies)
+                        (loom.graph/digraph))
+                    g (apply
+                       loom.graph/add-nodes
+                       g
+                       (keys elems-by-id))]
+                g)
+
+            compile-order (reverse
+                           (loom.alg/topsort g))
+
+            initial-bindings {`sm/layout-width (or (:element/width self)
+                                                   cw
+                                                   300)
+                              `sm/layout-height (or (:element/height self)
+                                                    ch
+                                                    300)}
+
+            bindings
+            (transduce
+             identity
+             (completing
+              (fn [bindings elem-id]
+                (let [elem (get elems-by-id elem-id)
+                      elem-layout (get layout elem-id)
+                      elem (let [{:element/keys [x y]} elem-layout]
+                             (ui/translate (eval-relative-layout bindings (or x 0))
+                                           (eval-relative-layout bindings (or y 0))
+                                           elem))]
+                  (assoc bindings elem-id elem))))
+             initial-bindings
+             compile-order)
+
+            control-points
+            (eduction
+             (map :element/id)
+             (mapcat
+              (fn [elem-id]
+                (let [elem (get bindings elem-id)]
+                  [(ui/translate (ui/origin-x elem)
+                                 (ui/origin-y elem)
+                                 (ui/on-click
+                                  (fn []
+                                    [[:set $selection
+                                      {:element/id elem-id
+                                       :ui (ui/translate (ui/origin-x elem)
+                                                         (ui/origin-y elem)
+                                                         (ui/filled-rectangle [0 0 0] 13 13))
+                                       :control-point [:element/x :element/y]}]])
+                                  (ui/filled-rectangle [1 0 0] 13 13)
+                                  )
+                                 )])))
+             children)
+            snap-points
+            (eduction
+             cat
+
+             [(when container-size
+                (eduction
+                 (map (fn [{[x y] :pt
+                            :keys [snap-point]
+                            :as m}]
+                        (ui/translate
+                         x y
+                         (ui/on
+                          :mouse-down
+                          (fn [_]
+                            [[::select-snap-point
+                              {:snap-point snap-point}]])
+                          (ui/filled-rectangle [1 0 0] 13 13)))))
+                 [{:pt [0 0] :snap-point [0 0]}
+                  {:pt [0 ch] :snap-point [0 `sm/layout-height]}
+                  {:pt [cw ch] :snap-point [`sm/layout-width `sm/layout-height]}
+                  {:pt [cw 0]  :snap-point [`sm/layout-width 0]}]))
+              
+              (eduction
+               (map :element/id)
+               (remove (fn [elem-id]
+                         (= elem-id (:element/id selection))))
+               (mapcat
+                (fn [elem-id]
+                  (let [elem (get bindings elem-id)]
+                    (eduction
+                     (map (fn [{[x y] :pt
+                                :keys [snap-point]
+                                :as m}]
+                            (ui/translate
+                             x y
+                             (ui/on
+                              :mouse-down
+                              (fn [_]
+                                [[::select-snap-point
+                                  {:snap-point snap-point
+                                   :deps #{elem-id}}]])
+                              (ui/filled-rectangle [1 0 0] 13 13)))))
+                     [{:pt [(ui/origin-x elem) (ui/origin-y elem)]
+                       :snap-point [{:op `ui/origin-x
+                                     :args [elem-id]}
+                                    {:op `ui/origin-y
+                                     :args [elem-id]}]}
+
+                      {:pt [(ui/origin-x elem)
+                            
+                            (+ (ui/origin-y elem)
+                               (ui/height elem))]
+                       :snap-point [{:op `ui/origin-x
+                                     :args [elem-id]}
+                                    {:op `+
+                                     :args [{:op `ui/origin-y
+                                             :args [elem-id]}
+                                            {:op `ui/height
+                                             :args [elem-id]}]}]}
+                      {:pt [(+ (ui/origin-x elem)
+                               (ui/width elem))
+                            (ui/origin-y elem)
+                            ]
+                       :snap-point [{:op `+
+                                     :args [{:op `ui/origin-x
+                                             :args [elem-id]}
+                                            {:op `ui/width
+                                             :args [elem-id]}]}
+                                    {:op `+
+                                     :args [{:op `ui/origin-y
+                                             :args [elem-id]}]}]}
+
+                      {:pt [(+ (ui/origin-x elem)
+                               (ui/width elem))
+                            (+ (ui/origin-y elem)
+                               (ui/height elem))]
+                       :snap-point [{:op `+
+                                     :args [{:op `ui/origin-x
+                                             :args [elem-id]}
+                                            {:op `ui/width
+                                             :args [elem-id]}]}
+                                    {:op `+
+                                     :args [{:op `ui/origin-y
+                                             :args [elem-id]}
+                                            {:op `ui/height
+                                             :args [elem-id]}]}]}]))))
+               children)])]
+        (into []
+              cat
+              [(eduction
+                (map :element/id)
+                (map #(get bindings %))
+                ;; :element/children provides draw order
+                ;; which may be different than compile order
+                children)
+               (if selection
+                 [
+
+                  (if (:start-drag selection)
+                    (when container-size
+                      (ui/on-mouse-up
+                       (fn [[x2 y2]]
+                         [[:delete $selection]
+                          [:update $elem
+                           (fn [elem]
+                             (let [[control-x control-y] (:control-point selection)
+                                   [snap-x snap-y] (-> selection
+                                                       :start-drag
+                                                       :snap-point)
+                                   deps (-> selection
+                                            :start-drag
+                                            :deps)
+                                   [x1 y1] (-> selection
+                                               :start-drag
+                                               :pt)
+                                   offset-x (- x2 x1)
+                                   offset-y (- y2 y1)
+
+                                   elem (-> elem
+                                            (assoc-in [:relative/layout (:element/id selection) control-x]
+                                                      {:op `+
+                                                       :args [snap-x offset-x]})
+                                            (assoc-in [:relative/layout (:element/id selection) control-y]
+                                                      {:op `+
+                                                       :args [snap-y offset-y]}))
+                                   elem (if (seq deps)
+                                          (assoc-in elem [:relative/layout (:element/id selection) :deps] deps)
+                                          (update-in elem [:relative/layout (:element/id selection)] dissoc :deps))]
+                               elem))]])
+                       (ui/spacer cw ch)))
+                    (ui/wrap-on
+                     :mouse-down
+                     (fn [f [mx my]]
+                       (let [intents (f [mx my])]
+                         (specter/transform
+                          [specter/ALL
+                           #(= ::select-snap-point (first %))]
+                          (fn [[_ m]]
+                            [:update $selection
+                             #(assoc % :start-drag
+                                     (assoc m :pt [mx my]))])
+                          intents)))
+                     (vec snap-points)))
+                  (when-let [ui (:ui selection)]
+                    ui)]
+                 control-points)
+               ])))))
 
 (defmethod compile* ::sm/defui [ctx
                                 {:keys [element/name
@@ -387,6 +669,9 @@
                      :mobile
                      (assoc context :membrane.stretch/container-size [375 812])
 
+                     :small-mobile
+                     (assoc context :membrane.stretch/container-size [200 400])
+
                      ;; else
                      context)]
     (ui/vertical-layout
@@ -395,6 +680,7 @@
       ui/horizontal-layout
       (for [container-button-info [{:icon-name "minus-square" :container-type nil}
                                    {:icon-name "mobile" :container-type :mobile}
+                                   {:icon-name "mobile" :container-type :small-mobile}
                                    {:icon-name "desktop" :container-type :desktop}]]
         (ui/on-click
          (fn []
@@ -408,6 +694,10 @@
               :mobile
               (ui/with-style :membrane.ui/style-stroke
                 (ui/rectangle 375 812))
+
+              :small-mobile
+              (ui/with-style :membrane.ui/style-stroke
+                (ui/rectangle 200 400))
 
               ;; else
               nil

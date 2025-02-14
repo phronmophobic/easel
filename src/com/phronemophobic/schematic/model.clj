@@ -8,6 +8,8 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [zippo.core :as zippo]
+            loom.graph
+            loom.alg
             [clojure.test.check.generators :as gen]
             [flatland.ordered.map :refer
              [ordered-map]]
@@ -212,6 +214,82 @@
                           (map (fn [[k v]]
                                  [k (compile v)]))
                           layout)))
+
+
+
+(defn compile-relative-layout-form [bindings form]
+  (cond
+
+    (contains? bindings form)
+    (get bindings form)
+
+    (number? form)
+    form
+
+    (symbol? form)
+    form
+
+    (map? form)
+    ;; assume op
+    (let [{:keys [op args]} form]
+      `(~op ~@(mapv #(compile-relative-layout-form bindings %) args)))))
+
+(defmethod compile* ::relative-layout [{:element/keys [children]
+                                        :keys [relative/layout]
+                                        :as m}]
+  (let [by-id (into {}
+                    (map (fn [m]
+                           [(:element/id m) m]))
+                    children)
+
+        g (apply
+           loom.graph/digraph
+           (into {}
+                 (map (fn [[k {:keys [deps]}]]
+                        [k deps]))
+                 layout)
+           (keys by-id))
+        compile-order (reverse
+                       (loom.alg/topsort g))
+
+        width## (gensym "width-")
+        height## (gensym "height-")
+
+        bindings (into {`layout-width width##
+                        `layout-height height##}
+                       (map (fn [id]
+                              [id (gensym)]))
+                       (keys by-id))
+        elem-bindings
+        (into []
+              (comp (map (fn [elem-id]
+                      (let [ast (get by-id elem-id)
+                            elem (compile ast)
+
+                            elem-layout (get layout elem-id)
+                            elem (if elem-layout
+                                   (let [{:element/keys [x y]} elem-layout]
+                                     `(ui/translate ~(compile-relative-layout-form bindings (or x 0))
+                                                    ~(compile-relative-layout-form bindings (or y 0))
+                                                    ~elem))
+                                   ;; else
+                                   elem)]
+                        [(get bindings elem-id) elem])))
+                    cat)
+              compile-order)]
+    `(let [~width## ~(or (:element/width m)
+                         '(-> context
+                              :membrane.stretch/container-size
+                              first))
+           ~height## ~(or (:element/height m)
+                          '(-> context
+                              :membrane.stretch/container-size
+                              second))
+           ~@elem-bindings]
+       ~(into []
+              (map (fn [m]
+                     (get bindings (:element/id m))))
+              children))))
 
 (defmethod compile* ::rectangle [{:element/keys [width height]}]
   `(ui/filled-rectangle [0 0 0] ~width ~height))

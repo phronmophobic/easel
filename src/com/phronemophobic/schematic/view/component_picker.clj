@@ -36,6 +36,12 @@
                                      :width (->code nil)
                                      :height (->code nil)}
                        :element/id (random-uuid)})
+
+   ::sm/relative-layout (fn []
+                          {:element/type ::sm/relative-layout
+                           :element/children []
+                           :relative/layout {}
+                           :element/id (random-uuid)})
    ::sm/let (fn []
               {:element/type ::sm/let
                :element/body nil
