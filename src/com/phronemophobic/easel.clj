@@ -133,7 +133,10 @@
   (-stop [this])
   model/IUI
   (-ui [this $context context]
-    (let [ui (component-var
+    (let [context (assoc context
+                         :membrane.stretch/container-size
+                         (:size this))
+          ui (component-var
               (assoc (:state this)
                      :context context
                      :$context $context))]
