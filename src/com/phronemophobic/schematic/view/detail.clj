@@ -11,6 +11,7 @@
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
             [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [clojure.edn :as edn]
             [com.phronemophobic.schematic.view.component-picker
              :refer [component-picker]]
@@ -118,6 +119,40 @@
      (ui/horizontal-layout
       (ui/label "text:")
       (code-editor {:code src})))
+   (apply
+    ui/vertical-layout
+    (for [prop [{:kw :ant.style/size
+                 :default :middle}
+                {:kw :ant.style/type
+                 :default :default}
+                {:kw :ant.style/danger?
+                 :default false}
+                {:kw :ant.style/disabled?
+                 :default false}]]
+      (if-let [val (get elem (:kw prop))]
+        (let [src (:element/code val)]
+          (ui/horizontal-layout
+           (ui/on-click
+            (fn []
+              [[:update $elem
+                dissoc (:kw prop)]])
+            (icon.ui/icon
+             {:name "delete"
+              :hover? (get extra [:delete-hover? (:kw prop)])}))
+           (ui/label (:kw prop))
+           (code-editor {:code src})))
+        (ant/button {:text (str (:kw prop))
+                     :size :small
+                     :extra (get extra prop)
+                     :on-click
+                     (fn []
+                       [[:update $elem
+                         (fn [elem]
+                           (assoc elem
+                                  (:kw prop)
+                                  {:element/type ::sm/code
+                                   :element/id (random-uuid)
+                                   :element/code (:default prop)}))]])}))))
    (let [on-click (:element/on-click elem)
          click-type (:element/type on-click)]
      (ui/on

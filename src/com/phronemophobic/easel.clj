@@ -13,8 +13,7 @@
             [com.phronemophobic.easel.term
              :as term]
             [com.phronemophobic.membrandt :as ant]
-            [com.phronemophobic.membrandt.icon :as icon]
-            [com.phronemophobic.membrandt.icon.impl.common :as icon-common]
+            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.phronemophobic.easel.model :as model]
             [com.phronemophobic.easel.browser :as browser]
             [membrane.alpha.component.drag-and-drop :as dnd]
@@ -184,25 +183,6 @@
   (repaint!))
 
 
-(def icon-size [18 18])
-(defui icon [{:keys [name size hover?]}]
-  (let [primary-color (if hover?
-                        "#1677ff"
-                        "#555555")
-        secondary-color (if hover?
-                          "#1677ff"
-                          "#555555")]
-    (basic/on-hover
-     {:hover? hover?
-      :$body nil
-      :body
-      (skia/svg
-       (icon-common/use-colors
-        (icon/svg-str name "outlined")
-        primary-color
-        secondary-color)
-       (or size icon-size))})))
-
 (defn col-width [easel visible-count]
   (let [[w h] (:size easel)
         col-width (if (pos? visible-count)
@@ -220,26 +200,26 @@
           (fn []
             [[::toggle-pane-direction {:pane-id pane-id}]])
           (if (= (:direction pane) :column)
-            (icon {:name "column-height"})
-            (icon {:name "column-width"})))
+            (icon.ui/icon {:name "column-height"})
+            (icon.ui/icon {:name "column-width"})))
          (ui/on-click
           (fn []
             [[::splitpane {:pane-id pane-id}]])
-          (icon {:name "plus"}))
+          (icon.ui/icon {:name "plus"}))
          (when (not= ::root-pane pane-id)
            (ui/on-click
             (fn []
               [[::delete-pane {:pane-id pane-id}]])
-            (icon {:name "close"})))
+            (icon.ui/icon {:name "close"})))
          (ui/on-click
             (fn []
               [[::clear-pane {:pane-id pane-id}]])
-            (icon {:name "minus-square"}))
+            (icon.ui/icon {:name "minus-square"}))
          (when (= ::root-pane pane-id)
            (ui/on-click
             (fn []
               [[::toggle-pane-resize {:pane-id pane-id}]])
-            (icon {:name "edit"}))))
+            (icon.ui/icon {:name "edit"}))))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -802,8 +782,8 @@
                         :mouse-down
                         (fn [_]
                           [[:stop (:id tab)]])
-                        (icon {:name "delete"
-                               :hover? (get extra [:delete-hover? (:id tab)])}))
+                        (icon.ui/icon {:name "delete"
+                                       :hover? (get extra [:delete-hover? (:id tab)])}))
                  [close-width close-height] (ui/bounds close)]
              [(ui/on
                :mouse-down
@@ -871,11 +851,11 @@
     (ui/on-click
      (fn []
        [[::save-workspace {}]])
-     (icon {:name "save"}))
+     (icon.ui/icon {:name "save"}))
     (ui/on-click
      (fn []
        [[::clear-workspace {}]])
-     (icon {:name "minus-circle"})))
+     (icon.ui/icon {:name "minus-circle"})))
    (stretch/vlayout
     (map (fn [{:as workspace}]
            (let [background (ui/rectangle width tab-height)
@@ -888,8 +868,8 @@
                         :mouse-down
                         (fn [_]
                           [[::delete-workspace {:workspace-id (:id workspace)}]])
-                        (icon {:name "delete"
-                               :hover? (get extra [:delete-hover? (:id workspace)])}))
+                        (icon.ui/icon {:name "delete"
+                                       :hover? (get extra [:delete-hover? (:id workspace)])}))
                  [close-width close-height] (ui/bounds close)]
              [(ui/on
                :mouse-down

@@ -10,8 +10,7 @@
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.membrandt :as ant]
-            [com.phronemophobic.membrandt.icon :as icon]
-            [com.phronemophobic.membrandt.icon.impl.common :as icon-common]
+            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
             [clojure.edn :as edn]
@@ -113,7 +112,8 @@
 
 (defmethod compile* ::sm/button [ctx
                                  {:keys [element/text
-                                         element/on-click]}]
+                                         element/on-click]
+                                  :as elem}]
   (let [{:keys [$elem extra $extra context $context]} ctx
         editing? (get extra :editing?)
         $editing? [$extra (list 'keypath :editing?)]
@@ -141,7 +141,18 @@
             [:set $editing? true]]))
        (ui/no-events
         (ant/button
-         {:text (compile ctx text)}))))))
+         (let [props
+               (into
+                {:text (compile ctx text)}
+                (keep (fn [kw]
+                        (when-let [v (get elem kw)]
+                          [(keyword (name kw))
+                           (compile ctx v)])))
+                [:ant.style/size
+                 :ant.style/type
+                 :ant.style/danger?
+                 :ant.style/disabled?])]
+           props)))))))
 
 (defui no-events-text-input [{:as m}]
   (ui/no-events
@@ -648,25 +659,6 @@
 
   ,)
 
-(def icon-size [18 18])
-(defui icon [{:keys [name size hover?]}]
-  (let [primary-color (if hover?
-                        "#1677ff"
-                        "#555555")
-        secondary-color (if hover?
-                          "#1677ff"
-                          "#555555")]
-    (basic/on-hover
-     {:hover? hover?
-      :$body nil
-      :body
-      (skia/svg
-       (icon-common/use-colors
-        (icon/svg-str name "outlined")
-        primary-color
-        secondary-color)
-       (or size icon-size))})))
-
 (defui editor [{:keys [elem
                        eval-ns]}]
   (let [preview-container (:preview-container extra)
@@ -692,7 +684,7 @@
         (ui/on-click
          (fn []
            [[:set $preview-container (:container-type container-button-info)]])
-         (icon {:name (:icon-name container-button-info)}))))
+         (icon.ui/icon {:name (:icon-name container-button-info)}))))
      (if (nil? elem)
        (drag-elem-target {:elem elem})
        (try
