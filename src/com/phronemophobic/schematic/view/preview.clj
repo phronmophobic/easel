@@ -369,7 +369,11 @@
                                            :as self}]
   (let [{:keys [$elem extra $extra context $context]} ctx
         selection (get extra :selection)
-        $selection [$extra (list 'keypath :selection)]]
+        $selection [$extra (list 'keypath :selection)]
+
+        schematic-selection (-> ctx
+                                :context
+                                :selection)]
     (when (seq children)
       (let [elems-by-id
             (into {}
@@ -593,7 +597,10 @@
                      (vec snap-points)))
                   (when-let [ui (:ui selection)]
                     ui)]
-                 control-points)
+
+                 ;; else
+                 (when (schematic-selection (:element/id self))
+                   control-points))
                ])))))
 
 (defmethod compile* ::sm/defui [ctx
