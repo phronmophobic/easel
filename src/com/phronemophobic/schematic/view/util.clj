@@ -106,13 +106,23 @@
     {:$body nil
      :object drag-object
      :body
-     (let [body (ui/label "empty")
-           body (if drag-object
-                  (ui/fill-bordered
-                   [1 0 0 0.2]
-                   0
-                   body)
-                  body)]
+     (let [drop-object (:drop-object context)
+           w 100
+           h 8
+           body
+           (cond
+             drag-object (ui/filled-rectangle
+                          [1 0 0 0.2]
+                          w h)
+
+             (and drop-object
+                  (::sm/element drop-object))
+             (ui/filled-rectangle
+              [0.88 0.88 0.88 1]
+              w h)
+
+             :else
+             (ui/spacer w h))]
        body)})))
 
 (defui code-editor [{:keys [code editing? buf
