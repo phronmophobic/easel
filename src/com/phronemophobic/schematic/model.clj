@@ -593,7 +593,7 @@
                (into []
                      (map symbol)
                      (keys defaults)))]
-    `(defui ~name [{:keys ~args}]
+    `(defui ~name [{:keys ~args :as ~'this}]
        ~(compile body)))
   #_`(let [f#
            (fn ;; ~(symbol
