@@ -129,7 +129,27 @@
                             ^:membrane.component/contextual
                             eval-ns] :as m}]
   (if (not editing?)
-    (let [inspector-extra (get extra ::inspector-extra)]
+    (let [inspector-extra (get extra ::inspector-extra)
+          body (viscous/inspector {:obj (viscous/wrap code)
+                                   :width (get inspector-extra :width 40)
+                                   :height (get inspector-extra :height 1)
+                                   :show-context? (get inspector-extra :show-context?)
+                                   :extra inspector-extra})
+          drag-object (:drag-object extra)
+          body (cond
+
+                 drag-object
+                 (ui/fill-bordered [1 0 0 0.2]
+                                   0
+                                   body)
+
+                 (:drop-object context)
+                 (ui/fill-bordered [0.88 0.88 0.88 1]
+                                   0
+                                   body)
+
+                 :else
+                 body)]
       (ui/horizontal-layout
        (basic/button {:text "O"
                       :on-click
@@ -138,11 +158,20 @@
                          [:set $buf (buffer/buffer (with-out-str
                                                      (clojure.pprint/pprint code))
                                                    {:mode :insert})]])})
-       (viscous/inspector {:obj (viscous/wrap code)
-                           :width (get inspector-extra :width 40)
-                           :height (get inspector-extra :height 1)
-                           :show-context? (get inspector-extra :show-context?)
-                           :extra inspector-extra})))
+       (dnd/on-drop
+        (fn [pos obj]
+          (let [intents [[:set $drag-object nil]]
+                x (:x obj)
+                ]
+            (if-let [v (when (and x
+                                  (instance? clojure.lang.IDeref x))
+                         @x)]
+              (conj intents [:set $code v])
+              intents)))
+        (on-drag-hover
+         {:body body
+          :$body nil
+          :object drag-object}))))
     (ui/horizontal-layout
      (basic/button {:text "O"
                     :on-click
@@ -162,3 +191,57 @@
                     (fn []
                       [[:set $editing? false]])})
      (code-editor/text-editor {:buf buf}))))
+
+(defui symbol-editor [{:keys [symbol editing? symbol-name] :as m}]
+  (if (not editing?)
+    (ui/on
+     :mouse-down
+     (fn [_]
+       [[:set $editing? true]
+        [:set $symbol-name (str symbol)]])
+     (ui/label symbol))
+    (ui/wrap-on
+     :key-press
+     (fn [handler s]
+       (if (= s :enter)
+         [[:set $editing? false]
+          [:set $symbol (clojure.core/symbol symbol-name)]]
+         (handler s)))
+     (ui/horizontal-layout
+      (basic/button {:text "O"
+                     :on-click
+                     (fn []
+                       [[:set $editing? false]
+                        [:set $symbol (clojure.core/symbol symbol-name)]])})
+      (basic/button {:text "X"
+                     :on-click
+                     (fn []
+                       [[:set $editing? false]])})
+      (basic/textarea {:text symbol-name})))))
+
+(defui string-editor [{:keys [string editing? edit-string] :as m}]
+  (if (not editing?)
+    (ui/on
+     :mouse-down
+     (fn [_]
+       [[:set $editing? true]
+        [:set $edit-string string]])
+     (ui/label string))
+    (ui/wrap-on
+     :key-press
+     (fn [handler s]
+       (if (= s :enter)
+         [[:set $editing? false]
+          [:set $string edit-string]]
+         (handler s)))
+     (ui/horizontal-layout
+      (basic/button {:text "O"
+                     :on-click
+                     (fn []
+                       [[:set $editing? false]
+                        [:set $string edit-string]])})
+      (basic/button {:text "X"
+                     :on-click
+                     (fn []
+                       [[:set $editing? false]])})
+      (basic/textarea {:text edit-string})))))

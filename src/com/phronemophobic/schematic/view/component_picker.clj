@@ -50,7 +50,6 @@
    ::sm/component (fn []
                     {:element/type ::sm/component
                      :component/name 'my-component
-                     :component/args []
                      :component/body nil
                      :element/id (random-uuid)})
    ::sm/paragraph (fn []

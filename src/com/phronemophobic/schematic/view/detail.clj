@@ -19,7 +19,8 @@
              :refer [uicall
                      on-drag-hover
                      drag-elem-target
-                     code-editor]]
+                     code-editor
+                     symbol-editor]]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [liq.buffer :as buffer]
             [membrane.skia :as skia]))
@@ -186,6 +187,18 @@
     (ui/label :flex.grow/width)
     (let [src (get elem :flex.grow/width)]
       (code-editor {:code src})))))
+
+
+(defeditor ::sm/component [{:keys [elem]}]
+  (ui/flex-layout
+   [(ui/horizontal-layout
+     (ui/label "name:")
+     (symbol-editor {:symbol (:component/name elem)}))
+    (ui/horizontal-layout
+     (ui/label "defaults:")
+     (code-editor {:code (:component/defaults elem)}))]
+   {:direction :column
+    :gap 8}))
 
 
 (defeditor ::sm/number-slider [{:keys [elem]}]

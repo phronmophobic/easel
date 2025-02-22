@@ -15,7 +15,9 @@
              :refer [uicall
                      on-drag-hover
                      drag-elem-target
-                     code-editor]]
+                     code-editor
+                     string-editor
+                     symbol-editor]]
             [membrane.alpha.component.drag-and-drop :as dnd]
 
             [membrane.skia :as skia])
@@ -107,61 +109,6 @@
       elem)))
 
 
-(defui symbol-editor [{:keys [symbol editing? symbol-name] :as m}]
-  (if (not editing?)
-    (ui/on
-     :mouse-down
-     (fn [_]
-       [[:set $editing? true]
-        [:set $symbol-name (str symbol)]])
-     (ui/label symbol))
-    (ui/wrap-on
-     :key-press
-     (fn [handler s]
-       
-       (if (= s :enter)
-         [[:set $editing? false]
-          [:set $symbol (clojure.core/symbol symbol-name)]]
-         (handler s)))
-     (ui/horizontal-layout
-      (basic/button {:text "O"
-                     :on-click
-                     (fn []
-                       [[:set $editing? false]
-                        [:set $symbol (clojure.core/symbol symbol-name)]])})
-      (basic/button {:text "X"
-                     :on-click
-                     (fn []
-                       [[:set $editing? false]])})
-      (basic/textarea {:text symbol-name})))))
-
-(defui string-editor [{:keys [string editing? edit-string] :as m}]
-  (if (not editing?)
-    (ui/on
-     :mouse-down
-     (fn [_]
-       [[:set $editing? true]
-        [:set $edit-string string]])
-     (ui/label string))
-    (ui/wrap-on
-     :key-press
-     (fn [handler s]
-       (if (= s :enter)
-         [[:set $editing? false]
-          [:set $string edit-string]]
-         (handler s)))
-     (ui/horizontal-layout
-      (basic/button {:text "O"
-                     :on-click
-                     (fn []
-                       [[:set $editing? false]
-                        [:set $string edit-string]])})
-      (basic/button {:text "X"
-                     :on-click
-                     (fn []
-                       [[:set $editing? false]])})
-      (basic/textarea {:text edit-string})))))
-
 (defui args-editor [{:keys [args]}]
   (apply
    ui/vertical-layout
@@ -209,18 +156,8 @@
     (uicall symbol-editor
             {:symbol name
              :$symbol [$elem (list 'keypath :component/name)]}))
-   (ui/horizontal-layout
-    (ui/label "args: ")
-    (uicall args-editor
-            {:args args
-             :$args [$elem (list 'keypath :component/args)]}))
-   (ui/horizontal-layout
-    (ui/label "defaults: ")
-    (uicall code-editor
-            {:code defaults
-             :$code [$elem (list 'keypath :component/defaults)]}))
    (ui/translate
-    20 0
+    20 10
     (if body
       (compile
        {:elem body

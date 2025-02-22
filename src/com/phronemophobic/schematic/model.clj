@@ -590,7 +590,9 @@
                                          element/id]}]
   (let [args (if args
                args
-               (keys defaults))]
+               (into []
+                     (map symbol)
+                     (keys defaults)))]
     `(defui ~name [{:keys ~args}]
        ~(compile body)))
   #_`(let [f#
