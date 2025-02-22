@@ -588,8 +588,11 @@
                                          component/body
                                          component/defaults
                                          element/id]}]
-  `(defui ~name [{:keys ~args}]
-     ~(compile body))
+  (let [args (if args
+               args
+               (keys defaults))]
+    `(defui ~name [{:keys ~args}]
+       ~(compile body)))
   #_`(let [f#
            (fn ;; ~(symbol
              ;;   (clojure.core/name name))
