@@ -238,7 +238,8 @@
                                    (fn [compile-context]
                                      (let [compile-context (or compile-context {})]
                                        (merge compile-context
-                                              (select-keys context [:membrane.stretch/container-size]))))))
+                                              (select-keys context [:membrane.stretch/container-size])))))
+                                  (assoc 'this defaults))
                               (map (fn [[k v]]
                                      [(symbol k) (eval+ (:eval-ns ctx) v)]))
                               defaults))))
