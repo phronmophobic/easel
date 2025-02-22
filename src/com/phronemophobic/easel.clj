@@ -845,23 +845,40 @@
                (update-in easel [:workspaces :by-id]
                           dissoc workspace-id))))
 
-(defui string-editor [{:keys [string editing? edit-string] :as m}]
-  (if (not editing?)
-    (ui/on
-     :mouse-down
-     (fn [_]
-       [[:set $editing? true]
-        [:set $edit-string string]])
-     (ui/label string))
-    (ui/wrap-on
-     :key-press
-     (fn [handler s]
-       (if (= s :enter)
-         [[:set $editing? false]
-          [:set $string edit-string]]
-         (handler s)))
-     (ui/horizontal-layout
-      (basic/textarea {:text edit-string})))))
+(defui string-editor [{:keys [string edit-string
+                              last-click
+                              ^:membrane.component/contextual
+                              focus] :as m}]
+  (let [focus? (= focus $string) ]
+    (if focus?
+      (ui/wrap-on
+       :key-press
+       (fn [handler s]
+         (if (= s :enter)
+           [[:set $focus nil]
+            [:set $string edit-string]]
+           (handler s)))
+       (ui/horizontal-layout
+        (ui/on
+         ::basic/request-focus
+         (constantly nil)
+         (basic/textarea-view {:text edit-string
+                               :focus? focus?
+                               :cursor (get extra :cursor 0)
+                               :border? true}))))
+      (ui/on
+       :mouse-down
+       (fn [_]
+         ;; TODO: correctly implement double click
+         ;;       and select workspace after 500ms timeout.
+         (let [t (.getTime ^java.util.Date (java.util.Date.))]
+           (if (and last-click
+                    (< (- t last-click)
+                       500))
+             [[:set $focus $string]
+              [:set $edit-string string]]
+             [[:set $last-click t]])))
+       (ui/label string)))))
 
 (defui workspace-view [{:keys [workspaces width]}]
   (ui/vertical-layout
