@@ -845,6 +845,24 @@
                (update-in easel [:workspaces :by-id]
                           dissoc workspace-id))))
 
+(defui string-editor [{:keys [string editing? edit-string] :as m}]
+  (if (not editing?)
+    (ui/on
+     :mouse-down
+     (fn [_]
+       [[:set $editing? true]
+        [:set $edit-string string]])
+     (ui/label string))
+    (ui/wrap-on
+     :key-press
+     (fn [handler s]
+       (if (= s :enter)
+         [[:set $editing? false]
+          [:set $string edit-string]]
+         (handler s)))
+     (ui/horizontal-layout
+      (basic/textarea {:text edit-string})))))
+
 (defui workspace-view [{:keys [workspaces width]}]
   (ui/vertical-layout
    (ui/horizontal-layout
@@ -856,36 +874,43 @@
      (fn []
        [[::clear-workspace {}]])
      (icon.ui/icon {:name "minus-circle"})))
-   (stretch/vlayout
-    (map (fn [{:as workspace}]
-           (let [background (ui/rectangle width tab-height)
-                 background (->> background
-                                 (ui/with-style ::ui/style-stroke)
-                                 (ui/with-color [0.33 0.33 0.33]))
-                 lbl (ui/center (ui/label (:id workspace))
-                                (ui/bounds background))
-                 close (ui/on
-                        :mouse-down
-                        (fn [_]
-                          [[::delete-workspace {:workspace-id (:id workspace)}]])
-                        (icon.ui/icon {:name "delete"
-                                       :hover? (get extra [:delete-hover? (:id workspace)])}))
-                 [close-width close-height] (ui/bounds close)]
-             [(ui/on
-               :mouse-down
-               (fn [_]
-                 [[::select-workspace {:workspace-id (:id workspace)}]])
-               [background
-                lbl])
-              (ui/translate
-               (- width 20)
-               (- (/ tab-height 2)
-                  (/ close-height 2))
-               close)])))
-    (->> workspaces
-         :by-id
-         (sort-by first)
-         (map second)))))
+   (let [by-id (:by-id workspaces)]
+     (stretch/vlayout
+      (map (fn [workspace-id]
+             (let [workspace (get by-id workspace-id)
+                   background (ui/rectangle width tab-height)
+                   background (->> background
+                                   (ui/with-style ::ui/style-stroke)
+                                   (ui/with-color [0.33 0.33 0.33]))
+
+                   editing-name? (get extra [::editing? (:id workspace)])
+
+                   lbl (string-editor {:string (get workspace :name (str workspace-id))
+                                       :editing editing-name?})
+                   lbl (ui/center lbl
+                                  (ui/bounds background))
+
+                   close (ui/on
+                          :mouse-down
+                          (fn [_]
+                            [[::delete-workspace {:workspace-id (:id workspace)}]])
+                          (icon.ui/icon {:name "delete"
+                                         :hover? (get extra [:delete-hover? (:id workspace)])}))
+                   [close-width close-height] (ui/bounds close)]
+               [(ui/on
+                 :mouse-down
+                 (fn [_]
+                   [[::select-workspace {:workspace-id (:id workspace)}]])
+                 background)
+                lbl
+                (ui/translate
+                 (- width 20)
+                 (- (/ tab-height 2)
+                    (/ close-height 2))
+                 close)])))
+      (->> by-id
+           (map first)
+           sort)))))
 
 (defn add-$easel
   "Adds the :$easel key to the set of intents."
