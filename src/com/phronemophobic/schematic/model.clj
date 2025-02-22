@@ -365,8 +365,17 @@
          args))))
 
 (defmethod compile* ::text-input [{:element/keys [text]
-                                   width :flex.grow/width}]
+                                   width :flex.grow/width
+                                   :as elem}]
   (let [props `{:text ~(compile text)}
+        props (into props
+                    (keep (fn [kw]
+                            (when-let [v (get elem kw)]
+                              [(keyword (name kw))
+                               (compile v)])))
+                    [:ant.style/size
+                     :ant.style/status
+                     :ant.style/disabled?])
         props (if width
                 (assoc props :flex.grow/width width)
                 props)]

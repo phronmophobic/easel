@@ -165,10 +165,20 @@
                                              extra
                                              context
                                              $context
-                                             $extra]}]
-  (no-events-text-input
-   {:text (compile ctx text)
-    :flex.grow/width width}))
+                                             $extra]
+                                      :as elem}]
+  (let [props (into
+               {:text (compile ctx text)
+                :flex.grow/width width}
+               (keep (fn [kw]
+                       (when-let [v (get elem kw)]
+                         [(keyword (name kw))
+                          (compile ctx v)])))
+               [:ant.style/size
+                :ant.style/status
+                :ant.style/disabled?])]
+   (no-events-text-input
+    props)))
 
 (defmethod compile* ::sm/checkbox [ctx
                                    {:keys [element/checked?]}]
