@@ -262,7 +262,10 @@
                        (keys by-id))
         elem-bindings
         (into []
-              (comp (map (fn [elem-id]
+              (comp
+               (filter (fn [elem-id]
+                         (get by-id elem-id)))
+               (map (fn [elem-id]
                       (let [ast (get by-id elem-id)
                             elem (compile ast)
 
