@@ -386,6 +386,36 @@
 
   ,)
 
+(defeffect ::update-relative-layout [{:keys [$elem selection mx my]}]
+  (dispatch!
+   :update
+   $elem
+   (fn [elem]
+     (let [[control-x control-y] (:control-point selection)
+           [snap-x snap-y] (-> selection
+                               :start-drag
+                               :snap-point)
+           deps (-> selection
+                    :start-drag
+                    :deps)
+           [x1 y1] (-> selection
+                       :start-drag
+                       :pt)
+           offset-x (- mx x1)
+           offset-y (- my y1)
+
+           elem (-> elem
+                    (assoc-in [:relative/layout (:element/id selection) control-x]
+                              {:op `+
+                               :args [snap-x offset-x]})
+                    (assoc-in [:relative/layout (:element/id selection) control-y]
+                              {:op `+
+                               :args [snap-y offset-y]}))
+           elem (if (seq deps)
+                  (assoc-in elem [:relative/layout (:element/id selection) :deps] deps)
+                  (update-in elem [:relative/layout (:element/id selection)] dissoc :deps))]
+       elem))))
+
 (defmethod compile* ::sm/relative-layout [ctx
                                           {:keys [element/children
                                                   relative/layout]
@@ -575,35 +605,22 @@
 
                   (if (:start-drag selection)
                     (when container-size
-                      (ui/on-mouse-up
-                       (fn [[x2 y2]]
+                      (ui/on
+                       :mouse-up
+                       (fn [[mx my]]
                          [[:delete $selection]
-                          [:update $elem
-                           (fn [elem]
-                             (let [[control-x control-y] (:control-point selection)
-                                   [snap-x snap-y] (-> selection
-                                                       :start-drag
-                                                       :snap-point)
-                                   deps (-> selection
-                                            :start-drag
-                                            :deps)
-                                   [x1 y1] (-> selection
-                                               :start-drag
-                                               :pt)
-                                   offset-x (- x2 x1)
-                                   offset-y (- y2 y1)
-
-                                   elem (-> elem
-                                            (assoc-in [:relative/layout (:element/id selection) control-x]
-                                                      {:op `+
-                                                       :args [snap-x offset-x]})
-                                            (assoc-in [:relative/layout (:element/id selection) control-y]
-                                                      {:op `+
-                                                       :args [snap-y offset-y]}))
-                                   elem (if (seq deps)
-                                          (assoc-in elem [:relative/layout (:element/id selection) :deps] deps)
-                                          (update-in elem [:relative/layout (:element/id selection)] dissoc :deps))]
-                               elem))]])
+                          [::update-relative-layout
+                           {:$elem $elem
+                            :selection selection
+                            :mx mx
+                            :my my}]])
+                       :mouse-move
+                       (fn [[mx my]]
+                         [[::update-relative-layout
+                           {:$elem $elem
+                            :selection selection
+                            :mx mx
+                            :my my}]])
                        (ui/spacer cw ch)))
                     (ui/wrap-on
                      :mouse-down
