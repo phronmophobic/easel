@@ -424,9 +424,10 @@
         selection (get extra :selection)
         $selection [$extra (list 'keypath :selection)]
 
-        schematic-selection (-> ctx
-                                :context
-                                :selection)]
+        schematic-selection (or (-> ctx
+                                    :context
+                                    :selection)
+                                #{})]
     (when (seq children)
       (let [elems-by-id
             (into {}
