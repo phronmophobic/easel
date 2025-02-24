@@ -647,8 +647,11 @@
                                 {:keys [element/name
                                         element/function
                                         element/data]}]
+
   (let [ctx (assoc-in ctx [:context :bindings 'extra] {})
-        data-evaled (into {}
+        data-evaled (into {:context
+                           (get-in ctx
+                                   [:context :bindings 'context])}
                           (map (fn [[k node]]
                                  [k (compile ctx node)]))
                           data)]
