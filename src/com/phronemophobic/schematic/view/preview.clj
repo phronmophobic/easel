@@ -471,6 +471,11 @@
                                                     ch
                                                     300)}
 
+            pt-icon-size 16
+            pt-offset (- (/ pt-icon-size 2))
+            pt-icon (icon.ui/icon {:name "plus-circle"
+                                   :size [pt-icon-size pt-icon-size]})
+
             bindings
             (transduce
              identity
@@ -492,19 +497,14 @@
              (mapcat
               (fn [elem-id]
                 (let [elem (get bindings elem-id)]
-                  [(ui/translate (ui/origin-x elem)
-                                 (ui/origin-y elem)
+                  [(ui/translate (+ (ui/origin-x elem) pt-offset)
+                                 (+ (ui/origin-y elem) pt-offset)
                                  (ui/on-click
                                   (fn []
                                     [[:set $selection
                                       {:element/id elem-id
-                                       :ui (ui/translate (ui/origin-x elem)
-                                                         (ui/origin-y elem)
-                                                         (ui/filled-rectangle [0 0 0] 13 13))
                                        :control-point [:element/x :element/y]}]])
-                                  (ui/filled-rectangle [1 0 0] 13 13)
-                                  )
-                                 )])))
+                                  pt-icon))])))
              children)
             snap-points
             (eduction
@@ -516,13 +516,13 @@
                             :keys [snap-point]
                             :as m}]
                         (ui/translate
-                         x y
+                         (+ x pt-offset) (+ y pt-offset)
                          (ui/on
                           :mouse-down
                           (fn [_]
                             [[::select-snap-point
                               {:snap-point snap-point}]])
-                          (ui/filled-rectangle [1 0 0] 13 13)))))
+                          pt-icon))))
                  [{:pt [0 0] :snap-point [0 0]}
                   {:pt [0 ch] :snap-point [0 `sm/layout-height]}
                   {:pt [cw ch] :snap-point [`sm/layout-width `sm/layout-height]}
@@ -540,14 +540,14 @@
                                 :keys [snap-point]
                                 :as m}]
                             (ui/translate
-                             x y
+                             (+ x pt-offset) (+ y pt-offset)
                              (ui/on
                               :mouse-down
                               (fn [_]
                                 [[::select-snap-point
                                   {:snap-point snap-point
                                    :deps #{elem-id}}]])
-                              (ui/filled-rectangle [1 0 0] 13 13)))))
+                              pt-icon))))
                      [{:pt [(ui/origin-x elem) (ui/origin-y elem)]
                        :snap-point [{:op `ui/origin-x
                                      :args [elem-id]}
@@ -635,9 +635,7 @@
                              #(assoc % :start-drag
                                      (assoc m :pt [mx my]))])
                           intents)))
-                     (vec snap-points)))
-                  (when-let [ui (:ui selection)]
-                    ui)]
+                     (vec snap-points)))]
 
                  ;; else
                  (when (schematic-selection (:element/id self))
