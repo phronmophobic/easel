@@ -8,6 +8,7 @@
             [liq.buffer :as buffer]
             [com.phronemophobic.viscous :as viscous]
             [membrane.components.code-editor.code-editor :as code-editor]
+            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [clojure.set :as set]))
 
 (defn uicall* [component m $extra## extra## $context## context## ]
@@ -151,29 +152,29 @@
                  :else
                  body)]
       (ui/horizontal-layout
-       (basic/button {:text "O"
-                      :on-click
-                      (fn []
-                        [[:set $editing? true]
-                         [:set $buf (buffer/buffer (with-out-str
-                                                     (clojure.pprint/pprint code))
-                                                   {:mode :insert})]])})
+       (icon.ui/icon {:name "edit"
+                      :on-click (fn []
+                                  [[:set $editing? true]
+                                   [:set $buf (buffer/buffer (with-out-str
+                                                               (clojure.pprint/pprint code))
+                                                             {:mode :insert})]])})
        (dnd/on-drop
         (fn [pos obj]
-          (let [intents [[:set $drag-object nil]]
-                x (:x obj)
-                ]
-            (if-let [v (when (and x
-                                  (instance? clojure.lang.IDeref x))
-                         @x)]
-              (conj intents [:set $code v])
-              intents)))
+          (let [intents [[:set $drag-object nil]]]
+            (if-let [attribute-code (::sm/component-attribute-code obj)]
+              (conj intents [:set $code attribute-code])
+              (let [x (:x obj)]
+                (if-let [v (when (and x
+                                      (instance? clojure.lang.IDeref x))
+                             @x)]
+                  (conj intents [:set $code v])
+                  intents)))))
         (on-drag-hover
          {:body body
           :$body nil
           :object drag-object}))))
     (ui/horizontal-layout
-     (basic/button {:text "O"
+     (icon.ui/icon {:name "check-circle"
                     :on-click
                     (fn []
                       [[:set $editing? false]
@@ -186,10 +187,9 @@
                               (read-string (buffer/text buf)))
                             (catch Exception e
                               old-code)))]])})
-     (basic/button {:text "X"
-                    :on-click
-                    (fn []
-                      [[:set $editing? false]])})
+     (icon.ui/icon {:name "close-circle"
+                    :on-click (fn []
+                                [[:set $editing? false]])})
      (code-editor/text-editor {:buf buf}))))
 
 (defui symbol-editor [{:keys [symbol editing? symbol-name] :as m}]
@@ -208,12 +208,12 @@
           [:set $symbol (clojure.core/symbol symbol-name)]]
          (handler s)))
      (ui/horizontal-layout
-      (basic/button {:text "O"
+      (icon.ui/icon {:name "check-circle"
                      :on-click
                      (fn []
                        [[:set $editing? false]
                         [:set $symbol (clojure.core/symbol symbol-name)]])})
-      (basic/button {:text "X"
+      (icon.ui/icon {:name "close-circle"
                      :on-click
                      (fn []
                        [[:set $editing? false]])})
@@ -235,12 +235,12 @@
           [:set $string edit-string]]
          (handler s)))
      (ui/horizontal-layout
-      (basic/button {:text "O"
+      (icon.ui/icon {:name "check-circle"
                      :on-click
                      (fn []
                        [[:set $editing? false]
                         [:set $string edit-string]])})
-      (basic/button {:text "X"
+      (icon.ui/icon {:name "close-circle"
                      :on-click
                      (fn []
                        [[:set $editing? false]])})
