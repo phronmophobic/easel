@@ -3,8 +3,18 @@
             [membrane.basic-components :as basic]
             [membrane.ui :as ui]
             [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.schematic.model :as sm]
             [membrane.alpha.component.drag-and-drop :as dnd]))
+
+(defui inspector [{:keys [obj]}]
+  (let [inspector-extra (get extra ::inspector)]
+    (viscous/inspector
+     {:obj (viscous/wrap obj)
+      :width (get inspector-extra :width 40)
+      :height (get inspector-extra :height 1)
+      :show-context? (get inspector-extra :show-context?)
+      :extra inspector-extra})))
 
 (defn ->code [form]
   {:element/type ::sm/code
@@ -36,6 +46,12 @@
                                      :width (->code nil)
                                      :height (->code nil)}
                        :element/id (random-uuid)})
+   ::inspector (fn []
+                 {:element/type ::sm/defui
+                  :element/name "inspector"
+                  :element/function #'inspector
+                  :element/data {:obj (->code nil)}
+                  :element/id (random-uuid)})
 
    ::sm/relative-layout (fn []
                           {:element/type ::sm/relative-layout
