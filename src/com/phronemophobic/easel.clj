@@ -107,8 +107,7 @@
 (defrecord ComponentApplet [label component-var initial-state]
   model/IApplet
   (-start [this $ref size _content-scale]
-    (let [
-          component-meta (meta component-var)
+    (let [component-meta (meta component-var)
           arglists (:arglists component-meta)
           first-arglist (first arglists)
           arg-map (first first-arglist)
@@ -122,13 +121,19 @@
                                 [$kw [$ref '(keypath :state) (list 'keypath kw)]]))))
                       args)
           state (into (assoc initial-state
-                        :extra {}
-                        :$extra [$ref '(keypath :state) '(keypath :extra)])
-                      $args)]
+                             :extra {}
+                             :$extra [$ref '(keypath :state) '(keypath :extra)])
+                      $args)
+
+          $scroll-state [$ref '(keypath :scroll-state)]]
       (assoc this
              ;; :dispatch! dispatch!
              :$ref $ref
              :state state
+             :scroll-state {:$extra [$ref '(keypath :scroll-state :extra)]
+                            :extra {}
+                            :offset [0 0]
+                            :$offset [$scroll-state '(keypath :offset)]}
              :size size)))
   (-stop [this])
   model/IUI
@@ -139,18 +144,33 @@
           ui (component-var
               (assoc (:state this)
                      :context context
-                     :$context $context))]
-      (ui/try-draw
-       (try
-         ui
-         (catch Exception e
-           (tap> e)
-           (prn e)
-           (ui/label "Error!")))
-       (fn [draw e]
-         (tap> e)
-         (prn e)
-         (draw (ui/label "Error!"))))))
+                     :$context $context))
+
+          scroll-state (:scroll-state this)
+          $ref (:$ref this)
+
+          [cw ch] (:size this)
+          scroll-bounds [(max 0 (- cw 7 4))
+                         (max 0 (- ch 7 4))]
+          ui (basic/scrollview
+              (assoc scroll-state
+                     :body ui
+                     :context context
+                     :$context $context
+                     :scroll-bounds scroll-bounds))]
+      (ui/translate
+       4 4
+       (ui/try-draw
+        (try
+          ui
+          (catch Exception e
+            (tap> e)
+            (prn e)
+            (ui/label "Error!")))
+        (fn [draw e]
+          (tap> e)
+          (prn e)
+          (draw (ui/label "Error!")))))))
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
