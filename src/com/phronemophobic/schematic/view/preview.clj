@@ -757,7 +757,7 @@
      (ui/horizontal-layout
       (component-picker {})
       (ui/vertical-layout
-       (basic/button {:text "clear"
+       (ant/button {:text "clear"
                       :on-click (fn []
                                   [[:set $elem nil]])})
        (editor {:elem elem})))
@@ -824,24 +824,28 @@
                         ^:membrane.component/contextual
                         eval-ns]}]
   (ui/vertical-layout
-   (basic/button {:text "clear"
-                  :on-click (fn []
-                              [[:set $elem nil]])})
+   (ant/button {:text "clear"
+                :size :small
+                :on-click (fn []
+                            [[:set $elem nil]])})
    (ui/horizontal-layout
     (ui/label (str "selection: " (pr-str selection))))
-   (basic/button {:text "delete"
-                  :on-click (fn []
-                              [[::sm/delete-selection
-                                {:$elem $elem
-                                 :selection selection
-                                 :$selection $selection}]])})
-   (basic/button {:text "print"
-                  :on-click (fn []
-                              (clojure.pprint/pprint
-                               (sm/compile elem))
-                              nil)})
-   (basic/button {:text "debug load"
-                  :on-click
+   (ant/button {:text "delete"
+                :size :small
+                :on-click (fn []
+                            [[::sm/delete-selection
+                              {:$elem $elem
+                               :selection selection
+                               :$selection $selection}]])})
+   (ant/button {:text "print"
+                :size :small
+                :on-click (fn []
+                            (clojure.pprint/pprint
+                             (sm/compile elem))
+                            nil)})
+   (ant/button {:text "debug load"
+                :size :small
+                :on-click
                   (fn []
                     #_(let [node (->> (com.phronemophobic.replog/get-main-log)
                                       (last))
@@ -851,39 +855,42 @@
                       [[:set $eval-ns loaded-ns]
                        [:set $elem loaded-elem]])
 )})
-   (basic/button {:text "save"
-                  :on-click (fn []
-                              [[::replog-elem {:eval-ns eval-ns
-                                               :elem elem}]])})
-   (basic/button {:text "eval"
-                  :on-click (fn []
-                              (binding [*ns* (or eval-ns
-                                                 (the-ns 'clojure.core))]
-                                (let [v (eval (sm/compile elem))]
-                                  [[:com.phronemophobic.easel/add-component!
-                                    (keyword (name (ns-name *ns*))
-                                             (name (:component/name elem)))
-                                    (fn []
-                                      {:element/type ::sm/defui
-                                       :element/name (name (:component/name elem))
-                                       :element/function v
-                                       :element/data (update-vals
-                                                      (:component/defaults elem)
-                                                      (fn [v]
-                                                        {:element/type ::sm/code
-                                                         :element/id (random-uuid)
-                                                         :element/code v}))
-                                       :element/id (random-uuid)})]])))})
-   (basic/button {:text "show!"
-                  :on-click (fn []
-                              (let [v (binding [*ns* (or eval-ns
-                                                         (the-ns 'clojure.core))]
-                                        (eval (sm/compile elem)))]
-                                [[:com.phronemophobic.easel/add-component-as-applet
-                                  v
-                                  (:component/defaults elem)]]
-                                #_(skia/run (membrane.component/make-app v
-                                                                         (eval+ (:component/defaults elem))))))}))
+   (ant/button {:text "save"
+                :size :small
+                :on-click (fn []
+                            [[::replog-elem {:eval-ns eval-ns
+                                             :elem elem}]])})
+   (ant/button {:text "eval"
+                :size :small
+                :on-click (fn []
+                            (binding [*ns* (or eval-ns
+                                               (the-ns 'clojure.core))]
+                              (let [v (eval (sm/compile elem))]
+                                [[:com.phronemophobic.easel/add-component!
+                                  (keyword (name (ns-name *ns*))
+                                           (name (:component/name elem)))
+                                  (fn []
+                                    {:element/type ::sm/defui
+                                     :element/name (name (:component/name elem))
+                                     :element/function v
+                                     :element/data (update-vals
+                                                    (:component/defaults elem)
+                                                    (fn [v]
+                                                      {:element/type ::sm/code
+                                                       :element/id (random-uuid)
+                                                       :element/code v}))
+                                     :element/id (random-uuid)})]])))})
+   (ant/button {:text "show!"
+                :size :small
+                :on-click (fn []
+                            (let [v (binding [*ns* (or eval-ns
+                                                       (the-ns 'clojure.core))]
+                                      (eval (sm/compile elem)))]
+                              [[:com.phronemophobic.easel/add-component-as-applet
+                                v
+                                (:component/defaults elem)]]
+                              #_(skia/run (membrane.component/make-app v
+                                                                       (eval+ (:component/defaults elem))))))}))
   )
 
 (comment
@@ -904,7 +911,7 @@
           (ui/horizontal-layout
            (component-picker {})
            (ui/vertical-layout
-            (basic/button {:text "clear"
+            (ant/button {:text "clear"
                            :on-click (fn []
                                        [[:set $elem nil]])})
             (try
@@ -929,22 +936,22 @@
                                 :extra inspector-extra}))
           (ui/horizontal-layout
            (ui/label (str "selection: " (pr-str selection))))
-          (basic/button {:text "delete"
+          (ant/button {:text "delete"
                          :on-click (fn []
                                      [[::sm/delete-selection
                                        {:$elem $elem
                                         :selection selection
                                         :$selection $selection}]])})
-          (basic/button {:text "print"
+          (ant/button {:text "print"
                          :on-click (fn []
                                      (clojure.pprint/pprint
                                       (sm/compile elem))
                                      nil)})
-          (basic/button {:text "eval"
+          (ant/button {:text "eval"
                          :on-click (fn []
                                      (eval (sm/compile elem))
                                      nil)})
-          (basic/button {:text "show!"
+          (ant/button {:text "show!"
                          :on-click (fn []
                                      (let [v (eval (sm/compile elem))]
                                        (skia/run (membrane.component/make-app v
