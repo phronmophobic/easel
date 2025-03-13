@@ -385,6 +385,40 @@
                                    ))
                           root))))))))
 
+
+;; This is a bit more fiddly than I would like
+;; - membrane.component can only parse
+;;   one level of nth or get for inline attributes
+;; - this only supports get and nth
+(defn ^:private path->attribute-code
+  [path]
+  (when (and (= 'find
+                (-> path first first))
+             (= '(val)
+                (second path)))
+    (let [sym (symbol (-> path first second name))]
+      (if-let [path (->> path (drop 2) seq)]
+        (let [cnt (count path)]
+          (cond
+            (and (= 2 cnt)
+                 (= 'find
+                    (-> path first first))
+                 (= '(val)
+                    (second path)))
+            (let [k (-> path first second)]
+              (if (keyword? k)
+                `(~k ~sym)
+                `(~'get ~sym (quote ~k))))
+
+            (and (= 1 cnt)
+                 (= 'nth (-> path first first)))
+            `(~'nth ~sym ~(-> path first second))
+
+            ;; else nil
+            ))
+        ;; else, just an attribute name
+        sym))))
+
 (defui editor [{:keys [elem root] :as m}]
   (ui/vertical-layout
    (ui/on
@@ -393,12 +427,25 @@
       [[::config-on-click (assoc m :$root $root)]])
     (compile m))
    (let [inspector-extra (get extra ::inspector)]
-     (viscous/inspector
-      {:obj (viscous/wrap root)
-       :width (get inspector-extra :width 40)
-       :height (get inspector-extra :height 1)
-       :show-context? (get inspector-extra :show-context?)
-       :extra inspector-extra}))
+     (ui/on
+      ::dnd/drag-start
+      (fn [m]
+        (let [path (-> m ::dnd/obj :path)]
+          (if-let [code (path->attribute-code path)]
+            [[::dnd/drag-start
+              (update m
+                      ::dnd/obj
+                      #(assoc % ::sm/component-attribute-code code))]]
+            [[::dnd/drag-start m]])))
+      (when (and (= ::sm/component
+                    (:element/type root)))
+        (when-let [defaults (:component/defaults root)]
+          (viscous/inspector
+           {:obj (viscous/wrap defaults)
+            :width (get inspector-extra :width 40)
+            :height (get inspector-extra :height 1)
+            :show-context? (get inspector-extra :show-context?)
+            :extra inspector-extra})))))
    #_(let [inspector-extra (get extra ::inspector2)]
        (viscous/inspector
         {:obj (->tree** root)
