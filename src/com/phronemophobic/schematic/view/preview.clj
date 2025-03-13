@@ -716,36 +716,38 @@
          (fn []
            [[:set $preview-container (:container-type container-button-info)]])
          (icon.ui/icon {:name (:icon-name container-button-info)}))))
-     (if (nil? elem)
-       (drag-elem-target {:elem elem})
-       (try
-         [(when preview-container
-            (case preview-container
-              :mobile
-              (ui/with-style :membrane.ui/style-stroke
-                (ui/rectangle 375 812))
+     (ui/translate
+      4 4
+      (if (nil? elem)
+        (drag-elem-target {:elem elem})
+        (try
+          [(when preview-container
+             (case preview-container
+               :mobile
+               (ui/with-style :membrane.ui/style-stroke
+                 (ui/rectangle 375 812))
 
-              :small-mobile
-              (ui/with-style :membrane.ui/style-stroke
-                (ui/rectangle 200 400))
+               :small-mobile
+               (ui/with-style :membrane.ui/style-stroke
+                 (ui/rectangle 200 400))
 
-              ;; else
-              nil
-              ))
-          (ui/try-draw
-           (compile
-            {:$elem $elem
-             :extra extra
-             :$extra $extra
-             :context subcontext
-             :$context $context
-             :eval-ns eval-ns}
-            elem)
-           (fn [draw e]
-             (draw (ui/label e))))]
-         (catch Throwable e
-           (clojure.pprint/pprint e)
-           (ui/label "Error")))))))
+               ;; else
+               nil
+               ))
+           (ui/try-draw
+            (compile
+             {:$elem $elem
+              :extra extra
+              :$extra $extra
+              :context subcontext
+              :$context $context
+              :eval-ns eval-ns}
+             elem)
+            (fn [draw e]
+              (draw (ui/label e))))]
+          (catch Throwable e
+            (clojure.pprint/pprint e)
+            (ui/label "Error"))))))))
 
 (defui editor+component-picker [{:keys [elem]}]
   (dnd/drag-and-drop
