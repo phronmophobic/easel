@@ -98,7 +98,8 @@
            '[(keypath :membrane.component/context)
              (keypath :com.phronemophobic.easel.schematic2/component-picker-components)]
            (fn [components]
-             (assoc components key f))))
+             (assoc components key f)))
+  nil)
 
 (defeffect ::add-component! [key f]
   (add-component! key f))
