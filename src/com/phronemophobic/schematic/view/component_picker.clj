@@ -157,23 +157,38 @@
 
 
 (defui component-picker [{:keys [components]}]
-  (ui/translate
-   4 4
-   (apply
-    ui/vertical-layout
-    (eduction
-     (map
-      (fn [kind]
-        (ui/on
-         :mouse-down
-         (fn [_]
-           [[::dnd/drag-start {::dnd/obj {::sm/element
-                                          ((get components kind))}}]])
-         (ant/button {:text (name kind)
-                      :size :small
-                      :extra (get extra [:button kind])
-                      ;;:hover? (get extra [:hover kind])
-                      }))))
+  (let [body
+        (ui/translate
+         4 4
+         (apply
+          ui/vertical-layout
+          (eduction
+           (map
+            (fn [kind]
+              (ui/on
+               :mouse-down
+               (fn [_]
+                 [[::dnd/drag-start {::dnd/obj {::sm/element
+                                                ((get components kind))}}]])
+               (ant/button {:text (name kind)
+                            :size :small
+                            :extra (get extra [:button kind])
+                            ;;:hover? (get extra [:hover kind])
+                            }))))
 
-     (sort (keys components))))))
+           (sort (keys components)))))
+
+        [cw ch :as container-size] (:membrane.stretch/container-size context)
+
+        body (if container-size
+               (basic/scrollview
+                {:body body
+                 :$body nil
+
+                 :scroll-bounds
+                 ;; save space for scroll bar
+                 [(- cw 7)
+                  (- ch 7)]})
+               body)]
+    body))
 
