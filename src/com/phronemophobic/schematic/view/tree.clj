@@ -695,30 +695,44 @@
 
 
 (defui editor [{:keys [elem]}]
-  (if (nil? elem)
-    (drag-elem-target {:elem elem})
-    (ui/on
-     ;; this is a little too specific,
-     ;; but need other unimplemented features
-     ;; to avoid this specificity
-     ::dnd/drag-start
-     (fn [m]
-       (if-let [id (::delete m)]
-         [[::dnd/drag-start (update m ::dnd/init
-                                    (fn [intents]
-                                      (let [new-intent [::sm/delete-by-id {:id id
-                                                                           :$elem $elem}]]
-                                        (if intents
-                                          (conj intents new-intent)
-                                          [new-intent]))))]]
-         [[::dnd/drag-start m]]))
-     (compile
-      {:elem elem
-       :$elem $elem
-       :extra extra
-       :$extra $extra
-       :context context
-       :$context $context}))))
+  (let [body (if (nil? elem)
+               (drag-elem-target {:elem elem})
+               (ui/on
+                ;; this is a little too specific,
+                ;; but need other unimplemented features
+                ;; to avoid this specificity
+                ::dnd/drag-start
+                (fn [m]
+                  (if-let [id (::delete m)]
+                    [[::dnd/drag-start (update m ::dnd/init
+                                               (fn [intents]
+                                                 (let [new-intent [::sm/delete-by-id {:id id
+                                                                                      :$elem $elem}]]
+                                                   (if intents
+                                                     (conj intents new-intent)
+                                                     [new-intent]))))]]
+                    [[::dnd/drag-start m]]))
+                (compile
+                 {:elem elem
+                  :$elem $elem
+                  :extra extra
+                  :$extra $extra
+                  :context context
+                  :$context $context})))
+
+        [cw ch :as container-size] (:membrane.stretch/container-size context)
+
+        body (if container-size
+               (basic/scrollview
+                {:body body
+                 :$body nil
+
+                 :scroll-bounds
+                 ;; save space for scroll bar
+                 [(- cw 7)
+                  (- ch 7)]})
+               body)]
+    body))
 
 (def app-state (atom {}))
 
