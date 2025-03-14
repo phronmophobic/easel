@@ -3,7 +3,7 @@
         net.java.dev.jna/jna {:mvn/version "5.15.0"}
         com.phronemophobic/membrane {:local/root "../membrane"}
         com.phronemophobic/spreadsheet {:local/root "../spreadsheet"}
-        com.phronemophobic/schematic {:local/root "../schematic"}
+        ;; com.phronemophobic/schematic {:local/root "../schematic"}
         com.phronemophobic/viscous {:local/root "../viscous"}
         com.phronemophobic/membrandt {:local/root "../membrandt"}
         ;; com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
