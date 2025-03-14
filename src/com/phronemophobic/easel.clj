@@ -581,6 +581,18 @@
                      main-view))]
     main-view))
 
+(defn ^:private first-empty-pane-id [easel]
+  (first
+   (eduction
+    (filter (fn [pane]
+              (and (not (:applet-id pane))
+                   (empty? (:panes pane)))))
+    (map :id)
+    (->> easel
+         ::cached-layout
+         :all-panes
+         reverse))))
+
 (defn easel-ui* [{:keys [root-pane applets] :as easel} $extra extra $context context]
   (let [main-view
         (into []
@@ -688,11 +700,19 @@
                           (prn e))))))
           relayout*)))
   (-show-applet [this id]
-    (-> this
-        (update :root-pane
-                #(splitpane/add-child % {:id (random-uuid)
-                                         :applet-id id}))
-        relayout*))
+    (let [;; check if there is an empty pane first
+          ;; if so, add it to the empty pane
+          ;; otherwise, add a new pane
+          empty-pane-id (first-empty-pane-id this)
+
+          this (if empty-pane-id
+                 (update this :root-pane
+                         (fn [root-pane]
+                           (splitpane/edit-pane-by-id root-pane empty-pane-id #(assoc % :applet-id id))))
+                 (update this :root-pane
+                         #(splitpane/add-child % {:id (random-uuid)
+                                                  :applet-id id})))]
+      (relayout* this)))
   (-hide-applet [this id]
     (-> this
         (update :root-pane
