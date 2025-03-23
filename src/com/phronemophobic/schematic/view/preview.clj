@@ -60,14 +60,14 @@
 (defmethod compile* ::sm/paragraph [ctx
                                     {:keys [element/text
                                             element/width
-                                            element/paragraph-style]}]
+                                            element/paragraph-style]
+                                     :as elem}]
   (let [text (compile ctx text)
         width (compile ctx width)
         paragraph-style (compile ctx paragraph-style)]
-    (when (string? text)
-      (para/paragraph text
-                      width
-                      paragraph-style))))
+    (para/paragraph text
+                    width
+                    paragraph-style)))
 
 (defmethod compile* ::sm/progress-bar [ctx
                                        {:keys [element/value
