@@ -268,6 +268,18 @@
             src (get code :element/code)]
         (code-editor {:code src}))))))
 
+
+(defeditor ::sm/paragraph [{:keys [elem]}]
+  (apply
+   ui/vertical-layout
+   (for [kw [:element/text
+             :element/width]]
+     (ui/horizontal-layout
+      (ui/label (name kw))
+      (let [code (get elem kw)
+            src (get code :element/code)]
+        (code-editor {:code src}))))))
+
 (defeditor ::sm/number-slider [{:keys [elem]}]
   (apply
    ui/vertical-layout

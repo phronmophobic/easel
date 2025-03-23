@@ -73,6 +73,9 @@
                      :element/text {:element/type ::sm/code
                                     :element/id (random-uuid)
                                     :element/code "hello"}
+                     :element/width {:element/type ::sm/code
+                                     :element/id (random-uuid)
+                                     :element/code nil}
                      :element/paragraph-style
                      {:element/type ::sm/code
                       :element/id (random-uuid)
