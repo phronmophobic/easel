@@ -36,28 +36,10 @@
                                   ;; :mvn/version "1.4-20240711.022539-7"
                                   }
         
-        ;; com.phronemophobic/clj-cef2 {:local/root "../clj-cef"}
         com.phronemophobic/clj-cef2.alpha {;; :local/root "../clj-cef"
                                            :git/sha "e402ef3caf92483116d6fb15b29c8ae21d36c22e"
                                            :git/url "https://github.com/phronmophobic/clj-cef2/"
                                            }
-
-        com.phronemophobic/clj-libretro {:local/root "../clj-libretro"}
-
-        ;; llm stuff
-        com.phronemophobic/llama-clj {:local/root "../llama.clj"}
-        com.phronemophobic/replog {:local/root "../replog"}
-
-        com.phronemophobic/clj-media {;; :mvn/version "2.3"
-                                      :local/root "../clj-media"
-                                      }
-        com.phronemophobic/derpbot {:local/root "../derpbot"}
-        com.phronemophobic/whisper {:local/root "../whisper.clj"}
-
-
-        com.phronemophobic/clj-webgpu {:local/root "../clj-webgpu"}
-        org.clojars.cartesiantheatrics/manifold3d$macosx-arm64 {:local/root "/Users/adrian/workspace/manifold/bindings/java/target/manifold3d-1.0.39.jar" }
-        com.phronemophobic.cljonda/webgpu-native-darwin-aarch64 {:mvn/version "v0.19.4.1"}
 
         com.rpl/specter {:mvn/version "1.1.4"}}
  
@@ -66,6 +48,21 @@
 
  :aliases
  {
+
+  :optional
+  {:extra-paths ["../derpbot/config"]
+   :extra-deps
+   {com.phronemophobic.cljonda/llama-cpp-gguf-darwin-aarch64 {:mvn/version "b3040"}
+    com.phronemophobic/clj-libretro {:local/root "../clj-libretro"}
+    ;; com.phronemophobic/llama-clj {:mvn/version "0.8.6"}
+    ;; com.phronemophobic/clj-media {:local/root "../clj-media"}
+    com.phronemophobic/derpbot {:local/root "../derpbot"}
+    com.phronemophobic/whisper {:local/root "../whisper.clj"}
+    com.phronemophobic/clj-webgpu {:local/root "../clj-webgpu"}
+    org.clojars.cartesiantheatrics/manifold3d$macosx-arm64 {:local/root "/Users/adrian/workspace/manifold/bindings/java/target/manifold3d-1.0.39.jar" }}
+
+   com.phronemophobic/replog {:local/root "../replog"}
+   ,}
 
   :local-deps
   {:override-deps
@@ -82,26 +79,10 @@
     
     ;; com.phronemophobic/clj-cef2 {:local/root "../clj-cef"}
     com.phronemophobic/clj-cef2.alpha { ;; :mvn/version "0.1"
-                                       :local/root "../clj-cef"
-                                       }
+                                       :local/root "../clj-cef"}
+    com.phronemophobic/replog {:local/root "../replog"}}}
 
-    com.phronemophobic/clj-libretro {:local/root "../clj-libretro"}
-
-    ;; llm stuff
-    com.phronemophobic/llama-clj {:local/root "../llama.clj"}
-    com.phronemophobic/replog {:local/root "../replog"}
-
-    com.phronemophobic/clj-media {:local/root "../clj-media"}
-    com.phronemophobic/derpbot {:local/root "../derpbot"}
-    com.phronemophobic/whisper {:local/root "../whisper.clj"}
-
-
-    com.phronemophobic/clj-webgpu {:local/root "../clj-webgpu"}
-    org.clojars.cartesiantheatrics/manifold3d$macosx-arm64 {:local/root "/Users/adrian/workspace/manifold/bindings/java/target/manifold3d-1.0.39.jar" }
-
-    com.phronemophobic/vt {:local/root "../vt" :exclusions [org.clojure/clojurescript]}
-
-    }}
+  
 
   :project
   {:jvm-opts [;; "-Djna.library.path=/opt/local/lib"
@@ -115,14 +96,9 @@
               "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
               "-Djna.library.path=../whisper.cpp/build/src/"
               ]
-   :extra-paths ["notebooks" "demos" "../derpbot/config"]
+   :extra-paths ["notebooks" "demos" ]
    :extra-deps
-   {com.phronemophobic.cljonda/llama-cpp-gguf-darwin-aarch64 {:mvn/version "b3040"}
-    #_#_com.phronemophobic.membrane/skialib-macosx-aarch64 { :local/root "../membrane/csource/macos-aarch64"
-                                                            ;; :mvn/version "0.15-beta"
-                                                            }
-
-    }
+   {}
   :build {:deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}
                  slipset/deps-deploy {:mvn/version "RELEASE"}}
           :ns-default build}
