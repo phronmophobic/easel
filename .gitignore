@@ -36,3 +36,4 @@ hs_err*
 /DawnCache
 /threadkv.db
 /aimages
+/demos
