@@ -23,7 +23,7 @@
                      code-editor]]
             [liq.buffer :as buffer]
             [membrane.skia :as skia]
-            [com.phronemophobic.replog :as replog]))
+            #_[com.phronemophobic.replog :as replog]))
 
 
 
@@ -798,27 +798,28 @@
 
 
 (defeffect ::replog-elem [{:keys [eval-ns elem] :as m}]
-  (let [ns (ns-name eval-ns)
-        requires '[[membrane.component
-                    :refer [defui defeffect]]
-                   [com.phronemophobic.membrandt :as ant]
-                   [membrane.ui :as ui]]
-        ops [{::replog/ns ns
-              ::replog/requires requires
-              ::replog/form `(require ~@(eduction
-                                         (map (fn [req]
-                                                (list 'quote req)))
-                                         requires))}
-             {::replog/form (sm/compile elem)
-              ::sm/elem elem
-              ::replog/ns ns }]]
-    (tap> {:effect (ns-name *ns*)})
-    (tap> ops)
-    (replog/append ops)
-    (tap> (replog/load-log ops))
+  ;; (let [ns (ns-name eval-ns)
+  ;;       requires '[[membrane.component
+  ;;                   :refer [defui defeffect]]
+  ;;                  [com.phronemophobic.membrandt :as ant]
+  ;;                  [membrane.ui :as ui]]
+  ;;       ops [{::replog/ns ns
+  ;;             ::replog/requires requires
+  ;;             ::replog/form `(require ~@(eduction
+  ;;                                        (map (fn [req]
+  ;;                                               (list 'quote req)))
+  ;;                                        requires))}
+  ;;            {::replog/form (sm/compile elem)
+  ;;             ::sm/elem elem
+  ;;             ::replog/ns ns }]]
+  ;;   (tap> {:effect (ns-name *ns*)})
+  ;;   (tap> ops)
+  ;;   (replog/append ops)
+  ;;   (tap> (replog/load-log ops))
 
 
-    ))
+  ;;   )
+  )
 
 (defui toolbar [{:keys [elem selection
                         ^:membrane.component/contextual

@@ -8,7 +8,7 @@
    [com.phronemophobic.gen3 :as gen3]
    [com.phronemophobic.cef :as cef]
    [com.phronemophobic.cef.browser :as b]
-   [com.phronemophobic.replog :as replog])
+   #_[com.phronemophobic.replog :as replog])
   (:import com.sun.jna.Pointer
            com.sun.jna.Function
            com.phronemophobic.membrane.Skia
@@ -16,10 +16,156 @@
            ;;com.phronemophobic.cljcef.CefBrowser
            ))
 
-(replog/load-log (into []
-                       (filter #(= (ns-name *ns*)
-                                   (::replog/ns %)))
-                       (replog/get-main-log)))
+;; (replog/load-log (into []
+;;                        (filter #(= (ns-name *ns*)
+;;                                    (::replog/ns %)))
+;;                        (replog/get-main-log)))
+
+;;;;;;;;;;;;;;;;;;
+;; AUTO GENERATED
+;;;;;;;;;;;;;;;;;;
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 8, :width width, :height nil}))
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/load-url url]]),
+      :text "go"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 8, :width width, :height nil}))
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/load-url url]]),
+      :text "go"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 0, :width width, :height nil}))
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/load-url url]]),
+      :text "go"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 8, :width width, :height nil}))
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/load-url url]]),
+      :text "go"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 0, :width width, :height nil}))
+(membrane.component/defui
+  browser-bar
+  [{:keys [width url]}]
+  (membrane.ui/flex-layout
+   [(com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-back]]),
+      :text "<"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-forward]]),
+      :text ">"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/browser-refresh]]),
+      :text "O"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/show-inspector]]),
+      :text "?"})
+    (com.phronemophobic.membrandt/button
+     {:on-click
+      (fn [] [[:com.phronemophobic.easel.browser/load-url url]]),
+      :text "go"})
+    (com.phronemophobic.membrandt/text-input
+     {:flex.grow/width 1.0, :text url})]
+   {:gap 0, :width width, :height nil}))
+;;;;;;;;;;;;;;;;;;
+;; END AUTO GENERATED
+;;;;;;;;;;;;;;;;;;
+
 
 (defeffect ::more! [$num]
   (dispatch! :update $num inc))
