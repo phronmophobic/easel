@@ -11,8 +11,6 @@
             loom.graph
             loom.alg
             [clojure.test.check.generators :as gen]
-            [flatland.ordered.map :refer
-             [ordered-map]]
             [membrane.basic-components :as basic]
             [membrane.component :as component
              :refer [defui defeffect]]
