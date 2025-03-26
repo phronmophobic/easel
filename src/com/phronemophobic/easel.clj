@@ -639,12 +639,12 @@
                                                      (- (:height pane)
                                                         top-bar-height
                                                         1))]
-                                               (list-applets/list-applets2 {:shared-state shared-state
-                                                                            :$shared-state $shared-state
-                                                                            :extra list-applets-extra
-                                                                            :$extra $list-applets-extra
-                                                                            :context context
-                                                                            :$context $context})))))))))))
+                                               (list-applets/list-applets {:shared-state shared-state
+                                                                           :$shared-state $shared-state
+                                                                           :extra list-applets-extra
+                                                                           :$extra $list-applets-extra
+                                                                           :context context
+                                                                           :$context $context})))))))))))
               (-> easel ::cached-layout :all-panes))
         main-view (if (::pane-resize root-pane)
                     (ui/no-events main-view)
