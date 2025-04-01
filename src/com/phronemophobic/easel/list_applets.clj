@@ -26,7 +26,7 @@
 
 (defui list-applets [{:keys [shared-state]}]
   (let [url (get shared-state ::url "https://duckduckgo.com")
-        eval-ns-name (get shared-state ::eval-ns-name "sevengui")
+        eval-ns-name (get shared-state ::eval-ns-name "user")
         eval-ns* (fn []
                    (try
                      (let [ns-sym (symbol eval-ns-name)]
