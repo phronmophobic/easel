@@ -13,13 +13,11 @@
                                         :git/url "https://github.com/phronmophobic/spreadsheet"
                                         :git/sha "bc90920c9045e1eacbb9282f45736f59e360ffc3"
                                         }
-        ;; com.phronemophobic/schematic {:local/root "../schematic"}
         com.phronemophobic/viscous {;; :local/root "../viscous"
                                     :mvn/version "1.3.5"}
         com.phronemophobic/membrandt {;; :local/root "../membrandt"
                                       :git/sha "66da338b158a58ef48bc3a17ebe25a98e1b11716"
                                       :git/url "https://github.com/phronmophobic/membrandt"}
-        ;; com.phronemophobic.membrane/browser {:local/root "../membrane-browser"}
         membrane.alpha/stretch {;; :local/root "../membrane.alpha.stretch"
                                 :git/url "https://github.com/phronmophobic/membrane.stretch.alpha"
                                 :git/sha "0ff04338b6fffe205f412fe2eaaa500c10ac2bb7"}
@@ -55,7 +53,7 @@
    {com.phronemophobic.cljonda/llama-cpp-gguf-darwin-aarch64 {:mvn/version "b3040"}
     com.phronemophobic/clj-libretro {:local/root "../clj-libretro"}
     ;; com.phronemophobic/llama-clj {:mvn/version "0.8.6"}
-    ;; com.phronemophobic/clj-media {:local/root "../clj-media"}
+    com.phronemophobic/clj-media {:local/root "../clj-media"}
     com.phronemophobic/derpbot {:local/root "../derpbot"}
     com.phronemophobic/whisper {:local/root "../whisper.clj"}
     com.phronemophobic/clj-webgpu {:local/root "../clj-webgpu"}
@@ -76,8 +74,6 @@
     membrane.alpha/stretch {:local/root "../membrane.alpha.stretch"}
     com.phronemophobic/membrane.term {:local/root "../term"}
     com.phronemophobic/clong {:local/root "../clong/"}
-    
-    ;; com.phronemophobic/clj-cef2 {:local/root "../clj-cef"}
     com.phronemophobic/clj-cef2.alpha { ;; :mvn/version "0.1"
                                        :local/root "../clj-cef"}
     com.phronemophobic/replog {:local/root "../replog"}}}
