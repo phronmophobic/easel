@@ -165,7 +165,7 @@
                      ((requiring-resolve 'com.phronemophobic.easel.derpbot/derpbot-applet)
                       handler
                       (random-uuid)))}]])})
-     (button {:text "Mic"
+     #_(button {:text "Mic"
               ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
@@ -175,7 +175,7 @@
                      ((requiring-resolve 'com.phronemophobic.easel.mic/mic-applet)
                       handler
                       (random-uuid)))}]])})
-     (button {:text "Actual Tetris"
+     #_(button {:text "Actual Tetris"
               ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
@@ -184,7 +184,7 @@
                    (fn [handler]
                      ((requiring-resolve 'com.phronemophobic.easel.emulator/emulator-applet)
                       handler))}]])})
-     (button {:text "Learn Clojure in 30 minutes"
+     #_(button {:text "Learn Clojure in 30 minutes"
               ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
@@ -195,7 +195,7 @@
                       handler
                       "Simplicity\nFirehose"
                       "/var/tmp/firehose/firehose.mp4"))}]])})
-     (button {:text "Steamboat Willie"
+     #_(button {:text "Steamboat Willie"
               ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
@@ -206,7 +206,7 @@
                       handler
                       "Steamboat Willie"
                       "steamboat-willie.mp4"))}]])})
-     (button {:text "Klein Bottle"
+     #_(button {:text "Klein Bottle"
               ;; :hover? (get applet [::hover?])
               :on-click
               (fn []

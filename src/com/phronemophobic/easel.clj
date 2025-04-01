@@ -1034,10 +1034,6 @@
         :body
         (model/-ui easel $context context)})))))
 
-
-
-(def pad 20)
-
 (defn run []
   (let [
         _ (swap! app-state

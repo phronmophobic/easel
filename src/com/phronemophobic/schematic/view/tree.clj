@@ -791,14 +791,7 @@
      }
     )))
 
-(defui debug [{}]
-  (dnd/drag-and-drop
-   {:$body nil
-    :body
-    (ui/horizontal-layout
-     (component-picker {})
-     (drag-target {}))
-    }))
+
 
 (comment
   (skia/run
@@ -808,78 +801,6 @@
   ,)
 
 
-
-(membrane.component/defui
-   my-todo-item
-   [{:keys [todo]}]
-   (clojure.core/when-let
-    [elem__30144__auto__
-     (clojure.core/apply
-      membrane.ui/horizontal-layout
-      (clojure.core/when-let
-       [elem__30144__auto__
-        [(clojure.core/when-let
-          [elem__30144__auto__
-           (membrane.basic-components/checkbox
-            {:checked? (:complete? todo)})]
-          (clojure.core/with-meta
-           elem__30144__auto__
-           '#:com.phronemophobic.schematic.model{:ast
-                                                 #:element{:id
-                                                           #uuid "0da82766-7473-43fc-b67d-257b438cd870"}}))
-         (clojure.core/when-let
-          [elem__30144__auto__
-           (membrane.basic-components/textarea
-            {:text (:description todo)})]
-          (clojure.core/with-meta
-           elem__30144__auto__
-           '#:com.phronemophobic.schematic.model{:ast
-                                                 #:element{:id
-                                                           #uuid "a7b77333-7b28-4353-bcc0-ec79c1443325"}}))]]
-       (clojure.core/with-meta
-        elem__30144__auto__
-        '#:com.phronemophobic.schematic.model{:ast
-                                              #:element{:id
-                                                        #uuid "87792c32-5333-4de7-9145-b722a0dd271d"}})))]
-    (clojure.core/with-meta
-     elem__30144__auto__
-     '#:com.phronemophobic.schematic.model{:ast
-                                           #:element{:id
-                                                     #uuid "038ada34-c5f3-42c3-adfa-a01075702235"}})))
-
-
-
-(membrane.component/defui
-   my-todo-list
-   [{:keys [todos]}]
-   (clojure.core/when-let
-    [elem__30144__auto__
-     (clojure.core/apply
-      membrane.ui/horizontal-layout
-      (clojure.core/when-let
-       [elem__30144__auto__
-        (clojure.core/vec
-         (clojure.core/for [todo todos] (my-todo-item {:todo todo})))]
-       (clojure.core/with-meta
-        elem__30144__auto__
-        '#:com.phronemophobic.schematic.model{:ast
-                                              #:element{:id
-                                                        #uuid "575828dc-3aa6-44f3-9203-c3597cc9f7ee"}})))]
-    (clojure.core/with-meta
-     elem__30144__auto__
-     '#:com.phronemophobic.schematic.model{:ast
-                                           #:element{:id
-                                                     #uuid "881f943e-6953-403e-a0da-86de200f7ccc"}})))
-
-(comment
-  (skia/run
-    (membrane.component/make-app
-     #'my-todo-list
-     {:todos [{:complete? true
-               :description "drink cofffee"}
-              {:complete? false
-               :description "drink cofffee2"}]}))
-  ,)
 
 
 
