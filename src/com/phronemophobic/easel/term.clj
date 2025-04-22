@@ -14,10 +14,14 @@
 (def term-view @#'term/term-view)
 (def repaint! @#'skia/glfw-post-empty-event)
 
-(def menlo
-  (#'term/load-terminal-font skia/toolkit
-                             "Menlo"
-                             11))
+(def term-font
+  (if (skia/font-exists? (ui/font "Menlo" 11))
+    (#'term/load-terminal-font skia/toolkit
+                               "Menlo"
+                               11)
+    (#'term/load-terminal-font skia/toolkit
+                               (skia/logical-font->font-family :monospace)
+                               11)))
 
 (defn term-ui [this $context context]
   (let [focus (:focus context)
@@ -29,7 +33,7 @@
            [[:set [$context (list 'keypath :focus)]
              (:id this)]])
          (term-view term/default-color-scheme
-                    menlo
+                    term-font
                     (:vt this)))
         view (if focus?
                (ui/wrap-on
@@ -86,10 +90,10 @@
           ;; very small terminals.
           cols (int
                 (max 80
-                     (quot w (:membrane.term/cell-width menlo))))
+                     (quot w (:membrane.term/cell-width term-font))))
           rows (int
                 (max 13
-                     (quot h (:membrane.term/cell-height menlo))))
+                     (quot h (:membrane.term/cell-height term-font))))
           cmd-ch (async/chan 20)]
       (assoc this
              :cmd-ch cmd-ch
@@ -160,9 +164,9 @@
           ;; enforce min size. current virtual term library struggles with
           ;; very small terminals.
           cols (max 80
-                    (quot w (:membrane.term/cell-width menlo)))
+                    (quot w (:membrane.term/cell-width term-font)))
           rows (max 13
-                    (quot h (:membrane.term/cell-height menlo)))]
+                    (quot h (:membrane.term/cell-height term-font)))]
       (if (= [cols rows]
              [(-> this :vt :screen :width)
               (-> this :vt :screen :height)])
