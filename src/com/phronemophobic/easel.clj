@@ -1068,7 +1068,8 @@
 (defn add-term []
   (swap! app-state
          update :easel
-         model/-add-applet {:make-applet (term/termlet handler)})
+         model/-add-applet {:make-applet (fn [_]
+                                           (term/termlet handler))})
   nil)
 
 (defn add-browser [url]
