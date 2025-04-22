@@ -1064,6 +1064,26 @@
                    [xscale yscale]))
           (skia/-reshape window window-handle width height))}})))
 
+(defn ^:private headless
+  "Return an easel view using the current state. Useful for testing headless setups."
+  []
+  (let [
+        _ (swap! app-state
+                 (fn [state]
+                   (if state
+                     state
+                     {:easel (-> (assoc (make-easel)
+                                        :$ref (specter/keypath :easel))
+                                 ;; hack for now.
+                                 ;; otherwise, size just starts at zero
+                                 ;; need to use `on-present`?
+                                 (model/-resize [787 847] [1 1]))})))
+
+        app (membrane.component/make-app #'easel-view app-state handler)]
+    (app {:container-size [400 400]
+          :content-scale [1 1]
+          :container nil})))
+
 
 (defn add-term []
   (swap! app-state
