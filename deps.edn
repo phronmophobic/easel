@@ -6,10 +6,10 @@
                                      :git/url "https://github.com/phronmophobic/membrane"
                                      }
         com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :local/root "../membrane/csource/macos-aarch64"
-                                                            :mvn/version "0.15-beta"
+                                                            :mvn/version "0.16-beta"
                                                             }
-        com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.15-beta"}
-        com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.15-beta"}
+        com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.16-beta"}
+        com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.16-beta"}
 
         com.phronemophobic/spreadsheet { ;; :local/root "../spreadsheet"
                                         :git/url "https://github.com/phronmophobic/spreadsheet"
