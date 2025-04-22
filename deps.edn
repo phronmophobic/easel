@@ -2,7 +2,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         net.java.dev.jna/jna {:mvn/version "5.15.0"}
         com.phronemophobic/membrane {;; :local/root "../membrane"
-                                     :git/sha "18f8f7057ed8bea9dfe38063b0915c601609da3a"
+                                     :git/sha "6e5b0473b3efda978e24876f241f30fcae5a5990"
                                      :git/url "https://github.com/phronmophobic/membrane"
                                      }
         com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :local/root "../membrane/csource/macos-aarch64"
