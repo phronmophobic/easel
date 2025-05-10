@@ -25,7 +25,7 @@
                                 :git/sha "0ff04338b6fffe205f412fe2eaaa500c10ac2bb7"}
         com.phronemophobic/membrane.term {;; :local/root "../term"
                                           :git/url "https://github.com/phronmophobic/membrane.term"
-                                          :git/sha "e8f704d44408d135f4ac4ecc8c7acc90c603c6a5"}
+                                          :git/sha "b73da281267e7f853c2dd587c1f07ab3c5e5b572"}
         org.clojars.quoll/tiara {:mvn/version "0.3.7"}
         aysylu/loom {:mvn/version "1.0.2"
                      ;; This brings in large, unnecessary clojurescript deps
