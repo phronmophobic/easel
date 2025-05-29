@@ -861,6 +861,12 @@
                 :on-click (fn []
                             [[::replog-elem {:eval-ns eval-ns
                                              :elem elem}]])})
+   (ant/button {:text "tap>"
+                :size :small
+                :on-click (fn []
+                            (do (tap> elem))
+                            nil
+                            )})
    (ant/button {:text "eval"
                 :size :small
                 :on-click (fn []
