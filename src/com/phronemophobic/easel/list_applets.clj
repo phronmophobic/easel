@@ -45,6 +45,12 @@
                         :size :small})]
       {:gap 8
        :align :center})
+     (button {:text "Clobber Editor"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)}]])})
      (button {:text "Add Term"
               ;; :hover? (get applet [::hover?])
               :on-click
