@@ -33,13 +33,10 @@
                 :$context $context}))
 
 
-(defn load-editor [dispatch! $ref size]
+(defn load-editor [dispatch! $ref ns-sym size]
   (let [
-        eval-ns (the-ns 'user)
-        ns-sym (ns-name eval-ns)
-
         height (nth size 1)
-        editor (-> (cui/make-editor 'com.phronemophobic.clobber.modes.clojure.ui)
+        editor (-> (cui/make-editor ns-sym)
                    (cui/editor-set-height height)
                    (text-mode/editor-update-viewport))]
     (dispatch!
@@ -52,7 +49,7 @@
            ))))
   )
 
-(defrecord ClobberApplet [dispatch!]
+(defrecord ClobberApplet [dispatch! ns-sym]
   model/IApplet
   (-start [this $ref size _content-scale]
     (let [
@@ -64,7 +61,7 @@
              :size size
              ::model/queue
              [(fn []
-                (load-editor dispatch! $ref size))])))
+                (load-editor dispatch! $ref ns-sym size))])))
   (-stop [this]
     nil)
   model/IUI
@@ -77,8 +74,8 @@
           (assoc :size size)
           (update-in [:state :editor] cui/editor-set-height height)))))
 
-(defn clobber-applet [handler]
-  (-> (->ClobberApplet handler)
+(defn clobber-applet [handler ns-sym]
+  (-> (->ClobberApplet handler ns-sym)
       (assoc :label (str "Clobber") )))
 
 
