@@ -33,10 +33,15 @@
                 :$context $context}))
 
 
-(defn load-editor [dispatch! $ref ns-sym size]
+(defn load-editor [dispatch! $ref editor-info size]
   (let [
         height (nth size 1)
-        editor (-> (cui/make-editor ns-sym)
+        editor (cond
+                 (:ns editor-info) (cui/make-editor-from-ns (:ns editor-info))
+                 (:file editor-info) (cui/make-editor-from-file (:file editor-info))
+                 :else (cui/make-editor))
+
+        editor (-> editor
                    (cui/editor-set-height height)
                    (text-mode/editor-update-viewport))]
     (dispatch!
@@ -49,7 +54,7 @@
            ))))
   )
 
-(defrecord ClobberApplet [dispatch! ns-sym]
+(defrecord ClobberApplet [dispatch! editor-info]
   model/IApplet
   (-start [this $ref size _content-scale]
     (let [
@@ -61,7 +66,7 @@
              :size size
              ::model/queue
              [(fn []
-                (load-editor dispatch! $ref ns-sym size))])))
+                (load-editor dispatch! $ref editor-info size))])))
   (-stop [this]
     nil)
   model/IUI
@@ -74,8 +79,8 @@
           (assoc :size size)
           (update-in [:state :editor] cui/editor-set-height height)))))
 
-(defn clobber-applet [handler ns-sym]
-  (-> (->ClobberApplet handler ns-sym)
+(defn clobber-applet [handler {:keys [file ns] :as m}]
+  (-> (->ClobberApplet handler m)
       (assoc :label (str "Clobber") )))
 
 

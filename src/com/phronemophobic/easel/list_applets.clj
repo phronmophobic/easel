@@ -52,7 +52,7 @@
                 [[:com.phronemophobic.easel/add-applet
                   {:make-applet
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
-                     #(f % 'com.phronemophobic.clobber.modes.clojure.ui))}]])})
+                     #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
      (button {:text "Add Term"
               ;; :hover? (get applet [::hover?])
               :on-click
