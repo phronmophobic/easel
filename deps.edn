@@ -35,6 +35,8 @@
                                   ;; :local/root "../clong/"
                                   ;; :mvn/version "1.4-20240711.022539-7"
                                   }
+        com.nextjournal/beholder {:mvn/version "1.0.2"}
+
         
         com.phronemophobic/clj-cef2.alpha {;; :local/root "../clj-cef"
                                            :git/sha "e402ef3caf92483116d6fb15b29c8ae21d36c22e"

@@ -11,6 +11,7 @@
    [clojure.set :as set]
    [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
+   [nextjournal.beholder :as beholder]
 
    [com.phronemophobic.clobber.modes.clojure :as clojure-mode]
    [com.phronemophobic.clobber.modes.text :as text-mode]
@@ -43,16 +44,18 @@
 
         editor (-> editor
                    (cui/editor-set-height height)
-                   (text-mode/editor-update-viewport))]
+                   (text-mode/editor-update-viewport))
+        $editor [$ref '(keypath :state) '(keypath :editor)]]
     (dispatch!
      :update
      $ref
      (fn [applet]
        (-> applet
            (assoc-in [:state :editor] editor)
-           (assoc-in [:state :$editor] [$ref '(keypath :state) '(keypath :editor)])
-           ))))
-  )
+           (assoc-in [:state :$editor] $editor))))
+    (dispatch! ::cui/auto-reload-file
+               {:editor editor
+                :$editor $editor})))
 
 (defrecord ClobberApplet [dispatch! editor-info]
   model/IApplet
@@ -68,6 +71,8 @@
              [(fn []
                 (load-editor dispatch! $ref editor-info size))])))
   (-stop [this]
+    (dispatch! ::cui/auto-reload-file-unwatch
+               (:state this))
     nil)
   model/IUI
   (-ui [this $context context]
