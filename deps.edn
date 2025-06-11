@@ -2,14 +2,14 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         net.java.dev.jna/jna {:mvn/version "5.15.0"}
         com.phronemophobic/membrane {;; :local/root "../membrane"
-                                     :git/sha "6e5b0473b3efda978e24876f241f30fcae5a5990"
+                                     :git/sha "eaab4d8670d78d93c5b32d9586bca27bc95f7e39"
                                      :git/url "https://github.com/phronmophobic/membrane"
                                      }
         com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :local/root "../membrane/csource/macos-aarch64"
-                                                            :mvn/version "0.17-beta"
+                                                            :mvn/version "0.18-beta"
                                                             }
-        com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.17-beta"}
-        com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.17-beta"}
+        com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.18-beta"}
+        com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.18-beta"}
 
         com.phronemophobic/spreadsheet { ;; :local/root "../spreadsheet"
                                         :git/url "https://github.com/phronmophobic/spreadsheet"
@@ -42,7 +42,10 @@
                                            :git/sha "e402ef3caf92483116d6fb15b29c8ae21d36c22e"
                                            :git/url "https://github.com/phronmophobic/clj-cef2/"
                                            }
-
+        com.phronemophobic/clobber {;; :local/root "../clobber"
+                                    :git/url "https://github.com/phronmophobic/clobber"
+                                    :git/sha "0ac3fd9242f1c9b52689d1a9b5d67a4419a38153"
+                                    }
         com.rpl/specter {:mvn/version "1.1.4"}}
  
  :mvn/repos
