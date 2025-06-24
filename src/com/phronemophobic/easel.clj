@@ -665,7 +665,11 @@
   (-add-applet [this info]
     (let [{:keys [make-applet pane-id pop-out?]} info
           applet (make-applet handler)
-          id (inc last-id)
+          id (or (:id info)
+                 (inc last-id))
+          new-last-id (if (:id info)
+                        last-id
+                        id)
           applet (assoc applet :id id)
           root-pane (if (and (not pop-out?)
                              pane-id)
@@ -678,7 +682,7 @@
           new-size [(:width this-pane) (:height this-pane)]]
 
       (-> this
-          (assoc :last-id id)
+          (assoc :last-id new-last-id)
           (assoc-in [:applets id] applet)
           (assoc :root-pane root-pane)
           relayout*)))
