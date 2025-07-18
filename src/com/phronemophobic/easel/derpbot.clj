@@ -23,7 +23,8 @@
    [com.phronemophobic.clobber.modes.text :as text-mode]
    [com.phronemophobic.clobber.modes.markdown.wysiwyg :as md]))
 
-(defui tailing-scrollview [{:keys [body scroll-bounds tail?]}]
+(defui tailing-scrollview [{:keys [body scroll-bounds tail?]
+                            :or {tail? true}}]
   (let [[w h] scroll-bounds
         offset (get extra :offset [0 0])
         $offset $offset
