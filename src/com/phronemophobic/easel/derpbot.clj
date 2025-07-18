@@ -186,7 +186,7 @@
           (ui/padding
            8
            [(text-ui/text-editor {:editor editor})
-            (ui/spacer 0 100)])
+            (ui/spacer 800 100)])
           #_(ant/text-input {:size :small
                              :text (get state :prompt "")})))
         
@@ -229,7 +229,10 @@
        :offset scroll-offset
        :$body nil
        :body responses})
-     footer)))
+     (ui/translate 
+      (max 0 (quot (- cw (ui/width footer)) 2))
+      0
+      footer))))
 
 (defn derpbot-ui [this $context context]
   (derpbot-ui*
