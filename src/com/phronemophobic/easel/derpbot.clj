@@ -19,12 +19,48 @@
    [com.phronemophobic.derpbot.tools.audio :as derpbot.audio]
    [com.phronemophobic.clj-media.impl.audio :as audio]
    [com.phronemophobic.clj-media :as clj-media]
-   ))
+   [com.phronemophobic.clobber.modes.text.ui :as text-ui]
+   [com.phronemophobic.clobber.modes.text :as text-mode]
+   [com.phronemophobic.clobber.modes.markdown.wysiwyg :as md]))
+
+(defui tailing-scrollview [{:keys [body scroll-bounds tail?]}]
+  (let [[w h] scroll-bounds
+        offset (get extra :offset [0 0])
+        $offset $offset
+        [bw bh] (ui/bounds body)
+        [ox oy] offset
+        offset (if tail?
+                 [ox (max 0
+                          (- bh h))]
+                 offset)
+        cb (basic/checkbox {:checked? tail?})
+        [cb-width cb-height] (ui/bounds cb)]
+    (ui/wrap-on
+     :scroll
+     (fn [handler offset pos]
+       (let [intents (handler offset pos)]
+         (when (seq intents)
+           (cons [:set $tail? false]
+                 intents))))
+     (ui/on
+      :membrane.component/start-scroll
+      (fn [f]
+        [[:membrane.component/start-scroll f]
+         [:set $tail? false]])
+      [(basic/scrollview
+        {:scroll-bounds scroll-bounds
+         :offset offset
+         :$offset $offset
+         :$body nil
+         :body body})
+       (ui/translate
+        (- w cb-width 8)
+        (- h cb-height)
+        cb)]))))
 
 
-(defeffect ::ask [{:keys [thread-id prompt $prompt messages $messages]}]
+(defeffect ::ask [{:keys [thread-id prompt  messages $messages]}]
   (dispatch! :update $messages conj prompt)
-  (dispatch! :set $prompt "")
 
   (dispatch! :update $messages conj "...")
 
@@ -36,6 +72,7 @@
     (async/go
       (loop []
         (when-let [chunk (async/<! ch)]
+          ;; (tap> chunk)
           (cond
             (instance? Exception chunk)
             (dispatch! :update $messages #(assoc % n (str chunk)))
@@ -104,72 +141,94 @@
         (dispatch! :set $prompt text)))))
 
 (defui derpbot-ui* [{:keys [state size thread-id]}]
-  (let [prompt (get state :prompt "")
+  (let [editor (:editor state)
         messages (get state :messages [])
-
         [cw ch] size
-
-        header
+        
+        footer
         (ui/vertical-layout
-         (ant/button {:size :small
-                      :text "debug"
-                      :on-click
-                      (fn []
-                        [[::debug {:thread-id thread-id
-                                   :prompt prompt
-                                   :$prompt $prompt
-                                   :messages messages
-                                   :$messages $messages}]])})
          (ui/horizontal-layout
-          (let [record-hover (get state :record-hover)
-                not-record-hover (get state :not-record-hover)
-                btn (ant/button {:size :small
-                                 :hover? record-hover
-                                 :$hover? $not-record-hover
-                                 :text "record"})
-                btn (if (not record-hover)
-                      (ui/on
-                       :mouse-down
-                       (fn [_]
-                         [[:set $record-hover true]
-                          [::record-start {}]])
-                       btn)
-                      (ui/on
-                       :mouse-up
-                       (fn [_]
-                         [[:set $record-hover false]
-                          [::record-stop {:$prompt $prompt}]])
-                       btn))]
-            btn)
-          (ant/button {:size :small
-                       :text "ask"
-                       :on-click
-                       (fn []
-                         [[::ask {:thread-id thread-id
-                                  :prompt prompt
-                                  :$prompt $prompt
-                                  :messages messages
-                                  :$messages $messages}]])})
-          (ant/text-input {:size :small
-                           :text (get state :prompt "")})))
-
-
+          #_(let [record-hover (get state :record-hover)
+                  not-record-hover (get state :not-record-hover)
+                  btn (ant/button {:size :small
+                                   :hover? record-hover
+                                   :$hover? $not-record-hover
+                                   :text "record"})
+                  btn (if (not record-hover)
+                        (ui/on
+                         :mouse-down
+                         (fn [_]
+                           [[:set $record-hover true]
+                            [::record-start {}]])
+                         btn)
+                        (ui/on
+                         :mouse-up
+                         (fn [_]
+                           [[:set $record-hover false]
+                            [::record-stop {:$prompt $prompt}]])
+                         btn))]
+              btn)
+          
+          (ui/padding
+           8 0 0 8
+           (ant/button {:size :small
+                        :text "ask"
+                        :on-click
+                        (fn []
+                          [[::ask {:thread-id thread-id
+                                   :prompt (str (:rope editor))
+                                   :messages messages
+                                   :$messages $messages}]
+                           [::text-ui/update-editor {:$editor $editor
+                                                     :op text-mode/editor-clear}]])}))
+          
+          (ui/padding
+           8
+           [(text-ui/text-editor {:editor editor})
+            (ui/spacer 0 100)])
+          #_(ant/text-input {:size :small
+                             :text (get state :prompt "")})))
+        
+        margin 10
+        max-width (- cw 10)
+        text-width (min 600
+                        (- max-width
+                           (* 2 margin)))
+        
         responses
-        (apply
-         ui/vertical-layout
-         (for [message messages]
-           (para/paragraph {:style #:text-style {:font-size 18}
-                            :text message}
-                           (- cw 10))))]
+        (ui/translate
+         (quot (- max-width
+                  text-width)
+               2)
+         margin
+         (apply
+          ui/vertical-layout
+          (for [message messages]
+            
+            (let [base-style
+                  #:text-style
+                  {:font-size 18
+                  :height 1.2
+                  :height-override true}
+                  editor (-> (md/make-editor)
+                             (assoc :base-style base-style)
+                             (text-mode/editor-self-insert-command message))
+                  styled-text (md/editor->styled-text editor)]
+              (para/paragraph styled-text
+                              text-width
+                              {:paragraph-style/text-style base-style})))))
+        
+        scroll-offset (get state :scroll-offset [0 0])]
     (ui/vertical-layout
-     header
-     (basic/scrollview
+     (tailing-scrollview
       {:scroll-bounds [(- cw 10)
                        (- (- ch
-                             (ui/height header))
+                             (ui/height footer))
                           10)]
+       :offset scroll-offset
        :$body nil
-       :body responses}))))
+       :body responses})
+     footer)))
 
 (defn derpbot-ui [this $context context]
   (derpbot-ui*
@@ -183,9 +242,9 @@
     (let [
           ;; interns (ns->interns ns)
           ;; $interns [$ref '(keypath :interns)
-          ]
+          state {:editor (text-ui/make-editor)}]
       (assoc this
-             :state {}
+             :state state
              :$state [$ref '(keypath :state)]
              :extra {}
              :$extra [$ref '(keypath :extra)]
