@@ -119,7 +119,7 @@
                      (audio/record-audio)))))]
     @x))
 
-(defeffect ::record-stop [{:keys [$prompt]}]
+(defeffect ::record-stop [{:keys [$editor]}]
 
   (future
     (let [bs (@@recording)
@@ -139,7 +139,13 @@
              :pts 0})]))
        (.getCanonicalPath f))
       (let [text (derpbot.audio/transcribe-file f)]
-        (dispatch! :set $prompt text)))))
+        (dispatch! ::text-ui/update-editor
+                   {:$editor $editor
+                    :op
+                    (fn [editor]
+                      (-> editor
+                          (text-mode/editor-clear)
+                          (text-mode/editor-self-insert-command text)))})))))
 
 (defui derpbot-ui* [{:keys [state size thread-id]}]
   (let [editor (:editor state)
@@ -148,8 +154,10 @@
         
         footer
         (ui/vertical-layout
-         (ui/horizontal-layout
-          #_(let [record-hover (get state :record-hover)
+         (ui/flex-layout
+          [(ui/translate
+            0 8
+            (let [record-hover (get state :record-hover)
                   not-record-hover (get state :not-record-hover)
                   btn (ant/button {:size :small
                                    :hover? record-hover
@@ -166,29 +174,30 @@
                          :mouse-up
                          (fn [_]
                            [[:set $record-hover false]
-                            [::record-stop {:$prompt $prompt}]])
+                            [::record-stop {:$editor $editor}]])
                          btn))]
-              btn)
+              btn))
           
-          (ui/padding
-           8 0 0 8
-           (ant/button {:size :small
-                        :text "ask"
-                        :on-click
-                        (fn []
-                          [[::ask {:thread-id thread-id
-                                   :prompt (str (:rope editor))
-                                   :messages messages
-                                   :$messages $messages}]
-                           [::text-ui/update-editor {:$editor $editor
-                                                     :op text-mode/editor-clear}]])}))
+           (ui/translate 
+            0 8
+            (ant/button {:size :small
+                         :text "ask"
+                         :on-click
+                         (fn []
+                           [[::ask {:thread-id thread-id
+                                    :prompt (str (:rope editor))
+                                    :messages messages
+                                    :$messages $messages}]
+                            [::text-ui/update-editor {:$editor $editor
+                                                      :op text-mode/editor-clear}]])}))
+          
           
           (ui/padding
            8
            [(text-ui/text-editor {:editor editor})
-            (ui/spacer 800 100)])
-          #_(ant/text-input {:size :small
-                             :text (get state :prompt "")})))
+            (ui/spacer 800 100)])]
+          {:direction :row
+           :gap 8}))
         
         margin 10
         max-width (- cw 10)
