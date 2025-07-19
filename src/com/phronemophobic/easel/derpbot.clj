@@ -277,16 +277,3 @@
   (-> (->Derpbotlet handler thread-id)
       (assoc :label (str "derpbot"))))
 
-
-;; get current buffer
-;; emacsclient --eval '(buffer-name (window-buffer (selected-window)))'
-
-;; insert text
-;; (with-current-buffer \"your-buffer-name\" (insert \"Your text here\"))
-
-;; echo "Your text here" | emacsclient --eval '(with-current-buffer (buffer-name (window-buffer (selected-window))) (insert (current-kill 0)))'
-
-;; hello
-
-
-
