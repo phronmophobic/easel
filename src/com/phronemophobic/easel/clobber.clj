@@ -40,7 +40,13 @@
         editor (cond
                  (:ns editor-info) (cui/make-editor-from-ns (:ns editor-info))
                  (:file editor-info) (cui/make-editor-from-file (:file editor-info))
+                 (:string editor-info) (-> (cui/make-editor)
+                                           (text-mode/editor-set-string (:string editor-info)))
                  :else (cui/make-editor))
+
+        editor (if-let [line (:line editor-info)]
+                 (text-mode/editor-goto-line editor line)
+                 editor)
 
         editor (-> editor
                    (cui/editor-set-height height)
@@ -84,7 +90,7 @@
           (assoc :size size)
           (update-in [:state :editor] cui/editor-set-height height)))))
 
-(defn clobber-applet [handler {:keys [file ns] :as m}]
+(defn clobber-applet [handler {:keys [file ns string] :as m}]
   (-> (->ClobberApplet handler m)
       (assoc :label (str "Clobber") )))
 
