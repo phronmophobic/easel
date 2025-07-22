@@ -14,6 +14,7 @@
    [clojure.java.io :as io]
    [com.phronemophobic.viscous :as viscous]
 
+   [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [com.phronemophobic.membrandt :as ant]
    [com.phronemophobic.derpbot :as derpbot]
    [com.phronemophobic.derpbot.tools.audio :as derpbot.audio]
@@ -60,46 +61,23 @@
         cb)]))))
 
 
-(defeffect ::ask [{:keys [thread-id prompt  messages $messages]}]
-  (dispatch! :update $messages conj prompt)
-
-  (dispatch! :update $messages conj "...")
-
-  (let [n (dec (count (dispatch! :get $messages)))
-        ch (async/chan 5)]
-    (derpbot/respond {:ch ch
-                      :thread/id thread-id
-                      :prompt prompt} )
+(defeffect ::ask [{:keys [$conversation prompt]}]
+  (let [conversation (dispatch! :get $conversation)
+        conversation (update conversation
+                             :messages
+                             conj {:role "user"
+                                   :content prompt})
+        _ (dispatch! :set $conversation conversation)
+        ch (derpbot/ask conversation)]
+    
     (async/go
       (loop []
         (when-let [chunk (async/<! ch)]
-          ;; (tap> chunk)
-          (cond
-            (instance? Exception chunk)
-            (dispatch! :update $messages #(assoc % n (str chunk)))
-
-            (:tool_calls chunk)
-            (let [tool-calls
-                  (str "tool calls: "
-                       (str/join
-                        ", "
-                        (eduction
-                         (map :function)
-                         (map :name)
-                         (:tool_calls chunk))))]
-              (dispatch! :update $messages #(assoc % n tool-calls)))
-
-            (:content chunk)
-            (dispatch! :update $messages #(assoc % n (:content chunk)))
-            
-
-            :else
-            nil)
-          (recur)))))
-
-  ;; (derpbot/respond )
-  
-  )
+          (if (instance? Exception chunk)
+            (prn chunk)
+            ;; else
+            (do (dispatch! :set $conversation chunk)
+                (recur))))))))
 
 (defeffect ::debug [{:keys [thread-id prompt $prompt messages $messages]}]
 
@@ -149,7 +127,9 @@
 
 (defui derpbot-ui* [{:keys [state size thread-id]}]
   (let [editor (:editor state)
-        messages (get state :messages [])
+        conversation (:conversation state)
+        messages (get conversation :messages)
+        
         [cw ch] size
         
         footer
@@ -184,10 +164,8 @@
                          :text "ask"
                          :on-click
                          (fn []
-                           [[::ask {:thread-id thread-id
-                                    :prompt (str (:rope editor))
-                                    :messages messages
-                                    :$messages $messages}]
+                           [[::ask {:prompt (str (:rope editor))
+                                    :$conversation $conversation}]
                             [::text-ui/update-editor {:$editor $editor
                                                       :op text-mode/editor-clear}]])}))
           
@@ -204,7 +182,6 @@
         text-width (min 600
                         (- max-width
                            (* 2 margin)))
-        
         responses
         (ui/translate
          (quot (- max-width
@@ -213,20 +190,84 @@
          margin
          (apply
           ui/vertical-layout
-          (for [message messages]
-            
-            (let [base-style
-                  #:text-style
-                  {:font-size 18
-                  :height 1.2
-                  :height-override true}
-                  editor (-> (md/make-editor)
-                             (assoc :base-style base-style)
-                             (text-mode/editor-self-insert-command message))
-                  styled-text (md/editor->styled-text editor)]
-              (para/paragraph styled-text
-                              text-width
-                              {:paragraph-style/text-style base-style})))))
+          (for [[i message] (map-indexed vector messages)]
+            (if-let [content (:content message)]
+              
+              (if (= "tool" (:role message))
+                (let [extra (get extra [::messages :tool-responses i])]
+                  (viscous/inspector {:obj (viscous/wrap message)
+                                      :width (get extra :width 40)
+                                      :height (get extra :height 1)
+                                      :show-context? false
+                                      :extra extra}))
+                
+                ;; regular assistant response
+                (let [base-style
+                    #:text-style
+                    {:font-size 18
+                     :height 1.2
+                     :height-override true}
+                    editor (-> (md/make-editor)
+                               (assoc :base-style base-style)
+                               (text-mode/editor-self-insert-command content))
+                    styled-text (try
+                                  (md/editor->styled-text editor)
+                                  (catch Exception e
+                                    (tap> (str (:rope editor)))
+                                    #_(prn e)
+                                    "There was an error displaying the markdown"))]
+                
+                (ui/on
+                 ::md/markdown-event
+                 (fn [events]
+                   (into []
+                         (keep (fn [{:keys [type] :as event}]
+                                 (prn event)
+                                 (cond
+                                   (= "uri_autolink" type)
+                                   [:com.phronemophobic.easel/add-applet
+                                    {:make-applet
+                                     (fn [handler]
+                                       ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                        handler
+                                        (:text event)))}]
+                                   
+                                   (= "link" type)
+                                   [:com.phronemophobic.easel/add-applet
+                                    {:make-applet
+                                     (fn [handler]
+                                       ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                        handler
+                                        (:destination event)))}])))
+                         events)
+                   )
+                 
+                 
+                 (let [para (md/wrap-events
+                             (para/paragraph styled-text
+                                             text-width
+                                             {:paragraph-style/text-style base-style}))
+                       icon
+                       (ui/on
+                        :mouse-down
+                        (fn [_]
+                          [[:clipboard-copy (str (:rope editor))]])
+                        (icon.ui/icon {:name "copy"
+                                           :hover? (get extra [::hover i])}))
+                       [iw ih] (ui/bounds icon )
+                       pw (ui/width para)]
+                   [(ui/translate 0 ih para)
+                    (ui/translate (- pw iw) 0
+                                  icon)]))))
+              ;; else
+              (when-let [tool-calls (:tool_calls message)]
+                
+                (let [extra (get extra [::messages :tool-calls i])]
+                  (viscous/inspector {:obj (viscous/wrap tool-calls)
+                                      :width (get extra :width 40)
+                                      :height (get extra :height 1)
+                                      :show-context? false
+                                      :extra extra})))))))
         
         scroll-offset (get state :scroll-offset [0 0])]
     (ui/vertical-layout
@@ -236,8 +277,11 @@
                              (ui/height footer))
                           10)]
        :offset scroll-offset
+       :tail? (get extra ::tail? true)
        :$body nil
-       :body responses})
+       :body (ui/vertical-layout
+              responses
+              (ui/spacer 0 30))})
      (ui/translate 
       (max 0 (quot (- cw (ui/width footer)) 2))
       0
@@ -255,7 +299,13 @@
     (let [
           ;; interns (ns->interns ns)
           ;; $interns [$ref '(keypath :interns)
-          state {:editor (text-ui/make-editor)}]
+          state {:editor (text-ui/make-editor)
+                 :conversation
+                 {:tools (into []
+                               (vals @derpbot/tools))
+                  :messages
+                  [{:role "system"
+                    :content "You are a helpful AI assitant. Be concise. If you don't know, say so."}]}}]
       (assoc this
              :state state
              :$state [$ref '(keypath :state)]
