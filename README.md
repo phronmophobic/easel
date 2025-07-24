@@ -37,8 +37,15 @@ Status: Alpha. No documentation. Incomplete. Missing features.
 
 ### "Roadmap"
 
-- [ ] Pure clojure code/text editor
+- [X] Pure clojure code/text editor (see [clobber](https://github.com/phronmophobic/clobber))
 - [ ] Polish: bug fixes, stability improvements, creature comforts
+- [ ] Git integration
+- [ ] Diff viewers
+- [ ] Improve Tap viewer
+- [ ] Logging View
+- [ ] Exception stacktrace viewer
+- [ ] Flowstorm integration
+- [ ] Improved Pane management
 
 ### License
 
