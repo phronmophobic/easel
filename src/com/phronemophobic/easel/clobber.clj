@@ -90,9 +90,32 @@
           (assoc :size size)
           (update-in [:state :editor] cui/editor-set-height height)))))
 
+(defn ^:private truncate-string-end [s n]
+  (if (> (count s) n)
+    (subs s 0 n)
+    s))
+
+(defn ^:private truncate-string-begin [s n]
+  (if (> (count s) n)
+    (subs s (- (count s) n))
+    s))
+
+
+
 (defn clobber-applet [handler {:keys [file ns string] :as m}]
-  (-> (->ClobberApplet handler m)
-      (assoc :label (str "Clobber") )))
+  (let [name (cond
+               
+               file
+               (-> (.getCanonicalPath file)
+                   (truncate-string-begin 16))
+               
+               ns
+               (-> (str ns)
+                   (truncate-string-begin 16))
+               
+               :else "Clobber")]
+    (-> (->ClobberApplet handler m)
+      (assoc :label (str name)))))
 
 
 
