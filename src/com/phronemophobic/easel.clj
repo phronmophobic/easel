@@ -104,6 +104,12 @@
 (defeffect ::add-component! [key f]
   (add-component! key f))
 
+(defeffect ::get-applets []
+  (dispatch! :get (specter/path :easel :applets)))
+
+(defeffect ::get-root-pane []
+  (dispatch! :get (specter/path :easel :root-pane)))
+
 (defrecord ComponentApplet [label component-var initial-state]
   model/IApplet
   (-start [this $ref size _content-scale]
@@ -461,6 +467,22 @@
                        root-pane))))
           relayout*))))
 
+(defeffect ::set-pane-applet-id [{:keys [$easel pane-id applet-id] :as m}]
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (-> easel
+         (update :root-pane
+                 (fn [root-pane]
+                   (assert (and pane-id applet-id))
+                   (-> root-pane
+                       (splitpane/edit-pane-by-id pane-id
+                                                  (fn [pane]
+                                                    (assoc pane :applet-id applet-id))))))
+         relayout*))))
+
+
+
 (defeffect ::delete-pane [{:keys [$easel pane-id]}]
   (dispatch!
    :update $easel
@@ -620,7 +642,21 @@
                                             [0 0]
                                             [(:width pane)
                                              (:height pane)]
-                                            (model/-ui applet $context context))
+                                            (ui/on
+                                             ::set-pane-applet-id
+                                             (fn [m]
+                                               [[::set-pane-applet-id
+                                                 (if (:pane-id m)
+                                                   m
+                                                   (assoc m :pane-id (:id pane)))]])
+                                             ::delete-pane
+                                             (fn [m]
+                                               [[::delete-pane
+                                                 (if (:pane-id m)
+                                                   m
+                                                   (assoc m :pane-id (:id pane)))]])
+
+                                             (model/-ui applet $context context)))
                                            ;; no applet found
                                            (let [pane-id (:id pane)
                                                  list-applets-extra (get extra [::list-applets-extra pane-id])
@@ -1029,6 +1065,7 @@
         ::clear-pane
         ::splitpane
         ::swap-panes
+        ::set-pane-applet-id
         ::toggle-pane-resize
         ::begin-resize-drag
         ::resize-drag
@@ -1148,6 +1185,7 @@
   (reset-run)
 
   (tap> (easel-view @app-state))
+  (tap> @app-state)
 
   ,)
 
