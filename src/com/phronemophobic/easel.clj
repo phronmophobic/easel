@@ -236,7 +236,7 @@
          (when (not= ::root-pane pane-id)
            (ui/on-click
             (fn []
-              [[::delete-pane {:pane-id pane-id}]])
+              [[::hide-pane {:pane-id pane-id}]])
             (icon.ui/icon {:name "close"})))
          (ui/on-click
             (fn []
@@ -490,13 +490,24 @@
      (let [pane (->> easel
                      ::cached-layout
                      :all-panes
-                     (some #(= pane-id (:id %))))]
+                     (some (fn [pane]
+                             (when (= pane-id (:id pane))
+                               pane))))]
        (if-let [applet-id (:applet-id pane)]
          (model/-remove-applet easel applet-id)
          (-> easel
              (update :root-pane
                      #(splitpane/delete-pane-by-id % pane-id))
              relayout*))))))
+
+(defeffect ::hide-pane [{:keys [$easel pane-id] :as m}]
+  (dispatch!
+   :update $easel
+   (fn [easel]
+     (-> easel
+         (update :root-pane
+                 #(splitpane/delete-pane-by-id % pane-id))
+         relayout*))))
 
 (defeffect ::clear-pane [{:keys [$easel pane-id]}]
   (dispatch!
@@ -652,6 +663,12 @@
                                              ::delete-pane
                                              (fn [m]
                                                [[::delete-pane
+                                                 (if (:pane-id m)
+                                                   m
+                                                   (assoc m :pane-id (:id pane)))]])
+                                             ::hide-pane
+                                             (fn [m]
+                                               [[::hide-pane
                                                  (if (:pane-id m)
                                                    m
                                                    (assoc m :pane-id (:id pane)))]])
@@ -1062,6 +1079,7 @@
       #{::toggle-pane-direction
         ::add-pane-child
         ::delete-pane
+        ::hide-pane
         ::clear-pane
         ::splitpane
         ::swap-panes

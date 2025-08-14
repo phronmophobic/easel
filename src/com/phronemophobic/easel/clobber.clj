@@ -142,9 +142,9 @@
                   (fn [m]
                     [[::show-select-buffer (assoc this
                                                   :$focus $focus)]])
-                  ::delete-pane
+                  ::hide-pane
                   (fn [m]
-                    [[:com.phronemophobic.easel/delete-pane {}]])
+                    [[:com.phronemophobic.easel/hide-pane {}]])
                   ::cui/request-focus
                   (fn []
                     [[:set $focus (:id this)]])
@@ -192,7 +192,7 @@
                       (key-binding/key-bindings->key-tree
                        (assoc cui/clojure-key-bindings
                               "C-x b" ::show-select-buffer
-                              "C-x 0" ::delete-pane)))
+                              "C-x 0" ::hide-pane)))
 
         editor (-> editor
                    (cui/editor-set-height height)
