@@ -11,9 +11,11 @@
    [clojure.core.async :as async]
    [clojure.set :as set]
    [clojure.string :as str]
+   [com.phronemophobic.easel.splitpane :as splitpane]
    [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
    [nextjournal.beholder :as beholder]
+   [clojure.zip :as z]
 
    [com.phronemophobic.clobber.modes.clojure :as clojure-mode]
    [com.phronemophobic.clobber.modes.text :as text-mode]
@@ -145,6 +147,15 @@
                   ::hide-pane
                   (fn [m]
                     [[:com.phronemophobic.easel/hide-pane {}]])
+                  ::delete-pane
+                  (fn [m]
+                    [[::focus-next {:this this
+                                    :$focus $focus}]
+                     [:com.phronemophobic.easel/delete-pane {}]])
+                  ::focus-next
+                  (fn [m]
+                    [[::focus-next {:this this
+                                    :$focus $focus}]])
                   ::cui/request-focus
                   (fn []
                     [[:set $focus (:id this)]])
@@ -177,6 +188,7 @@
   (let [
         height (nth size 1)
         editor (cond
+                 (:editor editor-info) (:editor editor-info)
                  (:ns editor-info) (cui/make-editor-from-ns (:ns editor-info))
                  (:file editor-info) (cui/make-editor-from-file (:file editor-info))
                  (:string editor-info) (-> (cui/make-editor)
@@ -191,7 +203,10 @@
                       :key-tree
                       (key-binding/key-bindings->key-tree
                        (assoc cui/clojure-key-bindings
+                              "C-x 3" ::split-pane
+                              "C-x k" ::delete-pane
                               "C-x b" ::show-select-buffer
+                              "C-x o" ::focus-next
                               "C-x 0" ::hide-pane)))
 
         editor (-> editor
@@ -275,4 +290,51 @@
                ::buffer-select-state {:applets clobber-applets})
     (dispatch! :set $focus id)))
 
+
+(defeffect ::split-pane [{:keys [editor] :as m}]
+  (let [forked-editor (-> editor
+                          (dissoc ::cui/auto-reload-unwatch)
+                          (update :tree
+                                  (fn [^org.treesitter.TSTree tree]
+                                    (dev/dtap {:tree tree})
+                                    (when tree
+                                      (.copy tree)))))]
+    (dispatch! :com.phronemophobic.easel/add-applet
+             {:make-applet
+              #(clobber-applet % {:editor forked-editor})})))
+
+(defn ^:private zfind
+  "Finds first loc that matches pred. Returns nil if no match found."
+  [loc pred]
+  (loop [loc loc]
+    (if (z/end? loc)
+      nil
+      (if (pred (z/node loc))
+        loc
+        (recur (z/next loc))))))
+
+(defeffect ::focus-next [{:keys [this $focus]}]
+  (let [applets (dispatch! :com.phronemophobic.easel/get-applets)
+        root-pane (dispatch! :com.phronemophobic.easel/get-root-pane)
+        applet-id (:id this)
+        
+        zpane (zfind (splitpane/pane-zip root-pane)
+               #(= applet-id (:applet-id %)))
+        clobber-pane? (fn [pane]
+                        (let [applet-id (:applet-id pane)
+                              applet (get applets applet-id)]
+                          (instance? ClobberApplet applet)))
+        next-clobber-pane (loop [loc (z/next zpane)]
+                            (cond 
+                              (= zpane loc) nil
+
+                              (z/end? loc)
+                              ;; start search from beginning
+                              (recur (splitpane/pane-zip (z/root loc)))
+                              
+                              (clobber-pane? (z/node loc)) (z/node loc)
+                                    
+                              :else (recur (z/next loc))))]
+    (when next-clobber-pane
+      (dispatch! :set $focus (:applet-id next-clobber-pane)))))
 
