@@ -132,6 +132,7 @@
             p)]
     p))
 
+(declare clobber-applet)
 (defui clobber-ui* [{:keys [this]}]
   (let [focus (:focus context)
         state (:state this)
@@ -155,6 +156,17 @@
                   ::close-other-panes
                   (fn [m]
                     [[:com.phronemophobic.easel/close-other-panes {}]])
+                  ::split-pane
+                  (fn [{:keys [editor]}]
+                    (let [forked-editor (-> editor
+                                            (dissoc ::cui/auto-reload-unwatch)
+                                            (update :tree
+                                                    (fn [^org.treesitter.TSTree tree]
+                                                      (when tree
+                                                        (.copy tree)))))]
+                      [[:com.phronemophobic.easel/add-applet
+                        {:make-applet
+                         #(clobber-applet % {:editor forked-editor})}]]))
                   ::focus-next
                   (fn [m]
                     [[::focus-next {:this this
@@ -294,18 +306,6 @@
                ::buffer-select-state {:applets clobber-applets})
     (dispatch! :set $focus id)))
 
-
-(defeffect ::split-pane [{:keys [editor] :as m}]
-  (let [forked-editor (-> editor
-                          (dissoc ::cui/auto-reload-unwatch)
-                          (update :tree
-                                  (fn [^org.treesitter.TSTree tree]
-                                    (dev/dtap {:tree tree})
-                                    (when tree
-                                      (.copy tree)))))]
-    (dispatch! :com.phronemophobic.easel/add-applet
-             {:make-applet
-              #(clobber-applet % {:editor forked-editor})})))
 
 (defn ^:private zfind
   "Finds first loc that matches pred. Returns nil if no match found."

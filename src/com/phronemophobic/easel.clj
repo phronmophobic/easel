@@ -680,6 +680,12 @@
                                                  (if (:pane-id m)
                                                    m
                                                    (assoc m :pane-id (:id pane)))]])
+                                             ::add-applet
+                                             (fn [m]
+                                               [[::add-applet
+                                                 (if (:from-pane-id m)
+                                                   m
+                                                   (assoc m :from-pane-id (:id pane)))]])
                                              ::close-other-panes
                                              (fn [m]
                                                [[::close-other-panes
@@ -736,7 +742,7 @@
                    root-pane]
   model/IEasel
   (-add-applet [this info]
-    (let [{:keys [make-applet pane-id pop-out?]} info
+    (let [{:keys [make-applet pane-id pop-out? from-pane-id]} info
           applet (make-applet handler)
           id (or (:id info)
                  (inc last-id))
@@ -744,10 +750,28 @@
                         last-id
                         id)
           applet (assoc applet :id id)
-          root-pane (if (and (not pop-out?)
+          root-pane (cond
+                      
+                      (and (not pop-out?)
                              pane-id)
                       (splitpane/edit-pane-by-id root-pane pane-id
                                                  #(assoc % :applet-id id))
+                      
+                      from-pane-id
+                      (let [from-zpane (zfind (splitpane/pane-zip root-pane)
+                                              (fn [pane]
+                                                (= (:id pane) from-pane-id)))]
+                        (if from-zpane
+                          (-> from-zpane
+                              (z/insert-right {:id (random-uuid)
+                                               :applet-id id})
+                              z/root)
+                          
+                          ;; else
+                          (splitpane/add-child root-pane {:id (random-uuid)
+                                                          :applet-id id})))
+                      
+                      :else
                       (splitpane/add-child root-pane {:id (random-uuid)
                                                       :applet-id id}))
 
