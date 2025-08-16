@@ -152,6 +152,9 @@
                     [[::focus-next {:this this
                                     :$focus $focus}]
                      [:com.phronemophobic.easel/delete-pane {}]])
+                  ::close-other-panes
+                  (fn [m]
+                    [[:com.phronemophobic.easel/close-other-panes {}]])
                   ::focus-next
                   (fn [m]
                     [[::focus-next {:this this
@@ -207,6 +210,7 @@
                               "C-x k" ::delete-pane
                               "C-x b" ::show-select-buffer
                               "C-x o" ::focus-next
+                              "C-x 1" ::close-other-panes
                               "C-x 0" ::hide-pane)))
 
         editor (-> editor

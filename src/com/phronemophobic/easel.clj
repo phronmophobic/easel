@@ -500,6 +500,20 @@
                      #(splitpane/delete-pane-by-id % pane-id))
              relayout*))))))
 
+(defeffect ::close-other-panes [{:keys [$easel pane-id]}]
+  (dispatch! :update
+             $easel
+             (fn [easel]
+               (let [zpane (zfind (splitpane/pane-zip (:root-pane easel))
+                                  (fn [pane]
+                                    (= pane-id (:id pane))))]
+                 (-> easel
+                     (update :root-pane assoc :panes 
+                             (if zpane
+                               [(z/node zpane)]
+                               []))
+                     relayout*)))))
+
 (defeffect ::hide-pane [{:keys [$easel pane-id] :as m}]
   (dispatch!
    :update $easel
@@ -663,6 +677,12 @@
                                              ::delete-pane
                                              (fn [m]
                                                [[::delete-pane
+                                                 (if (:pane-id m)
+                                                   m
+                                                   (assoc m :pane-id (:id pane)))]])
+                                             ::close-other-panes
+                                             (fn [m]
+                                               [[::close-other-panes
                                                  (if (:pane-id m)
                                                    m
                                                    (assoc m :pane-id (:id pane)))]])
@@ -1079,6 +1099,7 @@
       #{::toggle-pane-direction
         ::add-pane-child
         ::delete-pane
+        ::close-other-panes
         ::hide-pane
         ::clear-pane
         ::splitpane
