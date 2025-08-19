@@ -14,6 +14,7 @@
    [com.phronemophobic.easel.splitpane :as splitpane]
    [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
+   [com.phronemophobic.clobber.editor :as clobber-editor]  
    [nextjournal.beholder :as beholder]
    [clojure.zip :as z]
 
@@ -166,7 +167,8 @@
                                                         (.copy tree)))))]
                       [[:com.phronemophobic.easel/add-applet
                         {:make-applet
-                         #(clobber-applet % {:editor forked-editor})}]]))
+                         #(clobber-applet % {:editor forked-editor
+                                             :ui (:ui this)})}]]))
                   ::focus-next
                   (fn [m]
                     [[::focus-next {:this this
@@ -174,10 +176,13 @@
                   ::cui/request-focus
                   (fn []
                     [[:set $focus (:id this)]])
-                  (cui/code-editor
-                   {:editor editor
-                    :focused? focused?
-                    :extra (:extra state)}))
+                  (let [ui (:ui this)
+                        extra (:extra state)]
+                    (ui {:editor editor
+                         :$editor $editor
+                         :focused? focused?
+                         :extra extra
+                         :$extra $extra})))
             body (if buffer-select-state
                    (ui/on
                     :mouse-down
@@ -202,28 +207,24 @@
 (defn load-editor [dispatch! $ref editor-info size]
   (let [
         height (nth size 1)
-        editor (cond
-                 (:editor editor-info) (:editor editor-info)
-                 (:ns editor-info) (cui/make-editor-from-ns (:ns editor-info))
-                 (:file editor-info) (cui/make-editor-from-file (:file editor-info))
-                 (:string editor-info) (-> (cui/make-editor)
-                                           (text-mode/editor-set-string (:string editor-info)))
-                 :else (cui/make-editor))
+        
+        {:keys [editor ui]} (if (:editor editor-info)
+                              editor-info
+                              (clobber-editor/guess-mode editor-info))
 
         editor (if-let [line (:line editor-info)]
                  (text-mode/editor-goto-line editor line)
                  editor)
 
         editor (assoc editor
-                      :key-tree
-                      (key-binding/key-bindings->key-tree
-                       (assoc cui/clojure-key-bindings
-                              "C-x 3" ::split-pane
-                              "C-x k" ::delete-pane
-                              "C-x b" ::show-select-buffer
-                              "C-x o" ::focus-next
-                              "C-x 1" ::close-other-panes
-                              "C-x 0" ::hide-pane)))
+                      :key-bindings
+                      (assoc (:key-bindings editor)
+                             "C-x 3" ::split-pane
+                             "C-x k" ::delete-pane
+                             "C-x b" ::show-select-buffer
+                             "C-x o" ::focus-next
+                             "C-x 1" ::close-other-panes
+                             "C-x 0" ::hide-pane))
 
         editor (-> editor
                    (cui/editor-set-height height)
