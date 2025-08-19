@@ -253,7 +253,8 @@
              :size size
              ::model/queue
              [(fn []
-                (load-editor dispatch! $ref editor-info size))])))
+                (load-editor dispatch! $ref editor-info size)
+                (dispatch! :repaint!))])))
   (-stop [this]
     (dispatch! ::cui/auto-reload-file-unwatch
                (:state this))
