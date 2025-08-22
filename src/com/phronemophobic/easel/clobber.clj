@@ -41,13 +41,14 @@
         applets (:applets buffer-select-state)
         offset (get buffer-select-state :offset 0)
         search-str (get buffer-select-state :search-str "")
+        search-str-lower (str/lower-case search-str)
 
         matching-applets
         (into 
          []
          (comp (filter (fn [applet]
-                         (str/includes? (or (:label applet) "")
-                                        search-str)))
+                         (str/includes? (str/lower-case (or (:label applet) ""))
+                                        search-str-lower)))
                (drop offset))
          applets)
 
