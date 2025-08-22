@@ -25,21 +25,6 @@
    [com.phronemophobic.membrandt :as ant]))
 
 
-;; :context
-;; {:editors {id {:name name
-;;                :as editor-state}}}
-
-;; store state in applet?
-;; C-x b let's you select between existing applets
-
-;; need to be able to override key bindings
-;; split panes
-;; switch to other pane , ie. "C-x o"
-;; text search, undo
-;; line numbers
-
-
-
 (defui buffer-selector [{:keys [base-style
                                 buffer-select-state
                                 focused?
@@ -148,7 +133,9 @@
                                                   :$focus $focus)]])
                   ::hide-pane
                   (fn [m]
-                    [[:com.phronemophobic.easel/hide-pane {}]])
+                    [[::focus-next {:this this
+                                    :$focus $focus}]
+                     [:com.phronemophobic.easel/hide-pane {}]])
                   ::delete-pane
                   (fn [m]
                     [[::focus-next {:this this
@@ -168,6 +155,7 @@
                       [[:com.phronemophobic.easel/add-applet
                         {:make-applet
                          #(clobber-applet % {:editor forked-editor
+                                             :label (str (:label editor) "*")
                                              :ui (:ui this)})}]]))
                   ::focus-next
                   (fn [m]
@@ -217,6 +205,7 @@
                  editor)
 
         editor (assoc editor
+                      :label (:label editor-info)
                       :key-bindings
                       (assoc (:key-bindings editor)
                              "C-x 3" ::split-pane
@@ -235,6 +224,7 @@
      $ref
      (fn [applet]
        (-> applet
+           (assoc :ui ui)
            (assoc-in [:state :editor] editor)
            (assoc-in [:state :$editor] $editor))))
     (dispatch! ::cui/auto-reload-file
@@ -281,9 +271,10 @@
 
 
 
-(defn clobber-applet [handler {:keys [file ns string] :as m}]
+(defn clobber-applet [handler {:keys [file ns string label] :as m}]
   (let [name (cond
-               
+               label label
+
                file
                (-> (.getCanonicalPath file)
                    (truncate-string-begin 16))
@@ -292,7 +283,8 @@
                (-> (str ns)
                    (truncate-string-begin 16))
                
-               :else "Clobber")]
+               :else "Clobber")
+        m (assoc m :label name)]
     (-> (->ClobberApplet handler m)
       (assoc :label (str name)))))
 
