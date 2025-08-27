@@ -918,8 +918,11 @@
                               (->> background
                                    (ui/with-color [0.8 0.8 0.8])
                                    (ui/with-style ::ui/style-fill)))
-                 lbl (ui/center (ui/label (:label tab))
-                                (ui/bounds background))
+                 lbl (ui/translate 
+                      0 2
+                      (ui/center
+                       (para/paragraph (:label tab))
+                       (ui/bounds background)))
                  close (ui/on
                         :mouse-down
                         (fn [_]
