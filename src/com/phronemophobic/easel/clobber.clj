@@ -216,8 +216,11 @@
                              "C-x 1" ::close-other-panes
                              "C-x 0" ::hide-pane))
 
+        [width height] size
         editor (-> editor
                    (cui/editor-set-height height)
+                   (assoc :width width
+                          :height height)
                    (text-mode/editor-update-viewport))
         $editor [$ref '(keypath :state) '(keypath :editor)]]
     (dispatch!
@@ -255,10 +258,12 @@
     (clobber-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
-    (let [height (nth size 1)]
+    (let [[width height] size]
       (-> this
           (assoc :size size)
-          (update-in [:state :editor] cui/editor-set-height height)))))
+          (update-in [:state :editor] cui/editor-set-height height)
+          (assoc-in [:state :width] width)
+          (assoc-in [:state :height] height)))))
 
 (defn ^:private truncate-string-end [s n]
   (if (> (count s) n)
