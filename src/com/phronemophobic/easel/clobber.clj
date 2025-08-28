@@ -262,8 +262,8 @@
       (-> this
           (assoc :size size)
           (update-in [:state :editor] cui/editor-set-height height)
-          (assoc-in [:state :width] width)
-          (assoc-in [:state :height] height)))))
+          (assoc-in [:state :editor :width] width)
+          (assoc-in [:state :editor :height] height)))))
 
 (defn ^:private truncate-string-end [s n]
   (if (> (count s) n)
