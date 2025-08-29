@@ -47,12 +47,20 @@
                                     :git/sha "8849885a5dfb633c8b82803f0ff3f7448b3ac6a5"
                                     }
         com.rpl/specter {:mvn/version "1.1.4"}}
- 
+
  :mvn/repos
  {"jetbrains-intellij-dependencies" {:url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"}}
 
  :aliases
  {
+
+  :flow-storm-headless
+  {:classpath-overrides {org.clojure/clojure nil}
+   :extra-deps {com.github.flow-storm/clojure {:mvn/version "1.12.2"}
+                com.github.flow-storm/flow-storm-inst {:mvn/version "4.5.1"}}
+   :extra-paths ["dev"]
+   :jvm-opts ["-Dclojure.storm.instrumentAutoPrefixes=false"
+              "-Dclojure.storm.instrumentOnlyPrefixes=fs-tester"]}
 
   :optional
   {:extra-paths ["../derpbot/config"]
