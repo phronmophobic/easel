@@ -3,6 +3,7 @@
             [flow-storm.runtime.debuggers-api :as dbg-api]
             [flow-storm.runtime.indexes.api :as idx-api]
             [flow-storm.runtime.events :as rt-events]
+            [flow-storm.api :as fs-api]
             [fs-tester]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,7 +23,11 @@
 ;; by default we will be recording on flow-0, but this can be used to record on a different flow
 (dbg-api/switch-record-to-flow flow-id)
 
+;; start the runtime
+(dbg-api/start-runtime)
+
 (comment
+
   (easel/run)
 
   ;; we can toggle recording on/off (will fire an event telling the new status)
@@ -38,6 +43,9 @@
   ;; this should be recorded since it's on an instrumented ns
   (fs-tester/sum 4 5)
 
+  ;; instrument something
+  (fs-api/instrument-var-clj 'fs-tester/sum)
+
   ;; get information about all flows that contain recordings and their recorded threads ids
   (dbg-api/all-flows-threads)
 
@@ -45,7 +53,7 @@
   (dbg-api/flow-threads-info flow-id)
 
   ;; let's work with some thread we saw we have recordings on
-  (def thread-id 72)
+  (def thread-id 70)
 
   ;; this should be called with the index of an entry of fn-call type, to retrieve that "fn frame data"
   (idx-api/frame-data flow-id thread-id 0 {:include-path? true, :include-exprs? true, :include-binds? true})
