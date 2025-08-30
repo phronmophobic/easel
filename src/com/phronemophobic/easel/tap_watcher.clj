@@ -59,6 +59,17 @@
                   body)]
        body)})))
 
+(defeffect ::clear-taps [{:keys [$taps]}]
+  (if $taps
+    (dispatch! :set $taps [])
+    ;; else clear all taps
+    (let [applets (dispatch! :com.phronemophobic.easel/get-applets)
+          $tap-vals (->> applets
+                         vals
+                         (keep :$tap-vals))]
+      (doseq [$taps $tap-vals]
+        (dispatch! :set $taps [])))))
+
 (defui tap-view [{:keys [tap-vals size]}]
   (basic/scrollview
    {:scroll-bounds size
