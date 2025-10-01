@@ -195,7 +195,8 @@
               (map->ComponentApplet
                {:label (or (-> component-var
                                meta
-                               :name)
+                               :name
+                               name)
                            "Component")
                 :component-var component-var
                 :initial-state initial-state}))}))
