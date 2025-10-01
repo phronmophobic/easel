@@ -86,6 +86,12 @@
                  (.submit ^ExecutorService @app-starter-executor
                           run-queue)))))
 
+(defn add-applet [m]
+  (handler
+   :update :easel
+   (fn [easel]
+     (model/-add-applet easel m))))
+
 (defeffect ::add-applet [m]
   (dispatch!
    :update :easel
