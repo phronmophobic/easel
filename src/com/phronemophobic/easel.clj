@@ -20,6 +20,7 @@
             [com.phronemophobic.schematic.view.util
              :as schematic-util]
             [membrane.basic-components :as basic]
+            [membrane.component.present :as present]
             [membrane.component
              :refer
              [defui defeffect]])
@@ -1148,6 +1149,16 @@
         :body
         (model/-ui easel $context context)})))))
 
+(defn ^:private easel-present [view]
+  (.submit ^ExecutorService
+           @app-starter-executor
+           ^Callable (fn []
+                      (try
+                        (handler (present/present view))
+                        (catch Throwable e
+                          (tap> e)
+                          (prn e))))))
+
 (defn run []
   (let [
         _ (swap! app-state
@@ -1166,6 +1177,7 @@
       {:include-container-info true
        :window-title "Easel"
        ::skia/on-main on-main-callback
+       ::skia/on-present easel-present
        :handlers
        {:reshape
         (fn [window window-handle width height]
