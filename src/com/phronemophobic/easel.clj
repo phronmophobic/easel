@@ -85,6 +85,7 @@
              (let [has-queue? (not= specter/NONE (specter/select-any QUEUES-PATH new))]
                (when has-queue?
                  (.submit ^ExecutorService @app-starter-executor
+                          ^Callable
                           run-queue)))))
 
 (defn add-applet [m]
