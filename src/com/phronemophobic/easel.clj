@@ -1176,6 +1176,7 @@
     (skia/run app
       {:include-container-info true
        :window-title "Easel"
+       :error-callback tap>
        ::skia/on-main on-main-callback
        ::skia/on-present easel-present
        :handlers
