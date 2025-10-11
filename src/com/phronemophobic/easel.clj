@@ -118,6 +118,63 @@
 (defeffect ::get-root-pane []
   (dispatch! :get (specter/path :easel :root-pane)))
 
+(defrecord FunctionApplet [label f initial-state]
+  model/IApplet
+  (-start [this $ref size _content-scale]
+    (let [state (assoc initial-state
+                       :$state [$ref '(keypath :state)])
+
+          $scroll-state [$ref '(keypath :scroll-state)]]
+      (assoc this
+             ;; :dispatch! dispatch!
+             :$ref $ref
+             :state state
+             :scroll-state {:$extra [$ref '(keypath :scroll-state :extra)]
+                            :extra {}
+                            :offset [0 0]
+                            :$offset [$scroll-state '(keypath :offset)]}
+             :size size)))
+  (-stop [this])
+  model/IUI
+  (-ui [this $context context]
+    (let [context (assoc context
+                         :membrane.stretch/container-size
+                         (:size this))
+          ui (try
+               (f
+                (assoc (:state this)
+                       :context context
+                       :$context $context))
+               (catch Exception e
+                 (tap> e)
+                 (prn e)
+                 (ui/label "Error!"))) 
+
+          scroll-state (:scroll-state this)
+          $ref (:$ref this)
+
+          [cw ch] (:size this)
+          scroll-bounds [(max 0 (- cw 7 4))
+                         (max 0 (- ch 7 4))]
+          ui (basic/scrollview
+              (assoc scroll-state
+                     :body ui
+                     :context context
+                     :$context $context
+                     :scroll-bounds scroll-bounds))]
+      (ui/translate
+       4 4
+       (ui/try-draw
+        ui
+        (fn [draw e]
+          (tap> e)
+          (prn e)
+          (draw (ui/label "Error!")))))))
+  model/IResizable
+  (-resize [this size _content-scale]
+    (assoc this
+           :size size)))
+
 (defrecord ComponentApplet [label component-var initial-state]
   model/IApplet
   (-start [this $ref size _content-scale]
@@ -190,18 +247,32 @@
     (assoc this
            :size size)))
 
+(defn ^:private extract-fn-name [f]
+  (let [classname (-> f class .getName)
+        [ns fn-name & _] (-> classname clojure.main/demunge (clojure.string/split #"/" 3))]
+    fn-name))
+
 (defn add-component-as-applet [component-var initial-state]
   (handler :com.phronemophobic.easel/add-applet
            {:make-applet
             (fn [_]
-              (map->ComponentApplet
-               {:label (or (-> component-var
-                               meta
-                               :name
-                               name)
-                           "Component")
-                :component-var component-var
-                :initial-state initial-state}))}))
+              (if (var? component-var)
+                (map->ComponentApplet
+                 {:label (or (-> component-var
+                                 meta
+                                 :name
+                                 name)
+                             "Component")
+                  :component-var component-var
+                  :initial-state initial-state})
+                (map->FunctionApplet
+                 {:label (or (extract-fn-name component-var)
+                             "Function")
+                  :f (memoize component-var)
+                  :initial-state initial-state})))}))
+
+
+
 (defeffect ::add-component-as-applet [component-var initial-state]
   (add-component-as-applet component-var initial-state))
 
