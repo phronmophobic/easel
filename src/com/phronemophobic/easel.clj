@@ -214,6 +214,7 @@
                          (:size this))
           ui (component-var
               (assoc (:state this)
+                     :component-var component-var
                      :context context
                      :$context $context))
 
