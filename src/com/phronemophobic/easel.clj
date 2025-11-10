@@ -80,6 +80,11 @@
                 (println e))))
           queue)))
 
+(defn app-enqueue [f]
+  (.submit ^ExecutorService @app-starter-executor
+           ^Callable
+           f))
+
 (add-watch app-state ::applet-queue
            (fn [key ref old new]
              (let [has-queue? (not= specter/NONE (specter/select-any QUEUES-PATH new))]
