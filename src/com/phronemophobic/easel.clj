@@ -1227,15 +1227,13 @@
         :body
         (model/-ui easel $context context)})))))
 
+
 (defn ^:private easel-present [view]
-  (.submit ^ExecutorService
-           @app-starter-executor
-           ^Callable (fn []
-                      (try
-                        (handler (present/present view))
-                        (catch Throwable e
-                          (tap> e)
-                          (prn e))))))
+  (try
+    (handler (present/present view))
+    (catch Throwable e
+      (tap> e)
+      (prn e))))
 
 (defn run []
   (let [
