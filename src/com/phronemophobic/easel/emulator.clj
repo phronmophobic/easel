@@ -64,7 +64,6 @@
              [(fn []
                 (future
                   (try
-                    (println "loading core.")
                     (let [core (com.phronemophobic.clj-libretro.api/load-core "fceumm")]
                       (retro-ui/play-game
                        core
