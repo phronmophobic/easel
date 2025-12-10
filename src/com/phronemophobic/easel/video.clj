@@ -25,7 +25,7 @@
 
 (defrecord VideoWidget [dispatch! path]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [
           
           $video-state [$ref '(keypath :video-state)]
@@ -48,7 +48,7 @@
 
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (video-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

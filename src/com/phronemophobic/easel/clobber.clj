@@ -237,24 +237,22 @@
 
 (defrecord ClobberApplet [dispatch! editor-info]
   model/IApplet
-  (-start [this $ref size _content-scale]
-    (let [
-          ]
-      (assoc this
-             :extra {}
-             :tap-vals []
-             :$ref $ref
-             :size size
-             ::model/queue
-             [(fn []
-                (load-editor dispatch! $ref editor-info size)
-                (dispatch! :repaint!))])))
+  (-start [this {:keys [$ref size]}]
+    (assoc this
+           :extra {}
+           :tap-vals []
+           :$ref $ref
+           :size size
+           ::model/queue
+           [(fn []
+              (load-editor dispatch! $ref editor-info size)
+              (dispatch! :repaint!))]))
   (-stop [this]
     (dispatch! ::cui/auto-reload-file-unwatch
                (:state this))
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (clobber-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

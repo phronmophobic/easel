@@ -5,10 +5,14 @@
   (-resize [this [w h] content-scale]))
 
 (defprotocol IUI
-  (-ui [this $context context]))
+  (-ui [this {:keys [$context context
+                     $shared shared]}]))
 
 (defprotocol IApplet
-  (-start [this $ref size content-scale])
+  (-start [this {:keys [$ref
+                        size content-scale
+                        context $context
+                        shared $shared]}])
   (-stop [this]))
 
 (defprotocol IEasel

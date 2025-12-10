@@ -30,7 +30,7 @@
 
 (defrecord Schematlet [dispatch! eval-ns]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            ;; :dispatch! dispatch!
            :state schematic/initial-state
@@ -38,7 +38,7 @@
            :size size))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (schematic-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

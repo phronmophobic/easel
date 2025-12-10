@@ -142,7 +142,7 @@
 
 (defrecord NSWatcher [dispatch! ns]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [watch-key [::ns-watcher ns]
           interns (ns->interns ns)
           $interns [$ref '(keypath :interns)]]
@@ -164,7 +164,7 @@
       (unwatch))
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (watcher-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

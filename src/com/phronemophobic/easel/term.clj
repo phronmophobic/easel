@@ -83,8 +83,9 @@
 
 (defrecord Termlet [dispatch!]
   model/IApplet
-  (-start [this $ref [w h] _content-scale]
-    (let [w (- w 20)
+  (-start [this {:keys [$ref size]}]
+    (let [[w h] size
+          w (- w 20)
           h (- h 20)
           ;; enforce min size. current virtual term library struggles with
           ;; very small terminals.
@@ -155,7 +156,7 @@
   (-stop [this]
     (async/close! (:cmd-ch this)))
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (term-ui this $context context))
   model/IResizable
   (-resize [this [w h :as new-size] _content-scale]

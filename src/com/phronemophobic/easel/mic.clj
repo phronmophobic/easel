@@ -85,7 +85,7 @@
 
 (defrecord Miclet [dispatch! thread-id]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            :state {}
            :$state [$ref '(keypath :state)]
@@ -96,7 +96,7 @@
   (-stop [this]
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (mic-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

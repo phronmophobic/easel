@@ -125,7 +125,7 @@
 
 (defrecord FunctionApplet [label f initial-state]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [state (assoc initial-state
                        :$state [$ref '(keypath :state)])
 
@@ -141,7 +141,7 @@
              :size size)))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (let [context (assoc context
                          :membrane.stretch/container-size
                          (:size this))
@@ -182,7 +182,7 @@
 
 (defrecord ComponentApplet [label component-var initial-state]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [component-meta (meta component-var)
           arglists (:arglists component-meta)
           first-arglist (first arglists)
@@ -213,7 +213,7 @@
              :size size)))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (let [context (assoc context
                          :membrane.stretch/container-size
                          (:size this))
@@ -726,7 +726,7 @@
          :all-panes
          reverse))))
 
-(defn easel-ui* [{:keys [root-pane applets] :as easel} $extra extra $context context]
+(defn easel-ui* [{:keys [root-pane applets shared-applet-state $shared-applet-state] :as easel} $extra extra $context context]
   (let [main-view
         (into []
               (keep (fn [pane]
@@ -785,7 +785,15 @@
                                                    m
                                                    (assoc m :pane-id (:id pane)))]])
 
-                                             (model/-ui applet $context context)))
+                                             (let [applet-state {:$context $context
+                                                                 :context context}
+                                                   shared-keys (::shared-keys applet)
+                                                   applet-state (if shared-keys
+                                                                  (assoc applet-state
+                                                                         :shared (select-keys shared-applet-state shared-keys)
+                                                                         :$shared $shared-applet-state)
+                                                                  applet-state)]
+                                               (model/-ui applet applet-state))))
                                            ;; no applet found
                                            (let [pane-id (:id pane)
                                                  list-applets-extra (get extra [::list-applets-extra pane-id])
@@ -825,6 +833,8 @@
 
 (defrecord AEasel [applets
                    last-id $ref
+                   shared-applet-state
+                   $shared-applet-state
                    root-pane]
   model/IEasel
   (-add-applet [this info]
@@ -953,12 +963,14 @@
                                           new-size
                                           content-scale)
                            (-> applet
-                               (model/-start (specter/path
-                                               (membrane.component/path->spec $ref)
-                                               (specter/keypath :applets)
-                                               (specter/must (:id applet)))
-                                             new-size
-                                             content-scale)
+                               (model/-start {:$ref (specter/path
+                                                      (membrane.component/path->spec $ref)
+                                                      (specter/keypath :applets)
+                                                      (specter/must (:id applet)))
+                                              :size new-size
+                                              :content-scale content-scale
+                                              :shared shared-applet-state
+                                              :$shared $shared-applet-state})
                                (assoc ::applet-started? true)))))
                      applets
                      (transduce
@@ -973,7 +985,7 @@
                  (assoc this :applets applets))]
       this))
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (let [extra (get this ::extra)
           $extra [$ref (list 'keypath ::extra)]]
       (easel-ui* this $extra extra $context context))))
@@ -981,6 +993,7 @@
 (defn make-easel []
   (-> (map->AEasel
        {:applets (tiara/ordered-map)
+        :shared-applet-state {}
         :last-id 0
         ::extra {}
         :workspaces {:by-id {}
@@ -1225,7 +1238,8 @@
       (dnd/drag-and-drop
        {:$body nil
         :body
-        (model/-ui easel $context context)})))))
+        (model/-ui easel {:context context
+                          :$context $context})})))))
 
 
 (defn ^:private easel-present [view]
@@ -1242,7 +1256,8 @@
                    (if state
                      state
                      {:easel (-> (assoc (make-easel)
-                                        :$ref (specter/keypath :easel))
+                                        :$ref (specter/keypath :easel)
+                                        :$shared-applet-state [(specter/keypath :easel :shared-applet-state)])
                                  ;; hack for now.
                                  ;; otherwise, size just starts at zero
                                  ;; need to use `on-present`?

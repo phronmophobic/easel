@@ -64,7 +64,7 @@
 
 (defrecord SpreadSheet [dispatch! eval-ns]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            :ss []
            ::ss/id (random-uuid)
@@ -89,7 +89,7 @@
               (run-results dispatch! $ref))]))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (spreadsheet-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

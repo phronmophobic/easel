@@ -20,7 +20,7 @@
    [com.phronemophobic.derpbot.tools.audio :as derpbot.audio]
    [com.phronemophobic.clj-media.impl.audio :as audio]
    [com.phronemophobic.clj-media :as clj-media]
-   [com.phronemophobic.clobber.modes.text.ui :as text-ui]
+   [com.phronemophobic.clobber.modes.text.ui :as text.ui]
    [com.phronemophobic.clobber.modes.text :as text-mode]
    [com.phronemophobic.clobber.modes.markdown.wysiwyg :as md]))
 
@@ -117,7 +117,7 @@
              :pts 0})]))
        (.getCanonicalPath f))
       (let [text (derpbot.audio/transcribe-file f)]
-        (dispatch! ::text-ui/update-editor
+        (dispatch! ::text.ui/update-editor
                    {:$editor $editor
                     :op
                     (fn [editor]
@@ -125,7 +125,7 @@
                           (text-mode/editor-clear)
                           (text-mode/editor-self-insert-command text)))})))))
 
-(defui derpbot-ui* [{:keys [state size thread-id]}]
+(defui derpbot-ui* [{:keys [state size thread-id] :as this}]
   (let [editor (:editor state)
         conversation (:conversation state)
         messages (get conversation :messages)
@@ -166,14 +166,34 @@
                          (fn []
                            [[::ask {:prompt (str (:rope editor))
                                     :$conversation $conversation}]
-                            [::text-ui/update-editor {:$editor $editor
+                            [::text.ui/update-editor {:$editor $editor
                                                       :op text-mode/editor-clear}]])}))
           
           
-          (ui/padding
-           8
-           [(text-ui/text-editor {:editor editor})
-            (ui/spacer 800 100)])]
+           (ui/padding
+            8
+            [
+             (let [focus (:focus context)
+                   focused? (= (:id this) focus)
+                   prompt-editor
+                   (ui/on
+                    :com.phronemophobic.clobber.modes.clojure.ui/request-focus
+                    (fn []
+                      [[:set $focus (:id this)]])
+                    ::ask
+                    (fn [_]
+                      [[::ask {:prompt (str (:rope editor))
+                               :$conversation $conversation}]
+                       [::text.ui/update-editor {:$editor $editor
+                                                 :op text-mode/editor-clear}]])
+                    (let [extra (:prompt-editor-extra state)]
+                      (text.ui/text-editor
+                       {:editor editor
+                        :focused? focused?
+                        :extra extra
+                        :$extra $extra})))]
+               prompt-editor)
+             (ui/spacer 800 100)])]
           {:direction :row
            :gap 8}))
         

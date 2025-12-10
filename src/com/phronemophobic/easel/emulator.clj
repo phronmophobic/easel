@@ -53,7 +53,7 @@
 
 (defrecord EmulatorWidget [dispatch!]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [$close-fn [$ref '(keypath :close-fn)]
           view-fn (atom nil)
           $view [$ref '(keypath :view)]]
@@ -93,7 +93,7 @@
       (close-fn))
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (emulator-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

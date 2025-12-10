@@ -36,7 +36,7 @@
 
 (defrecord D3Widget [dispatch!]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [$state [$ref '(keypath :state)]
           mesh (mf/import-mesh "/Users/adrian/Downloads/Klein_Smoother_no_base.STL")]
       
@@ -53,7 +53,7 @@
     (dispatch! ::d3/stop (:state this))
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (d3-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]

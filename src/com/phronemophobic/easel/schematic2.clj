@@ -44,14 +44,14 @@
 
 (defrecord ToolbarApplet []
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (toolbar-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
@@ -95,14 +95,14 @@
 
 (defrecord PreviewApplet []
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (preview-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
@@ -144,14 +144,14 @@
 
 (defrecord TreeApplet []
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (tree-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
@@ -191,7 +191,7 @@
 
 (defrecord ComponentPickerApplet [dispatch!]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
 
     (assoc this
            ;; :dispatch! dispatch!
@@ -207,7 +207,7 @@
                         ::component-picker-components component-picker/component-starters))))]))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (component-picker-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
@@ -263,14 +263,14 @@
 
 (defrecord DetailApplet []
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (assoc this
            ;; :dispatch! dispatch!
            :$ref $ref
            :size size))
   (-stop [this])
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (detail-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
