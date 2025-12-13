@@ -257,6 +257,9 @@
                               editor-info
                               (clobber-editor/guess-mode editor-info))
         editor-id (or (::id editor)
+                      (when-let [f (:file editor-info)]
+                        (.getCanonicalFile f))
+                      (:ns editor-info)
                       (random-uuid))
         editor (assoc editor ::id editor-id)
 
