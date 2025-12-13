@@ -21,6 +21,7 @@
    [com.phronemophobic.clobber.modes.clojure :as clojure-mode]
    [com.phronemophobic.clobber.modes.text :as text-mode]
    [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
+   [com.phronemophobic.easel :as-alias easel]
 
    [com.phronemophobic.membrandt :as ant]))
 
@@ -119,11 +120,53 @@
             p)]
     p))
 
+(def ^:private inactive-keys
+  #{:width
+    :height
+    :viewport
+    :cursor})
+(defn ^:private make-active [editor id]
+  (let [last-active-id (::active-id editor)]
+    (if (= last-active-id id)
+      editor
+      (let [last-editor editor
+            editor (assoc editor
+                          ::active-id id)
+            editor (if-let [inactive-info (-> editor
+                                              :inactive-view
+                                              (get id))]
+                     (let [editor (-> editor
+                                      (update :inactive-view dissoc id))
+                           
+                           old-cursor (:cursor inactive-info)
+                           editor (-> editor
+                                      (text-mode/editor-goto-row-col (:row old-cursor)
+                                                                     (:column-byte old-cursor)))
+                           
+                           old-viewport (:viewport inactive-info)
+                           editor (-> editor
+                                      (assoc-in [:viewport :start-line]
+                                                (-> old-viewport :start-line))
+                                      (text-mode/editor-update-viewport))]
+                       editor)
+                     
+                     editor)
+            editor (if last-active-id
+                     (update editor :inactive-view
+                             assoc last-active-id (select-keys last-editor inactive-keys))
+                     editor)]
+        editor))))
+
+(defeffect ::make-editor-active [{:keys [$editor $focus id] :as m}]
+  (dispatch! :update $editor make-active id)
+  (dispatch! :set $focus id))
+
 (declare clobber-applet)
-(defui clobber-ui* [{:keys [this]}]
+(defui clobber-ui* [{:keys [this shared]}]
   (let [focus (:focus context)
         state (:state this)
-        editor (:editor state)
+        editors (::editors shared)
+        editor (get editors (::editor-id this))
         focused? (= (:id this) focus)]
     (when editor
       (let [buffer-select-state (::buffer-select-state this)
@@ -164,9 +207,20 @@
                                     :$focus $focus}]])
                   ::cui/request-focus
                   (fn []
-                    [[:set $focus (:id this)]])
+                    [[::make-editor-active {:$editor $editor
+                                            :$focus $focus
+                                            :id (:id this)}]])
                   (let [ui (:ui this)
-                        extra (:extra state)]
+                        extra (:extra state)
+                        $editor $editor
+                        editor (if (not= (::active-id editor)
+                                         (:id this))
+                                 (if-let [m (-> editor
+                                                :inactive-view
+                                                (get (:id this)))]
+                                   (merge editor m)
+                                   editor)
+                                 editor)]
                     (ui {:editor editor
                          :$editor $editor
                          :focused? focused?
@@ -186,20 +240,25 @@
                    body)]
         body))))
 
-(defn clobber-ui [this $context context]
+(defn clobber-ui [this ui-info]
   (clobber-ui* {:this this
                 :$this [(:$ref this)]
-                :context context
-                :$context $context}))
+                :shared (:shared ui-info)
+                :$shared (:$shared ui-info)
+                :context (:context ui-info)
+                :$context (:$context ui-info)}))
 
 
-(defn load-editor [dispatch! $ref editor-info size]
+(defn load-editor [{:keys [dispatch! id $ref editor-info size shared $shared]}]
   (let [
         height (nth size 1)
         
         {:keys [editor ui]} (if (:editor editor-info)
                               editor-info
                               (clobber-editor/guess-mode editor-info))
+        editor-id (or (::id editor)
+                      (random-uuid))
+        editor (assoc editor ::id editor-id)
 
         editor (if-let [line (:line editor-info)]
                  (text-mode/editor-goto-line editor line)
@@ -221,47 +280,74 @@
                    (cui/editor-set-height height)
                    (assoc :width width
                           :height height)
-                   (text-mode/editor-update-viewport))
-        $editor [$ref '(keypath :state) '(keypath :editor)]]
+                   (text-mode/editor-update-viewport)
+                   (make-active id))
+        $editor [$shared (list 'keypath ::editors) (list 'keypath editor-id)]]
+    (dispatch!
+     :update $shared
+     (fn [shared]
+       (assoc-in shared [::editors editor-id] editor)))
     (dispatch!
      :update
      $ref
      (fn [applet]
        (-> applet
            (assoc :ui ui)
-           (assoc-in [:state :editor] editor)
-           (assoc-in [:state :$editor] $editor))))
+           (assoc ::editor-id editor-id)
+           (assoc ::easel/shared-keys [::editors])
+           (assoc :$editor [$shared
+                            '(keypath ::editors)
+                            (list 'keypath editor-id)]))))
     (dispatch! ::cui/auto-reload-file
                {:editor editor
                 :$editor $editor})))
 
 (defrecord ClobberApplet [dispatch! editor-info]
   model/IApplet
-  (-start [this {:keys [$ref size]}]
+  (-start [this {:keys [$ref size $shared] :as info}]
     (assoc this
            :extra {}
            :tap-vals []
            :$ref $ref
+           :$shared $shared
+
            :size size
            ::model/queue
            [(fn []
-              (load-editor dispatch! $ref editor-info size)
+              (load-editor 
+               (assoc info
+                      :id (:id this)
+                      :editor-info editor-info
+                      :dispatch! dispatch!))
               (dispatch! :repaint!))]))
   (-stop [this]
     (dispatch! ::cui/auto-reload-file-unwatch
                (:state this))
     nil)
   model/IUI
-  (-ui [this {:keys [$context context]}]
-    (clobber-ui this $context context))
+  (-ui [this ui-info]
+    (clobber-ui this ui-info))
   model/IResizable
   (-resize [this size _content-scale]
     (let [[width height] size]
       (-> this
           (assoc :size size)
-          (update-in [:state :editor] cui/editor-set-height height)
-          (assoc-in [:state :editor :width] width)
-          (assoc-in [:state :editor :height] height)))))
+          (update ::model/queue
+                  (fn [q]
+                    (let [q (or q [])]
+                      [(fn []
+                         (when (and (get this ::editor-id)
+                                    (:$shared this))
+                           (let [$shared (:$shared this)
+                                 $editor [$shared
+                                          '(keypath ::editors)
+                                          (list 'keypath (get this ::editor-id))]]
+                             (dispatch! :update $editor
+                                        (fn [editor]
+                                          (-> editor
+                                              (cui/editor-set-height height)
+                                              (assoc :width width)
+                                              (assoc :height height)))))))])))))))
 
 (defn ^:private truncate-string-end [s n]
   (if (> (count s) n)
@@ -293,7 +379,7 @@
       (assoc :label (str name)))))
 
 
-(defeffect ::show-select-buffer [{:keys [$ref $focus id]}]
+(defeffect ::show-select-buffer [{:keys [$ref $focus id $editor]}]
   (let [applets (dispatch! :com.phronemophobic.easel/get-applets)
         clobber-applets (into []
                               (keep (fn [[id applet]]
@@ -302,7 +388,10 @@
                               applets)]
     (dispatch! :update $ref assoc
                ::buffer-select-state {:applets clobber-applets})
-    (dispatch! :set $focus id)))
+    (dispatch!
+     ::make-editor-active {:$editor $editor
+                           :$focus $focus
+                           :id id})))
 
 
 (defn ^:private zfind
@@ -338,5 +427,15 @@
                                     
                               :else (recur (z/next loc))))]
     (when next-clobber-pane
-      (dispatch! :set $focus (:applet-id next-clobber-pane)))))
+      (let [applet (get applets (:applet-id next-clobber-pane))
+            $shared (:$shared applet)
+
+            $editor [$shared
+                     '(keypath ::editors)
+                     (list 'keypath (get applet ::editor-id))]]
+
+        (dispatch!
+         ::make-editor-active {:$editor $editor
+                               :$focus $focus
+                               :id (:applet-id next-clobber-pane)})))))
 
