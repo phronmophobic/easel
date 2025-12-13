@@ -51,7 +51,8 @@
                    (when (not= new-val old-val)
                      (f key ref old-val new-val)))))))
 
-
+(defeffect :unwatch [key]
+  (remove-watch app-state key))
 
 (defonce app-starter-executor
   (delay
