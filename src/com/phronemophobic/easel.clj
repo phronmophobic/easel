@@ -332,7 +332,11 @@
            (ui/on-click
             (fn []
               [[::toggle-pane-resize {:pane-id pane-id}]])
-            (icon.ui/icon {:name "edit"}))))
+            (icon.ui/icon {:name "edit"})))
+         (ui/on-click
+          (fn []
+            [[::share-pane {:pane pane}]])
+          (icon.ui/icon {:name "share-alt"})))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -747,7 +751,13 @@
                           (ui/translate (long (:x pane))
                                         (long (:y pane))
                                         (ui/vertical-layout
-                                         bar
+                                         (ui/on ::share-pane
+                                                (fn [m]
+                                                  (let [m (if-let [applet (get applets (:applet-id pane))]
+                                                            (assoc m :applet applet)
+                                                            m)]
+                                                    [[::dnd/drag-start {::dnd/obj {:x (delay m)}}]]))
+                                                bar)
                                          (if-let [applet (get applets (:applet-id pane))]
                                            (ui/scissor-view
                                             [0 0]
