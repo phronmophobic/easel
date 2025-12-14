@@ -104,7 +104,8 @@
                        focus (:focus context)]
                    [[:com.phronemophobic.easel/set-pane-applet-id {:applet-id applet-id}]
                     [:set $buffer-select-state nil]
-                    [:set $focus applet-id]])
+                    [::make-editor-active {:$editor (:$editor applet)
+                                           :id applet-id}]])
                  
                  (= s :backspace)
                  [[:update $search-str
@@ -157,9 +158,9 @@
                      editor)]
         editor))))
 
-(defeffect ::make-editor-active [{:keys [$editor $focus id] :as m}]
+(defeffect ::make-editor-active [{:keys [$editor id] :as m}]
   (dispatch! :update $editor make-active id)
-  (dispatch! :set $focus id))
+  (dispatch! ::easel/request-focus id))
 
 (declare clobber-applet)
 (defui clobber-ui* [{:keys [this shared]}]
@@ -208,7 +209,6 @@
                   ::cui/request-focus
                   (fn []
                     [[::make-editor-active {:$editor $editor
-                                            :$focus $focus
                                             :id (:id this)}]])
                   (let [ui (:ui this)
                         extra (:extra state)
@@ -249,19 +249,34 @@
                 :$context (:$context ui-info)}))
 
 
-(defn load-editor [{:keys [dispatch! id $ref editor-info size shared $shared]}]
-  (let [
-        height (nth size 1)
-        
-        {:keys [editor ui]} (if (:editor editor-info)
-                              editor-info
-                              (clobber-editor/guess-mode editor-info))
-        editor-id (or (::id editor)
-                      (when-let [f (:file editor-info)]
-                        (.getCanonicalFile f))
-                      (:ns editor-info)
-                      (random-uuid))
-        editor (assoc editor ::id editor-id)
+(defn load-editor [{:keys [dispatch! id $ref editor-info size shared $shared $focus]}]
+  (let [height (nth size 1)
+        {:keys [editor ui]} (or
+                             (when (:editor editor-info)
+                               editor-info)
+                             
+                             (when-let [editor-id (or (when-let [f (:file editor-info)]
+                                                        (.getCanonicalFile f))
+                                                      (:ns editor-info))]
+                               (when-let [editor (-> shared
+                                                     ::editors
+                                                     (get editor-id))]
+                                 {:editor editor
+                                  :ui (::ui editor)}))
+                             
+                             ;; else
+                             (let [editor-id (or (when-let [f (:file editor-info)]
+                                                   (.getCanonicalFile f))
+                                                 (:ns editor-info)
+                                                 (random-uuid))
+                                   mode (clobber-editor/guess-mode editor-info)
+                                   editor (clobber-editor/make-editor (assoc editor-info :mode mode))
+                                   ui (clobber-editor/editor-ui mode)]
+                               {:editor (assoc editor ::id editor-id)
+                                :ui ui}))
+
+        editor-id (::id editor)
+        editor (assoc editor ::ui ui)
 
         editor (if-let [line (:line editor-info)]
                  (text-mode/editor-goto-line editor line)
@@ -303,7 +318,11 @@
                             (list 'keypath editor-id)]))))
     (dispatch! ::cui/auto-reload-file
                {:editor editor
-                :$editor $editor})))
+                :$editor $editor})
+    (dispatch!
+     ::make-editor-active {:$editor $editor
+                           :id id})))
+
 
 (defrecord ClobberApplet [dispatch! editor-info]
   model/IApplet
@@ -393,7 +412,6 @@
                ::buffer-select-state {:applets clobber-applets})
     (dispatch!
      ::make-editor-active {:$editor $editor
-                           :$focus $focus
                            :id id})))
 
 
@@ -439,6 +457,5 @@
 
         (dispatch!
          ::make-editor-active {:$editor $editor
-                               :$focus $focus
                                :id (:applet-id next-clobber-pane)})))))
 

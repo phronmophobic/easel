@@ -54,6 +54,12 @@
 (defeffect :unwatch [key]
   (remove-watch app-state key))
 
+(defeffect ::request-focus [focus-id]
+  (handler :set '[(keypath :membrane.component/context)
+                  (keypath :focus)]
+           focus-id))
+
+
 (defonce app-starter-executor
   (delay
     (Executors/newSingleThreadExecutor)))
