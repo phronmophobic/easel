@@ -343,7 +343,11 @@
          (ui/on-click
           (fn []
             [[::share-pane {:pane pane}]])
-          (icon.ui/icon {:name "share-alt"})))
+          (icon.ui/icon {:name "share-alt"}))
+         (ui/on-click
+          (fn []
+            [[::share-ui {:pane pane}]])
+          (icon.ui/icon {:name "deployment-unit"})))
         height (ui/height bar)
 
         drag-object (get extra ::drag-object)]
@@ -758,7 +762,20 @@
                           (ui/translate (long (:x pane))
                                         (long (:y pane))
                                         (ui/vertical-layout
-                                         (ui/on ::share-pane
+                                         (ui/on ::share-ui
+                                                (fn [m]
+                                                  (when-let [applet (get applets (:applet-id pane))]
+                                                    (let [applet-state {:$context $context
+                                                                        :context context}
+                                                          shared-keys (::shared-keys applet)
+                                                          applet-state (if shared-keys
+                                                                         (assoc applet-state
+                                                                                :shared (select-keys shared-applet-state shared-keys)
+                                                                                :$shared $shared-applet-state)
+                                                                         applet-state)
+                                                          applet-ui (model/-ui applet applet-state)]
+                                                      [[::dnd/drag-start {::dnd/obj {:x (delay applet-ui)}}]])))
+                                                ::share-pane
                                                 (fn [m]
                                                   (let [m (if-let [applet (get applets (:applet-id pane))]
                                                             (assoc m :applet applet)
@@ -766,51 +783,51 @@
                                                     [[::dnd/drag-start {::dnd/obj {:x (delay m)}}]]))
                                                 bar)
                                          (if-let [applet (get applets (:applet-id pane))]
-                                           (ui/scissor-view
-                                            [0 0]
-                                            [(:width pane)
-                                             (:height pane)]
-                                            (ui/on
-                                             ::set-pane-applet-id
-                                             (fn [m]
-                                               [[::set-pane-applet-id
-                                                 (if (:pane-id m)
-                                                   m
-                                                   (assoc m :pane-id (:id pane)))]])
-                                             ::delete-pane
-                                             (fn [m]
-                                               [[::delete-pane
-                                                 (if (:pane-id m)
-                                                   m
-                                                   (assoc m :pane-id (:id pane)))]])
-                                             ::add-applet
-                                             (fn [m]
-                                               [[::add-applet
-                                                 (if (:from-pane-id m)
-                                                   m
-                                                   (assoc m :from-pane-id (:id pane)))]])
-                                             ::close-other-panes
-                                             (fn [m]
-                                               [[::close-other-panes
-                                                 (if (:pane-id m)
-                                                   m
-                                                   (assoc m :pane-id (:id pane)))]])
-                                             ::hide-pane
-                                             (fn [m]
-                                               [[::hide-pane
-                                                 (if (:pane-id m)
-                                                   m
-                                                   (assoc m :pane-id (:id pane)))]])
-
-                                             (let [applet-state {:$context $context
-                                                                 :context context}
-                                                   shared-keys (::shared-keys applet)
-                                                   applet-state (if shared-keys
-                                                                  (assoc applet-state
-                                                                         :shared (select-keys shared-applet-state shared-keys)
-                                                                         :$shared $shared-applet-state)
-                                                                  applet-state)]
-                                               (model/-ui applet applet-state))))
+                                           (let [applet-state {:$context $context
+                                                               :context context}
+                                                 shared-keys (::shared-keys applet)
+                                                 applet-state (if shared-keys
+                                                                (assoc applet-state
+                                                                       :shared (select-keys shared-applet-state shared-keys)
+                                                                       :$shared $shared-applet-state)
+                                                                applet-state)
+                                                 applet-ui (model/-ui applet applet-state)]
+                                             (ui/scissor-view
+                                              [0 0]
+                                              [(:width pane)
+                                               (:height pane)]
+                                              (ui/on
+                                               ::set-pane-applet-id
+                                               (fn [m]
+                                                 [[::set-pane-applet-id
+                                                   (if (:pane-id m)
+                                                     m
+                                                     (assoc m :pane-id (:id pane)))]])
+                                               ::delete-pane
+                                               (fn [m]
+                                                 [[::delete-pane
+                                                   (if (:pane-id m)
+                                                     m
+                                                     (assoc m :pane-id (:id pane)))]])
+                                               ::add-applet
+                                               (fn [m]
+                                                 [[::add-applet
+                                                   (if (:from-pane-id m)
+                                                     m
+                                                     (assoc m :from-pane-id (:id pane)))]])
+                                               ::close-other-panes
+                                               (fn [m]
+                                                 [[::close-other-panes
+                                                   (if (:pane-id m)
+                                                     m
+                                                     (assoc m :pane-id (:id pane)))]])
+                                               ::hide-pane
+                                               (fn [m]
+                                                 [[::hide-pane
+                                                   (if (:pane-id m)
+                                                     m
+                                                     (assoc m :pane-id (:id pane)))]])
+                                               applet-ui)))
                                            ;; no applet found
                                            (let [pane-id (:id pane)
                                                  list-applets-extra (get extra [::list-applets-extra pane-id])
