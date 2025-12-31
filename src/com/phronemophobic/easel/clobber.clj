@@ -20,6 +20,7 @@
 
    [com.phronemophobic.clobber.modes.clojure :as clojure-mode]
    [com.phronemophobic.clobber.modes.text :as text-mode]
+   [com.phronemophobic.clobber.util.ui :as clobber.util.ui]
    [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
    [com.phronemophobic.easel :as-alias easel]
 
@@ -295,7 +296,7 @@
 
         [width height] size
         editor (-> editor
-                   (cui/editor-set-height height)
+                   (clobber.util.ui/editor-set-height height)
                    (assoc :width width
                           :height height)
                    (text-mode/editor-update-viewport)
@@ -367,7 +368,7 @@
                              (dispatch! :update $editor
                                         (fn [editor]
                                           (-> editor
-                                              (cui/editor-set-height height)
+                                              (clobber.util.ui/editor-set-height height)
                                               (assoc :width width)
                                               (assoc :height height)))))))])))))))
 
