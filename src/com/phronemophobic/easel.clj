@@ -204,7 +204,7 @@
                                 [$kw [$ref '(keypath :state) (list 'keypath kw)]]))))
                       args)
           state (into (assoc initial-state
-                             :extra {}
+                             :extra (get initial-state :extra {})
                              :$extra [$ref '(keypath :state) '(keypath :extra)])
                       $args)
 
