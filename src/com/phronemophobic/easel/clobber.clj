@@ -193,7 +193,6 @@
                   ::split-pane
                   (fn [{:keys [editor]}]
                     (let [forked-editor (-> editor
-                                            (dissoc ::cui/auto-reload-unwatch)
                                             (update :tree
                                                     (fn [^org.treesitter.TSTree tree]
                                                       (when tree
@@ -345,8 +344,6 @@
                       :dispatch! dispatch!))
               (dispatch! :repaint!))]))
   (-stop [this]
-    (dispatch! ::cui/auto-reload-file-unwatch
-               (:state this))
     nil)
   model/IUI
   (-ui [this ui-info]
