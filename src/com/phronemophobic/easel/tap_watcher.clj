@@ -10,7 +10,7 @@
    [clojure.core.async :as async]
    [clojure.set :as set]
    [com.phronemophobic.viscous :as viscous]
-
+   [com.phronemophobic.membrandt.impl.grid :as grid]
    [com.phronemophobic.membrandt :as ant]))
 
 (defeffect ::tap-drop-object [drop-object]
@@ -71,31 +71,34 @@
         (dispatch! :set $taps [])))))
 
 (defui tap-view [{:keys [tap-vals size]}]
-  (basic/scrollview
-   {:scroll-bounds size
-    :$body nil
-    :body
+  (let [[cw ch] size
+        grid-extra (get extra ::grid)]
     (drag-target
      {:$body nil
       :body 
-      (apply
-       ui/vertical-layout
-       (ant/button {:size :small
-                    :text "X"
-                    :on-click (fn []
-                                [[:set $tap-vals []]])})
-       (eduction
-        (map-indexed
-         (fn [i obj]
-           (let [inspector-extra (get extra [::inspector [i obj]])]
-             (ui/vertical-layout
-              (viscous/inspector
-               {:obj obj
-                :width (get inspector-extra :width 40)
-                :height (get inspector-extra :height 1)
-                :show-context? (get inspector-extra :show-context?)
-                :extra inspector-extra})))))
-        tap-vals))})}))
+      (ui/vertical-layout
+       (ui/horizontal-layout
+        (ant/button {:size :small
+                     :text "X"
+                     :on-click (fn []
+                                 [[:set $tap-vals []]])})
+        (ant/button {:size :small
+                     :text "scroll top"
+                     :on-click (fn []
+                                 [[:set $grid-extra nil]])}))
+       (grid/list-view
+        {:row-fn (fn [{:keys [row]}]
+                   (let [inspector-extra (get extra [::inspector row])]
+                     (ui/padding 
+                      2
+                      (viscous/inspector {:obj (nth tap-vals row)
+                                          :width (get inspector-extra :width 40)
+                                          :height (get inspector-extra :height 1)
+                                          :extra inspector-extra}))))
+         :num-rows (count tap-vals)
+         :width cw
+         :height (- ch 80)
+         :extra grid-extra}))})))
 
 (defn tap-ui [this $context context]
   (let [state (-> this
