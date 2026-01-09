@@ -290,6 +290,7 @@
                              "C-x 3" ::split-pane
                              "C-x k" ::delete-pane
                              "C-x b" ::show-select-buffer
+                             "C-x C-b" ::show-buffer-viewer
                              "C-x o" ::focus-next
                              "C-x 1" ::close-other-panes
                              "C-x 0" ::hide-pane))
@@ -459,4 +460,136 @@
         (dispatch!
          ::make-editor-active {:$editor $editor
                                :id (:applet-id next-clobber-pane)})))))
+
+(defn editor-saved?
+  "Returns true if the editor has an associated file and the last save is after the last change."
+  [editor] 
+  (or (not (:file editor))
+      (let [^java.time.Instant last-file-load (:last-file-load editor)
+            ^java.time.Instant last-change (:last-change editor)]
+        (or (not last-change)
+            (= last-file-load last-change)
+            (.isAfter last-file-load last-change)))))
+
+
+(defeffect ::open-editor [{:keys [editor]}]
+  (let [forked-editor (-> editor
+                          (update :tree
+                                  (fn [^org.treesitter.TSTree tree]
+                                    (when tree
+                                      (.copy tree)))))]
+    (dispatch! 
+     :com.phronemophobic.easel/add-applet
+      {:make-applet
+       #(clobber-applet % {:editor forked-editor
+                           :label (str (:label editor) "*")
+                           :ui (::ui editor)})})))
+
+
+(defn clean-up-shared-editors [easel]
+  (let [applets (:applets easel)
+        clobber-applets (into []
+                              (keep (fn [[id applet]]
+                                      (when (instance? ClobberApplet applet)
+                                        applet)))
+                              applets)
+        in-use-editor-ids (into #{}
+                                (map ::editor-id)
+                                clobber-applets)
+        
+        keep-editor-pred (fn [[eid editor]]
+                           (or 
+                            (contains? in-use-editor-ids eid)
+                            (not (editor-saved? editor))))
+
+        ;; enqueue stopping auto reload
+        unwatches (into []
+                        (comp (remove keep-editor-pred)
+                              (map second)
+                              (map :com.phronemophobic.clobber.modes.clojure.ui/auto-reload-unwatch))
+                        (-> easel 
+                            :shared-applet-state
+                            ::editors))
+        easel (update easel ::easel/queue
+                      (fn [q]
+                        (into (or q [])
+                              unwatches)))
+
+        easel (update-in easel
+                         [:shared-applet-state ::editors]
+                         (fn [m]
+                           (into {}
+                                 (filter keep-editor-pred)
+                                 m)))]
+    easel))
+
+(comment
+  (tap>
+   (-> (clean-up-shared-editors (-> @com.phronemophobic.easel/app-state :easel))
+       :shared-applet-state
+       ::editors))
+  (tap> @com.phronemophobic.easel/app-state)
+
+ 
+  
+  ,)
+
+(defeffect ::cleanup-editors [{}]
+  (dispatch! ::easel/update-easel clean-up-shared-editors))
+
+(defui buffer-viewer [{:keys [editors]}]
+  (ui/vertical-layout
+   (ant/button {:text "cleanup"
+                :on-click (fn []
+                            [[::cleanup-editors {}]])})
+   (ui/table-layout
+    (into []
+          (map (fn [[editor-id editor]]
+                 [(ui/checkbox (editor-saved? editor))
+                  (ui/on
+                   :mouse-down
+                   (fn [_]
+                     [[::open-editor {:editor editor}]])
+                   (ui/label editor-id))
+                  ]
+                 ))
+          editors))))
+
+(defrecord BufferViewerApplet [dispatch!]
+  model/IApplet
+  (-start [this {:keys [$ref size $shared] :as info}]
+    (assoc this
+           :label "Buffers"
+           :extra {}
+           :$extra [$ref '(keypath :extra)]
+           :$ref $ref
+           :$shared $shared
+           ::easel/shared-keys [::editors]
+           :size size))
+  (-stop [this]
+    nil)
+  model/IUI
+  (-ui [this ui-info]
+    (buffer-viewer 
+     (assoc this
+            :editors (-> ui-info :shared ::editors)
+            :context (:context ui-info)
+            :$context (:$context ui-info))))
+  model/IResizable
+  (-resize [this size _content-scale]
+    (let [[width height] size]
+      (assoc this :size size))))
+
+(defn show-buffer-viewer []
+  ((requiring-resolve 'com.phronemophobic.easel/add-applet)
+   {:make-applet
+    #(->BufferViewerApplet %)}))
+
+(defeffect ::show-buffer-viewer [{}]
+  (show-buffer-viewer))
+
+(comment
+  
+  (show-buffer-viewer)
+  ,)
 

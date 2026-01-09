@@ -130,6 +130,10 @@
 (defeffect ::get-root-pane []
   (dispatch! :get (specter/path :easel :root-pane)))
 
+(defeffect ::update-easel [f & args]
+  (apply dispatch!
+         :update :easel f args))
+
 (defrecord FunctionApplet [label f initial-state]
   model/IApplet
   (-start [this {:keys [$ref size]}]
