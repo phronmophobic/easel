@@ -157,7 +157,7 @@
                 (let [unwatch (watch-ns ns watch-key
                                         (fn []
                                           (dispatch! :set $interns (ns->interns ns))))]
-                  (dispatch! :set [$ref '(keyath :unwatch)] unwatch)))]
+                  (dispatch! :set [$ref '(keypath :unwatch)] unwatch)))]
              :size size)))
   (-stop [this]
     (when-let [unwatch (:unwatch this)]
