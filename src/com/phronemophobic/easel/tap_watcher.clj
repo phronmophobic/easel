@@ -59,20 +59,11 @@
                   body)]
        body)})))
 
-(defeffect ::clear-taps [{:keys [$taps]}]
-  (if $taps
-    (dispatch! :set $taps [])
-    ;; else clear all taps
-    (let [applets (dispatch! :com.phronemophobic.easel/get-applets)
-          $tap-vals (->> applets
-                         vals
-                         (keep :$tap-vals))]
-      (doseq [$taps $tap-vals]
-        (dispatch! :set $taps [])))))
 
-(defui tap-view [{:keys [tap-vals size]}]
+(defui tap-view [{:keys [tap-vals size] :as this}]
   (let [[cw ch] size
-        grid-extra (get extra ::grid)]
+        grid-extra (get extra ::grid)
+        inspector-extras (get extra ::inspectors)]
     (drag-target
      {:$body nil
       :body 
@@ -81,14 +72,14 @@
         (ant/button {:size :small
                      :text "X"
                      :on-click (fn []
-                                 [[:set $tap-vals []]])})
+                                 [[::clear-taps this]])})
         (ant/button {:size :small
                      :text "scroll top"
                      :on-click (fn []
                                  [[:set $grid-extra nil]])}))
        (grid/list-view
         {:row-fn (fn [{:keys [row]}]
-                   (let [inspector-extra (get extra [::inspector row])]
+                   (let [inspector-extra (get inspector-extras row)]
                      (ui/padding 
                       2
                       (viscous/inspector {:obj (nth tap-vals row)
@@ -141,4 +132,23 @@
   (-> (->TapWatcher handler)
       (assoc :label (str "tap watcher") )))
 
+
+(defn ^:private clear-taps [applet]
+  (-> applet
+      (assoc :tap-vals [])
+      (update :extra (fn [extra]
+                       (dissoc extra ::grid ::inspectors)))))
+
+(defeffect ::clear-taps [{:keys [$ref]}]
+  (if $ref
+    (dispatch! :update $ref clear-taps)
+    ;; else clear all taps
+    (let [applets (dispatch! :com.phronemophobic.easel/get-applets)
+          tap-watchers (->> applets
+                            vals
+                            (filter (fn [applet]
+                                      (instance? TapWatcher applet))))]
+      (doseq [tw tap-watchers]
+        (when-let [$ref (:$ref tw)]
+          (dispatch! :update $ref clear-taps))))))
 
