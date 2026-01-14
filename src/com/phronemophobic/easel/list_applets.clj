@@ -53,6 +53,24 @@
                   {:make-applet
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                      #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
+     (button {:text "Clojure Editor"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
+                     #(f % {:source ""
+                            :mode :clojure
+                            :eval-ns (the-ns 'user)}))}]])})
+     (button {:text "Text Editor"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
+                     #(f % {:source ""}))}]])})
      (button {:text "Add Term"
               ;; :hover? (get applet [::hover?])
               :on-click
