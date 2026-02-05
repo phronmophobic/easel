@@ -63,7 +63,8 @@
 (defui tap-view [{:keys [tap-vals size] :as this}]
   (let [[cw ch] size
         grid-extra (get extra ::grid)
-        inspector-extras (get extra ::inspectors)]
+        grid-scroll-state (get grid-extra ::scroll-state)
+        inspector-extras (get grid-extra ::inspectors)]
     (drag-target
      {:$body nil
       :body 
@@ -76,7 +77,16 @@
         (ant/button {:size :small
                      :text "scroll top"
                      :on-click (fn []
-                                 [[:set $grid-extra nil]])}))
+                                 [[:set $grid-extra nil]])})
+        (ant/button {:size :small
+                     :text "scroll bottom"
+                     :on-click (fn []
+                                 [[:update $grid-scroll-state
+                                   (fn [m]
+                                     (prn m)
+                                     (assoc m
+                                            :row-index (dec (count tap-vals))
+                                            :row-offset 0))]])}))
        (grid/list-view
         {:row-fn (fn [{:keys [row]}]
                    (let [inspector-extra (get inspector-extras row)]
@@ -89,6 +99,7 @@
          :num-rows (count tap-vals)
          :width cw
          :height (- ch 80)
+         :scroll-state grid-scroll-state
          :extra grid-extra}))})))
 
 (defn tap-ui [this $context context]
