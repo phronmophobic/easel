@@ -522,9 +522,47 @@
                                  m)))]
     easel))
 
+(defn purge-shared-editors [easel]
+  (let [applets (:applets easel)
+        clobber-applets (into []
+                              (keep (fn [[id applet]]
+                                      (when (instance? ClobberApplet applet)
+                                        applet)))
+                              applets)
+
+        ;; enqueue stopping auto reload
+        unwatches (into []
+                        (comp (map second)
+                              (keep :com.phronemophobic.clobber.modes.clojure.ui/auto-reload-unwatch))
+                        (-> easel 
+                            :shared-applet-state
+                            ::editors))
+        easel (update easel ::easel/queue
+                      (fn [q]
+                        (into (or q [])
+                              unwatches)))
+
+        easel (assoc-in easel
+                        [:shared-applet-state ::editors]
+                        {})
+        
+        easel (transduce
+               (map :id)
+               (completing
+                (fn [easel id]
+                 (model/-remove-applet easel id)))
+               easel
+               clobber-applets)]
+    easel))
+
 (comment
   (tap>
    (-> (clean-up-shared-editors (-> @com.phronemophobic.easel/app-state :easel))
+       :shared-applet-state
+       ::editors))
+  
+  (tap>
+   (-> ( (-> @com.phronemophobic.easel/app-state :easel))
        :shared-applet-state
        ::editors))
   (tap> @com.phronemophobic.easel/app-state)
@@ -536,11 +574,18 @@
 (defeffect ::cleanup-editors [{}]
   (dispatch! ::easel/update-easel clean-up-shared-editors))
 
+(defeffect ::purge-editors [{}]
+  (dispatch! ::easel/update-easel purge-shared-editors))
+
 (defui buffer-viewer [{:keys [editors]}]
   (ui/vertical-layout
-   (ant/button {:text "cleanup"
+   (ui/horizontal-layout
+    (ant/button {:text "cleanup"
                 :on-click (fn []
                             [[::cleanup-editors {}]])})
+    (ant/button {:text "purge"
+                :on-click (fn []
+                            [[::purge-editors {}]])}))
    (ui/table-layout
     (into []
           (map (fn [[editor-id editor]]
