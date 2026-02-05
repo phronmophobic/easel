@@ -253,7 +253,9 @@
   (let [height (nth size 1)
         {:keys [editor ui]} (or
                              (when (:editor editor-info)
-                               editor-info)
+                               (update-in editor-info [:editor ::id]
+                                          (fn [id]
+                                            (or id (random-uuid)))))
                              
                              (when-let [editor-id (or (when-let [f (:file editor-info)]
                                                         (.getCanonicalFile f))
