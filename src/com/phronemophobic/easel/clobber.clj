@@ -91,9 +91,9 @@
                           (= (char key) \S))
                      [[:update $offset 
                        (fn [offset]
-                         (if (>= offset (count matching-applets))
-                           0
-                           (inc offset)))]]))))
+                         (if (> (count matching-applets) 1)
+                           (inc offset)
+                           0))]]))))
              
              :key-press
              (fn [s]
