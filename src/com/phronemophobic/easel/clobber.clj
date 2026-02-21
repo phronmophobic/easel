@@ -388,15 +388,13 @@
   (let [name (cond
                label label
 
-               file
-               (-> (.getCanonicalPath file)
-                   (truncate-string-begin 16))
+               file (.getCanonicalPath file)
+                   
                
-               ns
-               (-> (str ns)
-                   (truncate-string-begin 16))
+               ns (str ns)
                
                :else "Clobber")
+        name (truncate-string-begin name 16)
         m (assoc m :label name)]
     (-> (->ClobberApplet handler m)
       (assoc :label (str name)))))
