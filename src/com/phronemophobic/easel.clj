@@ -877,17 +877,24 @@
   model/IEasel
   (-add-applet [this info]
     (let [{:keys [make-applet pane-id pop-out? from-pane-id]} info
-          applet (make-applet handler)
+          
           id (or (:id info)
                  (inc last-id))
+          
+          applet (make-applet handler)
+          
           new-last-id (if (:id info)
                         last-id
                         id)
           applet (assoc applet :id id)
           root-pane (cond
                       
+                      ;; if already visible, no changes needed.
+                      (-> this ::cached-layout :by-applet-id (contains? id))
+                      root-pane
+                      
                       (and (not pop-out?)
-                             pane-id)
+                           pane-id)
                       (splitpane/edit-pane-by-id root-pane pane-id
                                                  #(assoc % :applet-id id))
                       
@@ -908,10 +915,9 @@
                       :else
                       (splitpane/add-child root-pane {:id (random-uuid)
                                                       :applet-id id}))
-
+          
           this-pane (get-in this [::cached-layout :by-applet-id id])
           new-size [(:width this-pane) (:height this-pane)]]
-
       (-> this
           (assoc :last-id new-last-id)
           (assoc-in [:applets id] applet)
