@@ -177,7 +177,8 @@
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
-                  {:make-applet
+                  {:id @(requiring-resolve 'com.phronemophobic.easel.tap-watcher/id)
+                   :make-applet
                    (fn [handler]
                      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
                       handler))}]])})

@@ -13,6 +13,10 @@
    [com.phronemophobic.membrandt.impl.grid :as grid]
    [com.phronemophobic.membrandt :as ant]))
 
+(def id
+  "Shared applet id for those that want a singleton tap watcher applet."
+  ::id)
+
 (defeffect ::tap-drop-object [drop-object]
   (when-let [x (:x drop-object)]
     (tap> @x)))
