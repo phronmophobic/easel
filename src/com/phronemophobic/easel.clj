@@ -1407,6 +1407,11 @@
 
   (tap> (easel-view @app-state))
   (tap> @app-state)
+  (swap! app-state update :easel
+         (fn [easel]
+           (map->AEasel easel)))
+
+  
 
   ,)
 
