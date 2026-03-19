@@ -394,12 +394,13 @@
 
 
 
-(defn clobber-applet [handler {:keys [file ns string label] :as m}]
+(defn clobber-applet [handler {:keys [file url ns string label] :as m}]
   (let [name (cond
                label label
 
                file (.getCanonicalPath file)
                    
+               url (java.net.URL/.getPath url)
                
                ns (str ns)
                
