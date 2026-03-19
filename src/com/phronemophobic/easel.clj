@@ -878,12 +878,18 @@
   (-add-applet [this info]
     (let [{:keys [make-applet pane-id pop-out? from-pane-id]} info
           
-          id (or (:id info)
+          applet (or (when-let [applet-id (:id info)]
+                       (when-let [applet (get applets applet-id)]
+                         (if-let [update-applet (:update-applet info)]
+                           (update-applet applet)
+                           applet)))
+                     (make-applet handler))
+          id (or (:id applet)
+                 (:id info)
                  (inc last-id))
           
-          applet (make-applet handler)
-          
-          new-last-id (if (:id info)
+          new-last-id (if (or (:id applet)
+                              (:id info))
                         last-id
                         id)
           applet (assoc applet :id id)
