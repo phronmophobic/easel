@@ -63,6 +63,15 @@
                      #(f % {:source ""
                             :mode :clojure
                             :eval-ns (the-ns 'user)}))}]])})
+     (button {:text "Org Editor"
+              ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
+                     #(f % {:source ""
+                            :mode :org}))}]])})
      (button {:text "Text Editor"
               ;; :hover? (get applet [::hover?])
               :on-click
