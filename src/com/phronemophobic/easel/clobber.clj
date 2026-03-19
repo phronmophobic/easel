@@ -26,6 +26,15 @@
 
    [com.phronemophobic.membrandt :as ant]))
 
+(defeffect ::show-tap-watcher [{}]
+  (dispatch!
+   :com.phronemophobic.easel/add-applet
+   {:id @(requiring-resolve 'com.phronemophobic.easel.tap-watcher/id)
+    :make-applet
+    (fn [handler]
+      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
+       handler))}))
+
 
 (defui buffer-selector [{:keys [base-style
                                 buffer-select-state
@@ -286,6 +295,8 @@
 
         editor (assoc editor
                       :label (:label editor-info)
+                      :mx-commands (into (get editor :mx-commands [])
+                                         [::show-tap-watcher])
                       :key-bindings
                       (assoc (:key-bindings editor)
                              "C-x 3" ::split-pane
@@ -315,7 +326,6 @@
        (-> applet
            (assoc :ui ui)
            (assoc ::editor-id editor-id)
-           (assoc ::easel/shared-keys [::editors])
            (assoc :$editor [$shared
                             '(keypath ::editors)
                             (list 'keypath editor-id)]))))
@@ -335,7 +345,7 @@
            :tap-vals []
            :$ref $ref
            :$shared $shared
-
+           ::easel/shared-keys [::editors]
            :size size
            ::model/queue
            [(fn []
