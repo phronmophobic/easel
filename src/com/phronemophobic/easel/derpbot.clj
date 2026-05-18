@@ -228,62 +228,62 @@
                 
                 ;; regular assistant response
                 (let [base-style
-                    #:text-style
-                    {:font-size 18
-                     :height 1.2
-                     :height-override true}
-                    editor (-> (md/make-editor)
-                               (assoc :base-style base-style)
-                               (text-mode/editor-self-insert-command content))
-                    styled-text (try
-                                  (md/editor->styled-text editor)
-                                  (catch Exception e
-                                    (tap> (str (:rope editor)))
-                                    #_(prn e)
-                                    "There was an error displaying the markdown"))]
+                      #:text-style
+                      {:font-size 18
+                       :height 1.2
+                       :height-override true}
+                      editor (-> (md/make-editor)
+                                 (assoc :base-style base-style)
+                                 (text-mode/editor-self-insert-command content))
+                      styled-text (try
+                                    (md/editor->styled-text editor)
+                                    (catch Exception e
+                                      (tap> (str (:rope editor)))
+                                      (prn e)
+                                      "There was an error displaying the markdown"))]
                 
-                (ui/on
-                 ::md/markdown-event
-                 (fn [events]
-                   (into []
-                         (keep (fn [{:keys [type] :as event}]
-                                 (prn event)
-                                 (cond
-                                   (= "uri_autolink" type)
-                                   [:com.phronemophobic.easel/add-applet
-                                    {:make-applet
-                                     (fn [handler]
-                                       ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
-                                        handler
-                                        (:text event)))}]
+                  (ui/on
+                   ::md/markdown-event
+                   (fn [events]
+                     (into []
+                           (keep (fn [{:keys [type] :as event}]
+                                   (prn event)
+                                   (cond
+                                     (= "uri_autolink" type)
+                                     [:com.phronemophobic.easel/add-applet
+                                      {:make-applet
+                                       (fn [handler]
+                                         ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                          handler
+                                          (:text event)))}]
                                    
-                                   (= "link" type)
-                                   [:com.phronemophobic.easel/add-applet
-                                    {:make-applet
-                                     (fn [handler]
-                                       ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
-                                        handler
-                                        (:destination event)))}])))
-                         events)
-                   )
+                                     (= "link" type)
+                                     [:com.phronemophobic.easel/add-applet
+                                      {:make-applet
+                                       (fn [handler]
+                                         ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
+                                          handler
+                                          (:destination event)))}])))
+                           events)
+                     )
                  
                  
-                 (let [para (md/wrap-events
-                             (para/paragraph styled-text
-                                             text-width
-                                             {:paragraph-style/text-style base-style}))
-                       icon
-                       (ui/on
-                        :mouse-down
-                        (fn [_]
-                          [[:clipboard-copy (str (:rope editor))]])
-                        (icon.ui/icon {:name "copy"
-                                           :hover? (get extra [::hover i])}))
-                       [iw ih] (ui/bounds icon )
-                       pw (ui/width para)]
-                   [(ui/translate 0 ih para)
-                    (ui/translate (- pw iw) 0
-                                  icon)]))))
+                   (let [para (md/wrap-events
+                               (para/paragraph styled-text
+                                               text-width
+                                               {:paragraph-style/text-style base-style}))
+                         icon
+                         (ui/on
+                          :mouse-down
+                          (fn [_]
+                            [[:clipboard-copy (str (:rope editor))]])
+                          (icon.ui/icon {:name "copy"
+                                         :hover? (get extra [::hover i])}))
+                         [iw ih] (ui/bounds icon )
+                         pw (ui/width para)]
+                     [(ui/translate 0 ih para)
+                      (ui/translate (- pw iw) 0
+                                    icon)]))))
               ;; else
               (when-let [tool-calls (:tool_calls message)]
                 
@@ -320,11 +320,17 @@
 
 (defrecord Derpbotlet [dispatch! thread-id]
   model/IApplet
-  (-start [this $ref size _content-scale]
+  (-start [this {:keys [$ref size]}]
     (let [
+          editor (text.ui/make-editor)
+          editor (assoc editor
+                        :key-bindings
+                        (assoc (:key-bindings editor)
+                               "S-RET" ::ask))
+          
           ;; interns (ns->interns ns)
           ;; $interns [$ref '(keypath :interns)
-          state {:editor (text-ui/make-editor)
+          state {:editor editor
                  :conversation
                  {:tools (into []
                                (vals @derpbot/tools))
@@ -341,7 +347,7 @@
   (-stop [this]
     nil)
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (derpbot-ui this $context context))
   model/IResizable
   (-resize [this size _content-scale]
