@@ -14,7 +14,9 @@
 (def term-view @#'term/term-view)
 (def repaint! @#'skia/glfw-post-empty-event)
 
-(def term-font
+
+
+(def term-font-default
   (if (skia/font-exists? (ui/font "Menlo" 11))
     (#'term/load-terminal-font skia/toolkit
                                "Menlo"
@@ -33,7 +35,7 @@
            [[:set [$context (list 'keypath :focus)]
              (:id this)]])
          (term-view term/default-color-scheme
-                    term-font
+                    (:term-font this)
                     (:vt this)))
         view (if focus?
                (ui/wrap-on
@@ -87,6 +89,8 @@
     (let [[w h] size
           w (- w 20)
           h (- h 20)
+          term-font (or (:term-font this)
+                        term-font-default)
           ;; enforce min size. current virtual term library struggles with
           ;; very small terminals.
           cols (int
@@ -97,13 +101,16 @@
                      (quot h (:membrane.term/cell-height term-font))))
           cmd-ch (async/chan 20)]
       (assoc this
+             :term-font term-font
              :cmd-ch cmd-ch
              :vt (vt/make-vt cols rows)
              ::model/queue
              [(fn []
                 (async/thread
-                  (let [cmd (into-array String ["/bin/bash" "-l"])
-                        pty-builder (doto (PtyProcessBuilder. cmd)
+                  (let [cmd (or (:cmd this) 
+                                ["/bin/bash" "-l"])
+                        cmd-arr (into-array String cmd)
+                        pty-builder (doto (PtyProcessBuilder. cmd-arr)
                                       (.setInitialColumns cols)
                                       (.setInitialRows rows)
                                       (.setEnvironment (merge (into {} (System/getenv))
@@ -162,6 +169,7 @@
   (-resize [this [w h :as new-size] _content-scale]
     (let [w (- w 20)
           h (- h 20)
+          term-font (:term-font this)
           ;; enforce min size. current virtual term library struggles with
           ;; very small terminals.
           cols (max 80
