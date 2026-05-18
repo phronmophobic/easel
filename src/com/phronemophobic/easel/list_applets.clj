@@ -46,7 +46,6 @@
       {:gap 8
        :align :center})
      (button {:text "Clobber Editor"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -54,7 +53,6 @@
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                      #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
      (button {:text "Clojure Editor"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -64,7 +62,6 @@
                             :mode :clojure
                             :eval-ns (the-ns 'user)}))}]])})
      (button {:text "Org Editor"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -73,7 +70,6 @@
                      #(f % {:source ""
                             :mode :org}))}]])})
      (button {:text "Text Editor"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -81,7 +77,6 @@
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                      #(f % {:source ""}))}]])})
      (button {:text "Add Term"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -89,7 +84,6 @@
 
      (ui/horizontal-layout
       (button {:text "Add browser"
-               ;; :hover? (get applet [::hover?])
                :on-click
                (fn []
                  [[:com.phronemophobic.easel/add-applet
@@ -124,7 +118,6 @@
                      (requiring-resolve 'com.phronemophobic.easel.ui/schema-preview)}]])})
      
      (button {:text "Toolbar"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -134,14 +127,12 @@
                       handler
                       (eval-ns*)))}]])})
      (button {:text "Component Picker"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
                   {:make-applet
                    (requiring-resolve 'com.phronemophobic.easel.schematic2/component-picker-applet)}]])})
      (button {:text "Tree View"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -151,7 +142,6 @@
                       handler
                       (eval-ns*)))}]])})
      (button {:text "Preview"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -161,7 +151,6 @@
                       handler
                       (eval-ns*)))}]])})
      (button {:text "Detail View"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -172,7 +161,6 @@
                       (eval-ns*)))}]])})
 
      (button {:text "NS Watcher"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -182,7 +170,6 @@
                       handler
                       (eval-ns*)))}]])})
      (button {:text "Tap Watcher"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -192,7 +179,6 @@
                      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
                       handler))}]])})
      (button {:text "Derpbot"
-              ;; :hover? (get applet [::hover?])
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -211,37 +197,52 @@
                      ((requiring-resolve 'com.phronemophobic.easel.mic/mic-applet)
                       handler
                       (random-uuid)))}]])})
-     #_(button {:text "Actual Tetris"
+     (button {:text "Super Mario Bros"
               ;; :hover? (get applet [::hover?])
+              :on-click
+              (fn []
+                [[:com.phronemophobic.bowsertalk.retro-api/open-game
+                  {:save/game-path
+                   @(requiring-resolve 'com.phronemophobic.bowsertalk.retro-api/mario-game-path)}]])})
+     (button {:text "Show Slides"
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-component-as-applet
+                  (requiring-resolve
+                   'com.phronemophobic.easel.slides/show-picker)
+                  {}
+                  ]])})
+     (button {:text "File List"
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-component-as-applet
+                  (requiring-resolve
+                   'com.phronemophobic.bowsertalk.retro-api/file-list)
+                  {:folder 
+                   (clojure.java.io/file "roms")}
+                  ]])})
+     (button {:text "Save list"
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-component-as-applet
+                  (requiring-resolve
+                   'com.phronemophobic.bowsertalk.retro-api/save-list)
+                  {}]])})
+     (button {:text "Input Viewer"
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-component-as-applet
+                  (requiring-resolve
+                   'com.phronemophobic.bowsertalk.retro-api/input-viewer)
+                  {}]])})
+     (button {:text "Flow "
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
                   {:make-applet
                    (fn [handler]
-                     ((requiring-resolve 'com.phronemophobic.easel.emulator/emulator-applet)
+                     ((requiring-resolve 'com.phronemophobic.easel.flow/flow-applet)
                       handler))}]])})
-     #_(button {:text "Learn Clojure in 30 minutes"
-              ;; :hover? (get applet [::hover?])
-              :on-click
-              (fn []
-                [[:com.phronemophobic.easel/add-applet
-                  {:make-applet
-                   (fn [handler]
-                     ((requiring-resolve 'com.phronemophobic.easel.video/video-applet)
-                      handler
-                      "Simplicity\nFirehose"
-                      "/var/tmp/firehose/firehose.mp4"))}]])})
-     #_(button {:text "Steamboat Willie"
-              ;; :hover? (get applet [::hover?])
-              :on-click
-              (fn []
-                [[:com.phronemophobic.easel/add-applet
-                  {:make-applet
-                   (fn [handler]
-                     ((requiring-resolve 'com.phronemophobic.easel.video/video-applet)
-                      handler
-                      "Steamboat Willie"
-                      "steamboat-willie.mp4"))}]])})
      #_(button {:text "Klein Bottle"
               ;; :hover? (get applet [::hover?])
               :on-click
