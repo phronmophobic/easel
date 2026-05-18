@@ -686,9 +686,3 @@
 
   ,)
 
-;; update-flow-config
-;; flow-start
-;; flow-pause
-;; flow-resume
-;; flow-stop
-;; applet-stop
