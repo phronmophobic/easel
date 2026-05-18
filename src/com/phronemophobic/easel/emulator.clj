@@ -71,7 +71,10 @@
                         (io/file ".."
                                  "tom7"
                                  "Officially licensed games"
-                                 "Tetris (USA).nes"))
+                                 "Super Mario Bros. + Duck Hunt (USA).nes"
+                                 ;; "The Guardian Legend (USA).nes"
+                                 ;; "Zelda II - The Adventure of Link (USA).nes"
+                                 #_"Tetris (USA).nes"))
                        {:run-with-close-handler
                         (fn [view opts close-handler]
                           (dispatch! :set $close-fn close-handler)
@@ -102,6 +105,6 @@
 
 (defn emulator-applet [handler]
   (-> (->EmulatorWidget handler)
-      (assoc :label (str "Tetris") )))
+      (assoc :label (str "Super Mario Bros") )))
 
 
