@@ -92,6 +92,9 @@
            ^Callable
            f))
 
+(defeffect ::enqueue [{:keys [f]}]
+  (app-enqueue f))
+
 (add-watch app-state ::applet-queue
            (fn [key ref old new]
              (let [has-queue? (not= specter/NONE (specter/select-any QUEUES-PATH new))]
