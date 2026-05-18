@@ -103,19 +103,24 @@
     (let [bs (@@recording)
           f (io/file "/var/tmp/transcribe.mp3")]
       (reset! recording nil)
-      (clj-media/write!
-       (let [format (clj-media/audio-format
-                     {:channel-layout "mono"
-                      :sample-rate 44100
-                      :sample-format :sample-format/s16})]
-         (clj-media/make-media
-          format
-          [(clj-media/make-frame
-            {:format format
-             :bytes bs
-             :time-base 44100
-             :pts 0})]))
-       (.getCanonicalPath f))
+      (try
+        (clj-media/write!
+         (let [format (clj-media/audio-format
+                       {:channel-layout "mono"
+                        :sample-rate 44100
+                        :sample-format :sample-format/s16})]
+           (clj-media/make-media
+            format
+            [(clj-media/make-frame
+              {:format format
+               :bytes bs
+               :time-base 44100
+               :pts 0})]))
+         (.getCanonicalPath f))
+        (catch Exception e
+          (tap> e)
+          (throw e)))
+
       (let [text (derpbot.audio/transcribe-file f)]
         (dispatch! ::text.ui/update-editor
                    {:$editor $editor
