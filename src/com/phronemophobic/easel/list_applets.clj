@@ -45,14 +45,16 @@
                         :size :small})]
       {:gap 8
        :align :center})
-     (button {:text "Clobber Editor"
+     (button {:text "Clojure Editor"
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
                   {:make-applet
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
-                     #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
-     (button {:text "Clojure Editor"
+                     #(f % {:source ""
+                            :mode :clojure
+                            :eval-ns (the-ns 'user)}))}]])})
+     (button {:text "todo"
               :on-click
               (fn []
                 [[:com.phronemophobic.easel/add-applet
@@ -76,6 +78,13 @@
                   {:make-applet
                    (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                      #(f % {:source ""}))}]])})
+     (button {:text "Clobber Editor"
+              :on-click
+              (fn []
+                [[:com.phronemophobic.easel/add-applet
+                  {:make-applet
+                   (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
+                     #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
      (button {:text "Add Term"
               :on-click
               (fn []
