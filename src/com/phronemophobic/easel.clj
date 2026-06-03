@@ -1057,42 +1057,65 @@
                     :panes [{:id (random-uuid)}]}})
       relayout*))
 
-(def tab-height 30)
+(def tab-height 28)
+(def tab-padding 5)
+(def tab-border-radius 5)
 (defui tab-view [{:keys [tabs selected width]}]
   [(ui/spacer width 0)
    (stretch/vlayout
     (map (fn [tab]
-           (let [background (ui/rectangle width tab-height)
+           (let [background 
+                 (ui/rounded-rectangle (- width (* 2 tab-padding))
+                                       tab-height
+                                       tab-border-radius)
                  background (if (selected (:id tab))
+                              [(->> background
+                                    (ui/with-style ::ui/style-stroke)
+                                    (ui/with-stroke-width 2)
+                                    (ui/with-color 
+                                      [0.08627450980392157 0.4666666666666667 1]))
+                               (->> background
+                                   (ui/with-color [1 1 1])
+                                   (ui/with-style ::ui/style-fill))
+                               ]
                               (->> background
-                                   (ui/with-style ::ui/style-stroke)
-                                   (ui/with-color [0.33 0.33 0.33]))
-                              (->> background
-                                   (ui/with-color [0.8 0.8 0.8])
+                                   (ui/with-color [1 1 1])
                                    (ui/with-style ::ui/style-fill)))
+                 para (para/paragraph (:label tab)
+                                      nil
+                                      {:paragraph-style/text-style
+                                       #:text-style
+                                       {:letter-spacing 1
+                                        :font-size 13}})
+
                  lbl (ui/translate 
-                      0 2
+                      (* 2 tab-padding) 2
                       (ui/center
-                       (para/paragraph (:label tab))
-                       (ui/bounds background)))
+                       para
+                       [(ui/width para)
+                        tab-height]))
                  close (ui/on
                         :mouse-down
                         (fn [_]
                           [[:stop (:id tab)]])
                         (icon.ui/icon {:name "delete"
+                                       :size [12 12 ]
+                                       :primary-color "#A7A7A7"
                                        :hover? (get extra [:delete-hover? (:id tab)])}))
                  [close-width close-height] (ui/bounds close)]
-             [(ui/on
-               :mouse-down
-               (fn [_]
-                 [[:toggle (:id tab)]])
-               [background
-                lbl])
-              (ui/translate
-               (- width 20)
-               (- (/ tab-height 2)
-                  (/ close-height 2))
-               close)])))
+             [(ui/translate 
+               tab-padding tab-padding
+               [(ui/on
+                 :mouse-down
+                 (fn [_]
+                   [[:toggle (:id tab)]])
+                 [background
+                  lbl])
+                (ui/translate
+                 (- width (* 4 tab-padding) close-width)
+                 (- (/ tab-height 2)
+                    (/ close-height 2))
+                 close)])])))
     tabs)])
 
 (defeffect ::save-workspace [{:keys [$easel]}]
@@ -1241,58 +1264,62 @@
       intents'))
    body))
 
+(def background-color [0.8784313725490196
+                       0.8784313725490196
+                       0.8784313725490196])
 (def tab-width 150)
 (defui easel-view [{:keys [easel]}]
   (let [[cw ch :as size] (:membrane.stretch/container-size context)]
-    (ui/horizontal-layout
-     (ui/on
-      :toggle
-      (fn [id]
-        [[:update $easel
-          (fn [easel]
-            (let [visible (-> easel ::cached-layout :by-applet-id)
-                  easel (if (contains? visible id)
-                          (model/-hide-applet easel id)
-                          (model/-show-applet easel id))]
-              easel))]])
-      :stop
-      (fn [id]
-        [[:update $easel
-          (fn [easel]
-            (-> easel
-                (model/-remove-applet id)))]])
-      (ui/vertical-layout
-       (tab-view {:tabs (vals (model/-applets easel))
-                  :selected (-> easel ::cached-layout :by-applet-id)
-                  :width tab-width})
-       (add-$easel
-        $easel
-        #{::save-workspace
-          ::clear-workspace
-          ::select-workspace
-          ::delete-workspace}
-        (workspace-view {:workspaces (:workspaces easel)
-                         :width tab-width}))))
-     (add-$easel
-      $easel
-      #{::toggle-pane-direction
-        ::add-pane-child
-        ::delete-pane
-        ::close-other-panes
-        ::hide-pane
-        ::clear-pane
-        ::splitpane
-        ::swap-panes
-        ::set-pane-applet-id
-        ::toggle-pane-resize
-        ::begin-resize-drag
-        ::resize-drag
-        ::end-resize-drag}
-      (dnd/drag-and-drop
-       {:$body nil
-        :body
-        (model/-ui easel {:context context
-                          :$context $context})})))))
+    [(ui/filled-rectangle background-color cw ch)
+     (ui/horizontal-layout
+      (ui/on
+       :toggle
+       (fn [id]
+         [[:update $easel
+           (fn [easel]
+             (let [visible (-> easel ::cached-layout :by-applet-id)
+                   easel (if (contains? visible id)
+                           (model/-hide-applet easel id)
+                           (model/-show-applet easel id))]
+               easel))]])
+       :stop
+       (fn [id]
+         [[:update $easel
+           (fn [easel]
+             (-> easel
+                 (model/-remove-applet id)))]])
+       (ui/vertical-layout
+        (tab-view {:tabs (vals (model/-applets easel))
+                   :selected (-> easel ::cached-layout :by-applet-id)
+                   :width tab-width})
+        (add-$easel
+         $easel
+         #{::save-workspace
+           ::clear-workspace
+           ::select-workspace
+           ::delete-workspace}
+         (workspace-view {:workspaces (:workspaces easel)
+                          :width tab-width}))))
+      (add-$easel
+       $easel
+       #{::toggle-pane-direction
+         ::add-pane-child
+         ::delete-pane
+         ::close-other-panes
+         ::hide-pane
+         ::clear-pane
+         ::splitpane
+         ::swap-panes
+         ::set-pane-applet-id
+         ::toggle-pane-resize
+         ::begin-resize-drag
+         ::resize-drag
+         ::end-resize-drag}
+       (dnd/drag-and-drop
+        {:$body nil
+         :body
+         (model/-ui easel {:context context
+                           :$context $context})})))]))
 
 
 (defn ^:private easel-present [view]
