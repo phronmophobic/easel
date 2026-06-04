@@ -3,6 +3,7 @@
    [com.phronemophobic.easel.model :as model]
    [membrane.basic-components :as basic]
    [com.phronemophobic.membrandt :as ant]
+   [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [membrane.skia.paragraph :as para]
    [membrane.component
     :refer [defui defeffect]]
@@ -12,17 +13,24 @@
 
 
 (defui button [{:keys [text on-click]}]
-  (ui/horizontal-layout
-   (ant/button {:text text
-                :size :small
-                :on-click on-click})
-   (ui/on
-    :com.phronemophobic.easel/add-applet
-    (fn [m]
-      [[:com.phronemophobic.easel/add-applet (assoc m :pop-out? true)]])
-    (ant/button {:text "\u2197"
+  (ui/flex-layout
+   [(ant/button {:text text
                  :size :small
-                 :on-click on-click}))))
+                 :on-click on-click})
+    (ui/on
+     :com.phronemophobic.easel/add-applet
+     (fn [m]
+       [[:com.phronemophobic.easel/add-applet (assoc m :pop-out? true)]])
+     (ui/on
+      :mouse-down
+      (fn [_]
+        (on-click))
+      (icon.ui/icon {:name "export"})
+      #_(ant/button {:text "\u2197"
+                  :size :small
+                  :on-click on-click})))]
+   {:gap 5
+    :align :center}))
 
 (defui list-applets [{:keys [shared-state]}]
   (let [url (get shared-state ::url "https://duckduckgo.com")
@@ -56,7 +64,6 @@
                       #(f % {:source ""
                              :mode :clojure
                              :eval-ns (the-ns 'user)}))}]])})
-
       (button {:text "Org Editor"
                :on-click
                (fn []
@@ -95,7 +102,7 @@
                        ((requiring-resolve 'com.phronemophobic.easel.browser/browslet)
                         handler
                         url))}]])})
-       (ant/text-input {:text url
+       #_(ant/text-input {:text url
                         :size :small})
        #_(basic/textarea {:text url}))
       #_(button {:text "Add Schematic"
