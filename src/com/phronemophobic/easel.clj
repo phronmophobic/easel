@@ -1125,7 +1125,9 @@
                  (ui/rounded-rectangle (- width (* 2 tab-padding))
                                        tab-height
                                        tab-border-radius)
-                 background (if (selected (:id tab))
+                 hover? (get extra [::hover (:id tab)])
+                 background (cond
+                              (selected (:id tab))
                               [(->> background
                                     (ui/with-style ::ui/style-stroke)
                                     (ui/with-stroke-width 2)
@@ -1134,6 +1136,17 @@
                                (->> background
                                    (ui/with-color [1 1 1])
                                    (ui/with-style ::ui/style-fill))]
+                              hover?
+                              [(->> background
+                                    (ui/with-style ::ui/style-stroke)
+                                    (ui/with-stroke-width 4)
+                                    (ui/with-color 
+                                     [0.7 0.7 0.7  ]))
+                               (->> background
+                                   (ui/with-color [1 1 1])
+                                    (ui/with-style ::ui/style-fill))]
+                              
+                              :else
                               (->> background
                                    (ui/with-color [1 1 1])
                                    (ui/with-style ::ui/style-fill)))
@@ -1159,19 +1172,23 @@
                                        :primary-color "#A7A7A7"
                                        :hover? (get extra [:delete-hover? (:id tab)])}))
                  [close-width close-height] (ui/bounds close)]
-             [(ui/translate 
-               tab-padding tab-padding
-               [(ui/on
-                 :mouse-down
-                 (fn [_]
-                   [[:toggle (:id tab)]])
-                 [background
-                  lbl])
-                (ui/translate
-                 (- width (* 4 tab-padding) close-width)
-                 (- (/ tab-height 2)
-                    (/ close-height 2))
-                 close)])])))
+             (basic/on-hover
+              {:hover? hover?
+               :$body nil
+               :body
+               [(ui/translate 
+                 tab-padding tab-padding
+                 [(ui/on
+                   :mouse-down
+                   (fn [_]
+                     [[:toggle (:id tab)]])
+                   [background
+                    lbl])
+                  (ui/translate
+                   (- width (* 4 tab-padding) close-width)
+                   (- (/ tab-height 2)
+                      (/ close-height 2))
+                   close)])]}))))
     tabs)])
 
 (defeffect ::save-workspace [{:keys [$easel]}]
