@@ -26,6 +26,8 @@
 
    [com.phronemophobic.membrandt :as ant]))
 
+(def ^:private editor-padding 5)
+
 (defeffect ::show-tap-watcher [{}]
   (dispatch!
    :com.phronemophobic.easel/add-applet
@@ -250,17 +252,19 @@
         body))))
 
 (defn clobber-ui [this ui-info]
-  (clobber-ui* {:this this
-                :$this [(:$ref this)]
-                :shared (:shared ui-info)
-                :$shared (:$shared ui-info)
-                :context (:context ui-info)
-                :$context (:$context ui-info)}))
+  (ui/translate
+   editor-padding
+   editor-padding
+   (clobber-ui* {:this this
+                 :$this [(:$ref this)]
+                 :shared (:shared ui-info)
+                 :$shared (:$shared ui-info)
+                 :context (:context ui-info)
+                 :$context (:$context ui-info)})))
 
 
 (defn load-editor [{:keys [dispatch! id $ref editor-info size shared $shared $focus]}]
-  (let [height (nth size 1)
-        {:keys [editor ui]} (or
+  (let [{:keys [editor ui]} (or
                              (when (:editor editor-info)
                                (update-in editor-info [:editor ::id]
                                           (fn [id]
@@ -308,10 +312,12 @@
                              "C-x 0" ::hide-pane))
 
         [width height] size
+        editor-width (max 0 (- width (* 2 editor-padding)))
+        editor-height (max 0 (- height (* 2 editor-padding)))
         editor (-> editor
-                   (clobber.util.ui/editor-set-height height)
-                   (assoc :width width
-                          :height height)
+                   (clobber.util.ui/editor-set-height editor-height)
+                   (assoc :width editor-width
+                          :height editor-height)
                    (text-mode/editor-update-viewport)
                    (make-active id))
         $editor [$shared (list 'keypath ::editors) (list 'keypath editor-id)]]
@@ -362,7 +368,9 @@
     (clobber-ui this ui-info))
   model/IResizable
   (-resize [this size _content-scale]
-    (let [[width height] size]
+    (let [[width height] size
+          editor-width (max 0 (- width (* 2 editor-padding)))
+          editor-height (max 0 (- height (* 2 editor-padding)))]
       (-> this
           (assoc :size size)
           (update ::model/queue
@@ -378,9 +386,9 @@
                              (dispatch! :update $editor
                                         (fn [editor]
                                           (-> editor
-                                              (clobber.util.ui/editor-set-height height)
-                                              (assoc :width width)
-                                              (assoc :height height)))))))])))))))
+                                              (clobber.util.ui/editor-set-height editor-height)
+                                              (assoc :width editor-width)
+                                              (assoc :height editor-height)))))))])))))))
 
 (defn ^:private truncate-string-end [s n]
   (if (> (count s) n)
