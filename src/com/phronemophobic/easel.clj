@@ -321,43 +321,80 @@
 (defui top-bar [{:keys [pane]}]
   (let [drop-object (:drop-object context)
         pane-id (:id pane)
+        
+        bar-height 20
+        icon-size [14 14 ]
         bar
-        (ui/horizontal-layout
-         (ui/on-click
-          (fn []
-            [[::toggle-pane-direction {:pane-id pane-id}]])
-          (if (= (:direction pane) :column)
-            (icon.ui/icon {:name "column-height"})
-            (icon.ui/icon {:name "column-width"})))
-         (ui/on-click
-          (fn []
-            [[::splitpane {:pane-id pane-id}]])
-          (icon.ui/icon {:name "plus"}))
-         (when (not= ::root-pane pane-id)
-           (ui/on-click
-            (fn []
-              [[::hide-pane {:pane-id pane-id}]])
-            (icon.ui/icon {:name "close"})))
-         (ui/on-click
-            (fn []
-              [[::clear-pane {:pane-id pane-id}]])
-            (icon.ui/icon {:name "minus-square"}))
-         (when (= ::root-pane pane-id)
-           (ui/on-click
-            (fn []
-              [[::toggle-pane-resize {:pane-id pane-id}]])
-            (icon.ui/icon {:name "edit"})))
-         (ui/on-click
-          (fn []
-            [[::share-pane {:pane pane}]])
-          (icon.ui/icon {:name "share-alt"}))
-         (ui/on-click
-          (fn []
-            [[::share-ui {:pane pane}]])
-          (icon.ui/icon {:name "deployment-unit"})))
-        height (ui/height bar)
+        (ui/flex-layout
+         (into []
+               (remove nil?)
+               [(ui/on-click
+                 (fn []
+                   [[::toggle-pane-direction {:pane-id pane-id}]])
+                 (if (= (:direction pane) :column)
+                   (icon.ui/icon {:name "column-height"
+                                  :size icon-size
+                                  :primary-color "white"})
+                   (icon.ui/icon {:name "column-width"
+                                  :size icon-size
+                                  :primary-color "white"})))
+                (ui/on-click
+                 (fn []
+                   [[::splitpane {:pane-id pane-id}]])
+                 (icon.ui/icon {:name "plus"
+                                :size icon-size
+                                :primary-color "white"}))
+                (when (not= ::root-pane pane-id)
+                  (ui/on-click
+                   (fn []
+                     [[::hide-pane {:pane-id pane-id}]])
+                   (icon.ui/icon {:name "close"
+                                  :size icon-size
+                                  :primary-color "white"})))
+                (ui/on-click
+                 (fn []
+                   [[::clear-pane {:pane-id pane-id}]])
+                 (icon.ui/icon {:name "minus"
+                                :size icon-size
+                                :primary-color "white"}))
+                (when (= ::root-pane pane-id)
+                  (ui/on-click
+                   (fn []
+                     [[::toggle-pane-resize {:pane-id pane-id}]])
+                   (icon.ui/icon {:name "edit"
+                                  :size icon-size
+                                  :primary-color "white"})))
+                (ui/on-click
+                 (fn []
+                   [[::share-pane {:pane pane}]])
+                 (icon.ui/icon {:name "share-alt"
+                                :size icon-size
+                                :primary-color "white"}))
+                (ui/on-click
+                 (fn []
+                   [[::share-ui {:pane pane}]])
+                 (icon.ui/icon {:name "deployment-unit"
+                                :size icon-size
+                                :primary-color "white"}))]
+               )
+          {:gap tab-padding
+           :height bar-height
+           :align :center})
+        bar (ui/padding 0 tab-padding 0 tab-padding bar)
+        
+        
+        bar-width (ui/width bar)
 
-        drag-object (get extra ::drag-object)]
+        drag-object (get extra ::drag-object)
+        bar-background (->> [(ui/rounded-rectangle 
+                              bar-width bar-height
+                              tab-border-radius)
+                             (ui/translate 0 (- bar-height tab-border-radius)
+                                           (ui/rectangle tab-border-radius tab-border-radius))
+                             (ui/translate (- bar-width tab-border-radius) 0
+                                           (ui/rectangle tab-border-radius tab-border-radius))]
+                            (ui/with-style ::ui/style-fill)
+                            (ui/with-color [0.8 0.8 0.8]))]
     [(ui/on
       :mouse-down
       (fn [_]
@@ -373,12 +410,8 @@
               (when-let [drop-pane (::pane obj)]
                 [[::swap-panes {:from-pane-id (:id drop-pane)
                                 :to-pane-id (:id pane)}]]))
-            (ui/filled-rectangle
-             [0.8 0.8 0.8]
-             (:width pane) height)))
-         (ui/with-style ::ui/style-stroke
-           (ui/with-color [0.33 0.33 0.33]
-            (ui/rectangle (:width pane) height)))]
+            bar-background))
+         bar-background]
         :object drag-object}))
      bar]))
 
@@ -386,7 +419,9 @@
 
 (defn relayout* [easel]
   (let [root-pane (:root-pane easel)]
-    (model/-resize easel [(:width root-pane) (:height root-pane)] (:content-scale easel))))
+    (model/-resize easel
+                   (:size easel)
+                   (:content-scale easel))))
 
 (defeffect ::toggle-pane-direction [{:keys [$easel pane-id]}]
   (dispatch!
@@ -759,16 +794,22 @@
                                           :extra bar-extra
                                           :$extra $bar-extra
                                           :context context
-                                          :$context $context})]
+                                          :$context $context})
+
+                            border (->> (ui/rounded-rectangle (:width pane) (:height pane) tab-border-radius)
+                                        (ui/with-style ::ui/style-stroke)
+                                        (ui/with-color [0.8 0.8 0.8]))]
                         (if (seq (:panes pane))
                           ;; non-leaf
                           (ui/translate (:x pane)
                                         (:y pane)
-                                        bar)
+                                        [bar
+                                         border])
                           ;; else, leaf node
                           (ui/translate (long (:x pane))
                                         (long (:y pane))
-                                        (ui/vertical-layout
+                                        [border
+                                         (ui/vertical-layout
                                          (ui/on ::share-ui
                                                 (fn [m]
                                                   (when-let [applet (get applets (:applet-id pane))]
@@ -858,12 +899,19 @@
                                                                            :extra list-applets-extra
                                                                            :$extra $list-applets-extra
                                                                            :context context
-                                                                           :$context $context})))))))))))
+                                                                           :$context $context}))))))])))))
               (-> easel ::cached-layout :all-panes))
         main-view (if (::pane-resize root-pane)
                     (ui/no-events main-view)
-                    main-view)]
-    [main-view
+                    main-view)
+
+        main-width (:width root-pane)
+        main-height (:height root-pane)
+        background (->> (ui/rounded-rectangle main-width main-height tab-border-radius)
+                        (ui/with-color [1 1 1]))]
+    [background
+     
+     main-view
      (when (::pane-resize root-pane)
        (when-let [root-pane-layout (-> easel ::cached-layout :root-pane-layout)]
          (pane-resizer {:root-pane root-pane-layout
@@ -982,7 +1030,10 @@
     applets)
   model/IResizable
   (-resize [this [w h] content-scale]
-    (let [root-pane (if (empty? (:panes root-pane))
+    (let [new-size [w h]
+          w (- w (* tab-padding 2))
+          h (- h (* tab-padding 2))
+          root-pane (if (empty? (:panes root-pane))
                       ;; ensure that root pane can't be edited.
                       (splitpane/add-child root-pane {:id (random-uuid)})
                       ;; pane already has children
@@ -990,7 +1041,13 @@
           root-pane (-> root-pane
                         (assoc :width w
                                :height h))
-          root-pane-layout (splitpane/layout-pane-nested root-pane top-bar-height)
+          root-pane-layout (splitpane/layout-pane-nested root-pane
+                                                         top-bar-height
+                                                         tab-padding
+                                                         tab-padding
+                                                         tab-padding
+                                                         tab-padding)
+
           all-panes (splitpane/flatten-pane-nested root-pane-layout)
           cached-layout {:all-panes all-panes
                          :root-pane-layout root-pane-layout
@@ -1002,7 +1059,7 @@
                                all-panes)}
 
           this (assoc this
-                      ;; :size [w h]
+                      :size new-size
                       :root-pane root-pane
                       ::cached-layout cached-layout
                       :content-scale content-scale)
@@ -1076,8 +1133,7 @@
                                       [0.08627450980392157 0.4666666666666667 1]))
                                (->> background
                                    (ui/with-color [1 1 1])
-                                   (ui/with-style ::ui/style-fill))
-                               ]
+                                   (ui/with-style ::ui/style-fill))]
                               (->> background
                                    (ui/with-color [1 1 1])
                                    (ui/with-style ::ui/style-fill)))
@@ -1300,26 +1356,28 @@
            ::delete-workspace}
          (workspace-view {:workspaces (:workspaces easel)
                           :width tab-width}))))
-      (add-$easel
-       $easel
-       #{::toggle-pane-direction
-         ::add-pane-child
-         ::delete-pane
-         ::close-other-panes
-         ::hide-pane
-         ::clear-pane
-         ::splitpane
-         ::swap-panes
-         ::set-pane-applet-id
-         ::toggle-pane-resize
-         ::begin-resize-drag
-         ::resize-drag
-         ::end-resize-drag}
-       (dnd/drag-and-drop
-        {:$body nil
-         :body
-         (model/-ui easel {:context context
-                           :$context $context})})))]))
+      (ui/translate 
+       0 tab-padding
+       (add-$easel
+        $easel
+        #{::toggle-pane-direction
+          ::add-pane-child
+          ::delete-pane
+          ::close-other-panes
+          ::hide-pane
+          ::clear-pane
+          ::splitpane
+          ::swap-panes
+          ::set-pane-applet-id
+          ::toggle-pane-resize
+          ::begin-resize-drag
+          ::resize-drag
+          ::end-resize-drag}
+        (dnd/drag-and-drop
+         {:$body nil
+          :body
+          (model/-ui easel {:context context
+                            :$context $context})}))))]))
 
 
 (defn ^:private easel-present [view]

@@ -144,6 +144,8 @@
   ([direction]
    (stack-layout direction 0))
   ([direction initial-offset]
+   (stack-layout direction initial-offset 0))
+  ([direction initial-offset between]
    (let [offset* (volatile! initial-offset)
          get-size (if (= :column direction)
                     :height
@@ -157,7 +159,7 @@
          ([result] (rf result))
          ([result input]
           (let [offset @offset*]
-            (vreset! offset* (+ offset (get-size input)))
+            (vreset! offset* (+ offset between (get-size input)))
             (rf result (set-coord input offset)))))))))
 
 (defn add-child [pane child]
@@ -168,59 +170,66 @@
 
 (defn layout-pane-nested
   "Returns pane structure with :width or :height key filled in. Leaves space for a top bar"
-  [pane top-bar-height]
-  (let [subpanes (:panes pane)]
-    (if (seq subpanes)
-      (let [direction (:direction pane)
-            size (get-size pane direction)
-            cross-size (get-cross-size pane direction)
-
-            column? (= :column direction)
-            [size cross-size] (if column?
-                                [(max 0 (- size top-bar-height))
-                                 cross-size]
-                                [size
-                                 (max 0 (- cross-size top-bar-height))])
-
-            {:keys [stretch-total size-total]}
-            (persistent!
-             (reduce
-              (fn [m subpane]
-                (if-let [size (get-size subpane direction)]
-                  (assoc! m :size-total (+ (:size-total m)
-                                           size))
-                  (let [stretch (or (get-stretch subpane direction)
-                                    1)]
-                    (assoc! m :stretch-total (+ (:stretch-total m)
-                                                stretch)))))
-              (transient
-               {:stretch-total 0
-                :size-total 0})
-              subpanes))
-
-            stretch-size (max 0 (- size size-total))]
-
-        (assoc pane
-               :panes (into []
-                            (comp
-                             (map (fn [pane]
-                                    (let [pane (if (get-size pane direction)
-                                                 pane
-                                                 (let [stretch (or (get-stretch pane direction)
-                                                                   1)]
-                                                   (set-size pane direction (* stretch-size (/ stretch stretch-total)))))]
-                                      (set-cross-size pane direction cross-size))))
-                             (if column?
-                               (comp (stack-layout (:direction pane) top-bar-height)
-                                     (map (fn [pane]
-                                            (assoc pane :x 0))))
-                               (comp (stack-layout (:direction pane))
-                                     (map (fn [pane]
-                                            (assoc pane :y top-bar-height)))))
-                             (map #(layout-pane-nested % top-bar-height)))
-                            subpanes)))
-      ;; leaf node with no children
-      pane)))
+  ([pane top right bottom left]
+   (layout-pane-nested pane 0 top right bottom left))
+  ([pane 
+    top-bar-height
+    
+    top right bottom left 
+    ]
+   (let [subpanes (:panes pane)]
+     (if (seq subpanes)
+       (let [num-subpanes (count subpanes)
+             direction (:direction pane)
+             size (get-size pane direction)
+             cross-size (get-cross-size pane direction)
+             
+             column? (= :column direction)
+             [size cross-size] (if column?
+                                 [(max 0 (- size top-bar-height (* num-subpanes (+ top bottom))))
+                                  (max 0 (- cross-size left right))]
+                                 [(max 0 (- size (* num-subpanes (+ left right))))
+                                  (max 0 (- cross-size top-bar-height top bottom))])
+             
+             {:keys [stretch-total size-total]}
+             (persistent!
+              (reduce
+               (fn [m subpane]
+                 (if-let [size (get-size subpane direction)]
+                   (assoc! m :size-total (+ (:size-total m)
+                                            size))
+                   (let [stretch (or (get-stretch subpane direction)
+                                     1)]
+                     (assoc! m :stretch-total (+ (:stretch-total m)
+                                                 stretch)))))
+               (transient
+                {:stretch-total 0
+                 :size-total 0})
+               subpanes))
+             
+             stretch-size (max 0 (- size size-total))]
+         
+         (assoc pane
+                :panes (into []
+                             (comp
+                              (map (fn [pane]
+                                     (let [pane (if (get-size pane direction)
+                                                  pane
+                                                  (let [stretch (or (get-stretch pane direction)
+                                                                    1)]
+                                                    (set-size pane direction (* stretch-size (/ stretch stretch-total)))))]
+                                       (set-cross-size pane direction cross-size))))
+                              (if column?
+                                (comp (stack-layout (:direction pane) (+ top top-bar-height) (+ bottom top))
+                                      (map (fn [pane]
+                                             (assoc pane :x left))))
+                                (comp (stack-layout (:direction pane) left (+ right left ))
+                                      (map (fn [pane]
+                                             (assoc pane :y (+ top top-bar-height))))))
+                              (map #(layout-pane-nested % top-bar-height left right top bottom)))
+                             subpanes)))
+       ;; leaf node with no children
+       pane))))
 
 (defn pane->view [pane]
   (loop [view (transient [])
