@@ -186,9 +186,9 @@
              
              column? (= :column direction)
              [size cross-size] (if column?
-                                 [(max 0 (- size top-bar-height (* num-subpanes (+ top bottom))))
+                                 [(max 0 (- size top-bar-height top (* num-subpanes (+ #_top bottom))))
                                   (max 0 (- cross-size left right))]
-                                 [(max 0 (- size (* num-subpanes (+ left right))))
+                                 [(max 0 (- size left (* num-subpanes (+ #_left right))))
                                   (max 0 (- cross-size top-bar-height top bottom))])
              
              {:keys [stretch-total size-total]}
@@ -220,10 +220,10 @@
                                                     (set-size pane direction (* stretch-size (/ stretch stretch-total)))))]
                                        (set-cross-size pane direction cross-size))))
                               (if column?
-                                (comp (stack-layout (:direction pane) (+ top top-bar-height) (+ bottom top))
+                                (comp (stack-layout (:direction pane) (+ top top-bar-height) (+ bottom #_top))
                                       (map (fn [pane]
                                              (assoc pane :x left))))
-                                (comp (stack-layout (:direction pane) left (+ right left ))
+                                (comp (stack-layout (:direction pane) left (+ right #_left ))
                                       (map (fn [pane]
                                              (assoc pane :y (+ top top-bar-height))))))
                               (map #(layout-pane-nested % top-bar-height left right top bottom)))

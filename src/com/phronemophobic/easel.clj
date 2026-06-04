@@ -1042,7 +1042,7 @@
                         (assoc :width w
                                :height h))
           root-pane-layout (splitpane/layout-pane-nested root-pane
-                                                         top-bar-height
+                                                         (+ tab-padding top-bar-height)
                                                          tab-padding
                                                          tab-padding
                                                          tab-padding
@@ -1154,7 +1154,7 @@
                                       nil
                                       {:paragraph-style/text-style
                                        #:text-style
-                                       {:letter-spacing 1
+                                       {:letter-spacing 0.4
                                         :font-size 13}})
 
                  lbl (ui/translate 
@@ -1168,7 +1168,7 @@
                         (fn [_]
                           [[:stop (:id tab)]])
                         (icon.ui/icon {:name "delete"
-                                       :size [12 12 ]
+                                       :size [12 12]
                                        :primary-color "#A7A7A7"
                                        :hover? (get extra [:delete-hover? (:id tab)])}))
                  [close-width close-height] (ui/bounds close)]
@@ -1185,7 +1185,7 @@
                    [background
                     lbl])
                   (ui/translate
-                   (- width (* 4 tab-padding) close-width)
+                   (- width 30)
                    (- (/ tab-height 2)
                       (/ close-height 2))
                    close)])]}))))
