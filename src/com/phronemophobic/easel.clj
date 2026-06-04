@@ -1275,7 +1275,9 @@
 
 (defui workspace-view [{:keys [workspaces width]}]
   (ui/vertical-layout
-   (ui/horizontal-layout
+   (ui/translate
+    tab-padding (* 2 tab-padding)
+    (ui/horizontal-layout
     (ui/on-click
      (fn []
        [[::save-workspace {}]])
@@ -1283,7 +1285,7 @@
     (ui/on-click
      (fn []
        [[::clear-workspace {}]])
-     (icon.ui/icon {:name "minus-circle"})))
+     (icon.ui/icon {:name "minus-circle"}))))
    (let [by-id (:by-id workspaces)]
      (stretch/vlayout
       (map (fn [workspace-id]
