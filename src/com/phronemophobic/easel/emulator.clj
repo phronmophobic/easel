@@ -39,7 +39,8 @@
 
 
 (defn hud [iretro pm]
-  (ui/vertical-layout
+  pm
+  #_(ui/vertical-layout
    (ui/horizontal-layout
     #_(ui/button "save"
                  (fn []
