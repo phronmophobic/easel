@@ -28,6 +28,10 @@
             ExecutorService
             Executors)))
 
+(def tab-height 28)
+(def tab-padding 5)
+(def tab-border-radius 5)
+
 (def repaint! @#'skia/glfw-post-empty-event)
 
 (defonce app-state
@@ -1106,6 +1110,7 @@
         :shared-applet-state {}
         :last-id 0
         ::extra {}
+        :size [787 847]
         :workspaces {:by-id {}
                      :last-id 0}
         :root-pane {:id ::root-pane
@@ -1114,9 +1119,7 @@
                     :panes [{:id (random-uuid)}]}})
       relayout*))
 
-(def tab-height 28)
-(def tab-padding 5)
-(def tab-border-radius 5)
+
 (defui tab-view [{:keys [tabs selected width]}]
   [(ui/spacer width 0)
    (stretch/vlayout
@@ -1345,7 +1348,7 @@
 (def tab-width 150)
 (defui easel-view [{:keys [easel]}]
   (let [[cw ch :as size] (:membrane.stretch/container-size context)]
-    [(ui/filled-rectangle background-color cw ch)
+    [(when size (ui/filled-rectangle background-color cw ch))
      (ui/horizontal-layout
       (ui/on
        :toggle
@@ -1527,4 +1530,3 @@
   
 
   ,)
-
