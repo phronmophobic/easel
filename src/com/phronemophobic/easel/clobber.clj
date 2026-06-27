@@ -12,6 +12,7 @@
    [clojure.set :as set]
    [clojure.string :as str]
    [com.phronemophobic.easel.splitpane :as splitpane]
+   [com.phronemophobic.easel.fidgit :as fidget]
    [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
    [com.phronemophobic.clobber.editor :as clobber-editor]  
@@ -303,6 +304,7 @@
                                          [::show-tap-watcher])
                       :key-bindings
                       (assoc (:key-bindings editor)
+                             "C-x g" ::fidget/open-fidget
                              "C-x 3" ::split-pane
                              "C-x k" ::delete-pane
                              "C-x b" ::show-select-buffer
@@ -653,4 +655,3 @@
   
   (show-buffer-viewer)
   ,)
-
