@@ -64,7 +64,7 @@
                       #(f % {:source ""
                              :mode :clojure
                              :eval-ns (the-ns 'user)}))}]])})
-      (button {:text "Org Editor"
+       (button {:text "Org Editor"
                :on-click
                (fn []
                  [[:com.phronemophobic.easel/add-applet
@@ -86,11 +86,27 @@
                    {:make-applet
                     (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                       #(f % {:ns 'com.phronemophobic.clobber.modes.clojure.ui}))}]])})
-      (button {:text "Add Term"
+       (button {:text "Tap Watcher"
                :on-click
                (fn []
                  [[:com.phronemophobic.easel/add-applet
-                   {:make-applet (requiring-resolve 'com.phronemophobic.easel.term/termlet)}]])})
+                   {:id @(requiring-resolve 'com.phronemophobic.easel.tap-watcher/id)
+                    :make-applet
+                    (fn [handler]
+                      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
+                       handler))}]])})
+       (button {:text "Add Term"
+                :on-click
+                (fn []
+                  [[:com.phronemophobic.easel/add-applet
+                    {:make-applet (requiring-resolve 'com.phronemophobic.easel.term/termlet)}]])})
+       (button {:text "Search"
+                :on-click
+                (fn []
+                  [[:com.phronemophobic.easel/add-applet
+                    {:make-applet
+                     (fn [handler]
+                       ((requiring-resolve 'com.phronmophobic.inquery/search-applet) handler {:query ""}))}]])})
       
       (ui/horizontal-layout
        (button {:text "Add browser"
@@ -179,15 +195,7 @@
                       ((requiring-resolve 'com.phronemophobic.easel.ns-watcher/ns-watcher-applet)
                        handler
                        (eval-ns*)))}]])})
-      (button {:text "Tap Watcher"
-               :on-click
-               (fn []
-                 [[:com.phronemophobic.easel/add-applet
-                   {:id @(requiring-resolve 'com.phronemophobic.easel.tap-watcher/id)
-                    :make-applet
-                    (fn [handler]
-                      ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
-                       handler))}]])})
+       
       (button {:text "Derpbot"
                :on-click
                (fn []
