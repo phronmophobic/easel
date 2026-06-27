@@ -1367,7 +1367,9 @@
              (-> easel
                  (model/-remove-applet id)))]])
        (ui/vertical-layout
-        (tab-view {:tabs (vals (model/-applets easel))
+        (tab-view {:tabs (into []
+                               (map #(select-keys % [:id :label]))
+                               (vals (model/-applets easel)))
                    :selected (-> easel ::cached-layout :by-applet-id)
                    :width tab-width})
         (add-$easel
