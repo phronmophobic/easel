@@ -228,11 +228,19 @@
         editor (clobber.text/editor-goto-line editor line)
         end-byte (-> editor :cursor :byte)
         
+        extent {:start-byte-offset start-byte
+                :end-byte-offset end-byte}
         chunk-text (clobber.util.ui/styled-text (:rope editor)
                                                 (:base-style editor)
-                                                [(cui/syntax-style editor 
-                                                                   {:start-byte-offset start-byte
-                                                                    :end-byte-offset end-byte})]
+                                                [(if (= (::mode editor) :clojure)
+                                                   (cui/syntax-style editor extent)
+                                                   (when (:tree editor)
+                                                     (when-let [query (:query editor)]
+                                                       (when-let [theme (:theme editor)]
+                                                         (clobber.util.ui/syntax-style editor
+                                                                                       query
+                                                                                       theme
+                                                                                       extent)))))]
                                                 start-byte
                                                 end-byte)]
     [editor (into text chunk-text)]))
@@ -248,11 +256,19 @@
 
         end-byte (-> editor :cursor :byte)
         
+        extent {:start-byte-offset start-byte
+                :end-byte-offset end-byte}
         chunk-text (clobber.util.ui/styled-text (:rope editor)
                                                 (:base-style editor)
-                                                [(cui/syntax-style editor 
-                                                                   {:start-byte-offset start-byte
-                                                                    :end-byte-offset end-byte})]
+                                                [(if (= (::mode editor) :clojure)
+                                                   (cui/syntax-style editor extent)
+                                                   (when (:tree editor)
+                                                     (when-let [query (:query editor)]
+                                                       (when-let [theme (:theme editor)]
+                                                         (clobber.util.ui/syntax-style editor
+                                                                                       query
+                                                                                       theme
+                                                                                       extent)))))]
                                                 start-byte
                                                 end-byte)
 
@@ -282,10 +298,19 @@
                  (inc cnt)
                  cnt))))))
 
-(defn highlight-file2 [deltas source-str target-str]
-  (let [source-editor (cui/make-editor {:source source-str})
-        target-editor (cui/make-editor {:source target-str})
-
+(defn highlight-file2 [fname]
+  (let [deltas (unstaged-deltas2 fname)
+        source-str (index-contents fname)
+        target-str (file-contents fname)
+        editor-mode (clobber.editor/guess-mode {:file (io/file fname)})
+        
+        source-editor (-> (clobber.editor/make-editor {:source source-str
+                                                       :mode editor-mode})
+                          (assoc ::mode editor-mode))
+        target-editor (-> (clobber.editor/make-editor {:source target-str
+                                                       :mode editor-mode})
+                          (assoc ::mode editor-mode))
+        
         delete-color [1 0 0 0.2]
         insert-color [0 1 0 0.2]
 
@@ -398,9 +423,7 @@
                                 $highlighted-highlight]}]
   (future
     (try
-      (let [diff-state (highlight-file2 (unstaged-deltas2 fname)
-                                        (index-contents fname)
-                                        (file-contents fname))
+      (let [diff-state (highlight-file2 fname)
             deltas (->> (group-by :delta
                                   (concat
                                    (eduction
