@@ -727,7 +727,8 @@
                    {:untracked (:untracked changed)
                     :modified (:modified changed)
                     :added (:added changed)
-                    :staged (:changed changed)}))
+                    :staged (:changed changed)})
+        (dispatch! :repaint!))
       (catch Throwable t
         (tap> t)))))
 
