@@ -397,6 +397,9 @@
                                    :rects rects
                                    :view view)))))
         
+        ;; setting the paragraph width can 
+        ;; cause the text to not line up if there are long lines
+        ;; too lazy to fix for now.
         source-paragraph (para/paragraph source-text 600 {:paragraph-style/text-style (:base-style source-editor)})
         source-highlights (into []
                                 (map-add-view source-paragraph)
@@ -1024,11 +1027,6 @@
                                                            (max 0 (- (Chunk/.getPosition target-chunk)
                                                                      context-size)))
               start-cursor (:cursor target-editor)
-              _ (tap> 
-                 {:start-cursor start-cursor
-                  :line (max 0 (- (Chunk/.getPosition target-chunk)
-                            context-size))})
-              
               target-editor (clobber.text/editor-goto-line target-editor
                                                            (Chunk/.getPosition target-chunk))
               target-start-cursor (:cursor target-editor)
