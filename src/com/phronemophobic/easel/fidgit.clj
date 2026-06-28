@@ -964,3 +964,200 @@
 
   
   ,)
+
+
+(defn unified-diff-data [source target mode]
+  (let [source-lines (split-lines source)
+        target-lines (split-lines target)
+        deltas (-> (DiffUtils/diff source-lines target-lines)
+                   Patch/.getDeltas)
+        
+        source-editor (-> (clobber.editor/make-editor {:source source
+                                                       :mode mode})
+                          (assoc ::mode mode))
+        target-editor (-> (clobber.editor/make-editor {:source target
+                                                       :mode mode})
+                          (assoc ::mode mode))
+
+        
+
+        context-size 3]
+    (loop [deltas (seq deltas)
+           ps []]
+      (if (seq deltas)
+        (let [^AbstractDelta
+              delta (first deltas)
+              delta-type (.getType delta)
+              
+              source-chunk (.getSource delta)
+              target-chunk (.getTarget delta)
+              
+              
+              
+              target-editor (clobber.text/editor-goto-line target-editor
+                                                           (max 0 (- (Chunk/.getPosition target-chunk)
+                                                                     context-size)))
+              start-cursor (:cursor target-editor)
+              _ (tap> 
+                 {:start-cursor start-cursor
+                  :line (max 0 (- (Chunk/.getPosition target-chunk)
+                            context-size))})
+              
+              target-editor (clobber.text/editor-goto-line target-editor
+                                                           (Chunk/.getPosition target-chunk))
+              target-start-cursor (:cursor target-editor)
+              target-lines (Chunk/.getLines target-chunk)
+              
+              target-editor (clobber.text/editor-goto-line target-editor (+ (Chunk/.getPosition target-chunk)
+                                                                            (count target-lines)))
+              target-end-cursor (:cursor target-editor)
+              
+              target-editor (clobber.text/editor-goto-line target-editor (+ (Chunk/.getPosition target-chunk)
+                                                                            (count target-lines)
+                                                                            context-size))
+              end-cursor (:cursor target-editor)
+              
+              text []
+              
+              ;; add pre context and additions  
+              extent {:start-byte-offset (:byte start-cursor)
+                      :end-byte-offset (:byte target-end-cursor)}
+              text (into text
+                         (clobber.util.ui/styled-text (:rope target-editor)
+                                                      (:base-style target-editor)
+                                                      [(if (= mode :clojure)
+                                                         (cui/syntax-style target-editor extent)
+                                                         (when (:tree target-editor)
+                                                           (when-let [query (:query target-editor)]
+                                                             (when-let [theme (:theme target-editor)]
+                                                               (clobber.util.ui/syntax-style target-editor
+                                                                                             query
+                                                                                             theme
+                                                                                             extent)))))]
+                                                      (:start-byte-offset extent)
+                                                      (:end-byte-offset extent)))
+              
+              source-editor (clobber.text/editor-goto-line source-editor (Chunk/.getPosition source-chunk))
+              source-start-cursor (:cursor source-editor)
+              source-editor (clobber.text/editor-goto-line source-editor (+ (Chunk/.getPosition source-chunk)
+                                                                            (count (Chunk/.getLines source-chunk))))
+              source-end-cursor (:cursor source-editor)
+
+              ;; add deletions
+              extent {:start-byte-offset (:byte source-start-cursor)
+                      :end-byte-offset (:byte source-end-cursor)}
+              text (into text
+                         (clobber.util.ui/styled-text (:rope source-editor)
+                                                      (:base-style source-editor)
+                                                      [(if (= mode :clojure)
+                                                         (cui/syntax-style source-editor extent)
+                                                         (when (:tree source-editor)
+                                                           (when-let [query (:query source-editor)]
+                                                             (when-let [theme (:theme source-editor)]
+                                                               (clobber.util.ui/syntax-style source-editor
+                                                                                             query
+                                                                                             theme
+                                                                                             extent)))))]
+                                                      (:start-byte-offset extent)
+                                                      (:end-byte-offset extent)))
+              
+              ;; add post context
+              extent {:start-byte-offset (:byte target-end-cursor)
+                      :end-byte-offset (:byte end-cursor)}
+              text (into text
+                         (clobber.util.ui/styled-text (:rope target-editor)
+                                                      (:base-style target-editor)
+                                                      [(if (= mode :clojure)
+                                                         (cui/syntax-style target-editor extent)
+                                                         (when (:tree target-editor)
+                                                           (when-let [query (:query target-editor)]
+                                                             (when-let [theme (:theme target-editor)]
+                                                               (clobber.util.ui/syntax-style target-editor
+                                                                                             query
+                                                                                             theme
+                                                                                             extent)))))]
+                                                      (:start-byte-offset extent)
+                                                      (:end-byte-offset extent)))              
+              
+
+              para (para/paragraph
+                    text
+                    nil
+                    default-paragraph-style)
+              
+              target-highlight {:start-char (- (:char target-start-cursor)
+                                               (:char start-cursor))
+                                :delta delta
+                                :side :target
+                                :chunk target-chunk
+                                :end-char (- (:char target-end-cursor)
+                                             (:char start-cursor))}
+              source-highlight {:start-char (:end-char target-highlight)
+                                :end-char (+ (:end-char target-highlight)
+                                             (- (:char source-end-cursor)
+                                                (:char source-start-cursor)))
+                                :side :source
+                                :chunk source-chunk}
+
+              para (assoc para
+                          ::highlights
+                          [target-highlight
+                           source-highlight])
+              
+              ps (conj ps para)]
+          (recur (next deltas)
+                 ps))
+        
+        ;; else
+        ps))))
+
+(defn overlay-highlights [para]
+  (let [
+        delete-color [1 0 0 0.2]
+        insert-color [0 1 0 0.2]
+
+        highlights
+        (into []
+              (comp
+               (filter (fn [{:keys [start-char end-char]}]
+                         (> end-char start-char)))
+               (map (fn [{:keys [start-char end-char side]}]
+                      (let [rects (para/get-rects-for-range para start-char end-char :max :tight)]
+                        (->> (into []
+                                   (map
+                                    (fn [{:keys [x y width height]}]
+                                     (ui/translate x y
+                                                   (ui/rectangle width height))))
+                                   rects)
+                             (ui/with-style ::ui/style-fill)
+                             (ui/with-color (if (= side :target)
+                                              insert-color
+                                              delete-color)))))))
+              (::highlights para))]
+    [para
+     highlights]))
+
+(defn unified-diff [source target mode]
+  (->> (unified-diff-data source target mode)
+       (map overlay-highlights)
+       
+       (interpose (ui/filled-rectangle [0 0 0]
+                                       200 10))
+       (apply ui/vertical-layout)
+       ))
+
+(comment
+  (unified-diff (index-contents "deps.edn")
+                (file-contents "deps.edn")
+                nil)
+  
+  ,)
+
+(defeffect ::show-unified-diff [{:keys [fname]}]
+  (dispatch! :com.phronemophobic.easel/add-component-as-applet
+             (constantly
+              (unified-diff (index-contents fname)
+                            (file-contents fname)
+                            (clobber.editor/guess-mode {:file fname})))
+             {}))
+
