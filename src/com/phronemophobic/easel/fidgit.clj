@@ -765,8 +765,17 @@
          work-tree (Repository/.getWorkTree repo)
          status (.call (doto (Git/.add git)
                          (.addFilepattern (relative-path work-tree fname))))]
-     (tap> status)
-     (dispatch! ::load-git-info this))))
+     (tap> status))))
+
+(defeffect ::unstage-file [{:keys [fname]}]
+  (with-git
+   [git fname]
+   (let [^Repository repo (.getRepository git)
+         work-tree (Repository/.getWorkTree repo)
+         status (.call (doto (Git/.reset git)
+                         (.addPath (relative-path work-tree fname))))]
+     (tap> status)))
+  )
 
 (defeffect ::load-editor [{:keys [$editor]}]
   (let [editor (text.ui/make-editor)
@@ -839,7 +848,8 @@
                      [[(title-row "Untracked")]
                       (eduction map-file-row
                                 (map (fn [{::keys [fname] :as m}]
-                                       (assoc m ::select-intents [[::stage-file {:fname fname}]])))
+                                       (assoc m ::select-intents [[::stage-file {:fname fname}]
+                                                                  [::load-git-info this]])))
                                 untracked)
                       [(title-row "Modified")]
                       (eduction map-file-row
@@ -847,9 +857,17 @@
                                        (assoc m ::select-intents [[::show-diff {:fname fname}]])))
                                 modified)
                       [(title-row "Staged")]
-                      (eduction map-file-row staged)
+                      (eduction map-file-row 
+                                (map (fn [{::keys [fname] :as m}]
+                                       (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                                                  [::load-git-info this]])))
+                                staged)
                       [(title-row "Added")]
-                      (eduction map-file-row added)])
+                      (eduction map-file-row 
+                                (map (fn [{::keys [fname] :as m}]
+                                       (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                                                  [::load-git-info this]])))
+                                added)])
 
           table
           (grid/list-view
@@ -859,6 +877,7 @@
                           :as row-info}]
                       (let [body (nth rows row)
                             select-intents (::select-intents body)
+                            fname (::fname body)
 
                             body (ui/padding 1 body)
                             hover? (get extra [::row-hover row])
@@ -882,10 +901,12 @@
                                     body)
                                    body)
 
-                            body (basic/on-hover
-                                  {:hover? hover?
-                                   :$body nil
-                                   :body body})]
+                            body (if fname
+                                   (basic/on-hover
+                                    {:hover? hover?
+                                     :$body nil
+                                     :body body})
+                                   body)]
                         body))
             :width cw
             :height (- ch (ui/height editor-ui))
