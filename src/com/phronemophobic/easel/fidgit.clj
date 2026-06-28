@@ -160,20 +160,6 @@
   
   ,)
 
-(defn stage-contents [path contents]
-  (let [path (io/file path)]
-    (with-git
-     [git path]
-     (let [^Repository repo (.getRepository git)
-           ^DirCache dc (DirCache/read repo)
-           work-tree (Repository/.getWorkTree repo)
-           entry (.getEntry dc (relative-path work-tree path))]
-       (when entry
-         (let [loader (.open repo (.getObjectId entry))
-               out (ByteArrayOutputStream.)]
-           (.copyTo loader out)
-           (.toString out "UTF-8")))))))
-
 (defn index-contents
   "Returns the staged (index) version of path, or nil if not in index."
   [path]
