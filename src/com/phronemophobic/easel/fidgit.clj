@@ -687,10 +687,11 @@
             focus-key [::diff-ui $extra]
 
             focused? (= focus focus-key)
-            body (ui/on
+            body (ui/wrap-on
                   :mouse-down
-                  (fn [_]
-                    [[:set $focus focus-key]])
+                  (fn [handler mpos]
+                    (into [[:set $focus focus-key]]
+                          (handler mpos)))
                   body)
             body (if focused?
                    (ui/on
