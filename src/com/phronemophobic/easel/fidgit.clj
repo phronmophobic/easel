@@ -87,6 +87,14 @@
        (finally
          (java.lang.AutoCloseable/.close repo#)))))
 
+(defn get-git-work-tree [path]
+  (let [path (io/file path)]
+    (with-git
+     [git path]
+     (let [^Repository repo (.getRepository git)
+           work-tree (Repository/.getWorkTree repo)]
+       work-tree))))
+
 (defn changed-files
   "Returns a map of the individual status sets plus :all (their union).
    repo-dir can be the repo root (the folder that contains .git)."
