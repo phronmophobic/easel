@@ -493,8 +493,10 @@
 
 (defrecord Browslet [dispatch! initial-url]
   model/IApplet
-  (-start [this $ref [initial-width initial-height] [initial-content-sx initial-content-sy]]
-    (let [dispatch-main
+  (-start [this {:keys [$ref size content-scale]}]
+    (let [[initial-content-sx initial-content-sy] content-scale
+          [initial-width initial-height] size
+          dispatch-main
           (fn [work]
             (dispatch! :dispatch-main work))
 
@@ -577,7 +579,7 @@
       (b/close browser))
     (update this :browser-info dissoc :browser))
   model/IUI
-  (-ui [this $context context]
+  (-ui [this {:keys [$context context]}]
     (browser-ui this $context context))
   model/IResizable
   (-resize [this size content-scale]
