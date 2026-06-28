@@ -699,26 +699,6 @@
         body))))
 
 
-
-(comment
-  
-  ,)
-
-
-
-
-(defn show-diff 
-  ([fname]
-   (dev/add-component-as-applet #'diff-ui {:fname fname})))
-
-(comment
-  (show-diff "src/com/phronemophobic/easel/browser.clj")
-  (show-diff "src/com/phronemophobic/easel/browser.clj")
-  (show-diff "../clobber" "src/com/phronemophobic/clobber/modes/clojure/ui.clj")
-  ,)
-
-
-
 (defeffect ::load-git-info [{:keys [$git-info path]}]
   (future
     (try
@@ -733,7 +713,7 @@
         (tap> t)))))
 
 (defeffect ::show-diff [{:keys [fname]}]
-  (show-diff fname))
+  (dispatch! :com.phronemophobic.easel/add-component-as-applet #'diff-ui {:fname fname}))
 
 (defn commit [repo-dir {:keys [author message amend?] :as commit-info}]
   (with-git
@@ -937,10 +917,10 @@
 
 (defeffect ::open-fidget [{:keys [editor]}]
   (when-let [file (:file editor)]
-    (dev/add-component-as-applet #'fidgit-ui
-                               {:git-info nil
-                                :path file}))
-  )
+    (dispatch! :com.phronemophobic.easel/add-component-as-applet
+               #'fidgit-ui
+               {:git-info nil
+                :path file})))
 
 (comment
   
