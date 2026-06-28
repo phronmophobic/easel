@@ -736,7 +736,8 @@
     (try
       (let [changed (changed-files path)]
         (dispatch! :set $git-info
-                   {:untracked (:untracked changed)
+                   {:git-work-tree-dir (get-git-work-tree path)
+                    :untracked (:untracked changed)
                     :modified (:modified changed)
                     :added (:added changed)
                     :staged (:changed changed)})
@@ -865,8 +866,25 @@
                                 untracked)
                       [(title-row "Modified")]
                       (eduction map-file-row
-                                (map (fn [{::keys [fname] :as m}]
-                                       (assoc m ::select-intents [[::show-diff {:fname fname}]])))
+                                (comp
+                                 (map (fn [{::keys [fname] :as m}]
+                                        (assoc m ::select-intents [[::show-diff {:fname (io/file
+                                                                                         (:git-work-tree-dir git-info)
+                                                                                         fname)}]])))
+                                 (map (fn [{::keys [fname] :as m}]
+                                        (if focused?
+                                          (assoc m ::key-intents-fn
+                                                 (fn [s]
+                                                   g(case s
+                                                     ("d" "D")
+                                                     [[::show-unified-diff {:fname (io/file
+                                                                                    (:git-work-tree-dir git-info)
+                                                                                    fname)}]]
+                                                     
+                                                     ;; else
+                                                     nil)))
+                                          m))))
+                                
                                 modified)
                       [(title-row "Staged")]
                       (eduction map-file-row 
@@ -889,6 +907,7 @@
                           :as row-info}]
                       (let [body (nth rows row)
                             select-intents (::select-intents body)
+                            key-intents-fn (::key-intents-fn body)
                             fname (::fname body)
 
                             body (ui/padding 1 body)
@@ -912,6 +931,11 @@
                                       select-intents)
                                     body)
                                    body)
+                            body (if (and hover? key-intents-fn)
+                                   (ui/on
+                                    :key-press key-intents-fn
+                                    body)
+                                   body)
 
                             body (if fname
                                    (basic/on-hover
@@ -931,18 +955,20 @@
                          (handler mpos)))
                  table)
           table (if focused?
-                  (ui/on
+                  (ui/wrap-on
                    :key-press
-                   (fn [s]
-                     (case s
-                       ("g" "G")
-                       [[:set $git-info ::loading] 
-                        [::load-git-info this]]))
+                   (fn [handler s]
+                     (let [intents (handler s)]
+                       (if (seq intents)
+                         intents
+                         (case s
+                           ("g" "G")
+                           [[:set $git-info ::loading] 
+                            [::load-git-info this]]
+                           
+                           nil))))
                    table)
-                  table)
-          
-          
-]
+                  table)]
       (ui/vertical-layout
        editor-ui
        table))))
