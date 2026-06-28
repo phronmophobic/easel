@@ -68,7 +68,20 @@
 (def ^:private default-paragraph-style
   {:paragraph-style/text-style default-text-style})
 
-(defn relative-path
+(defn ^:private count-newlines
+  "Count newlines from `char-index` to the editors current cursor position"
+  ^long [^String s]
+  (let [end (String/.length s)]
+    (loop [char-index 0
+           cnt 0]
+      (if (>= char-index end)
+        cnt
+        (recur (inc char-index)
+               (if (= \newline (.charAt s char-index))
+                 (inc cnt)
+                 cnt))))))
+
+(defn ^:private relative-path
   "Returns `child` path relative to `parent` as a String."
   [parent child]
   (let [parent-path (File/.toPath (File/.getCanonicalFile (io/file parent)))
@@ -271,18 +284,7 @@
        other-text)
      (+ other-highlight-offset num-newlines)]))
 
-(defn ^:private count-newlines
-  "Count newlines from `char-index` to the editors current cursor position"
-  ^long [^String s]
-  (let [end (String/.length s)]
-    (loop [char-index 0
-           cnt 0]
-      (if (>= char-index end)
-        cnt
-        (recur (inc char-index)
-               (if (= \newline (.charAt s char-index))
-                 (inc cnt)
-                 cnt))))))
+
 
 (defn highlight-file2 [fname]
   (let [deltas (unstaged-deltas2 fname)
