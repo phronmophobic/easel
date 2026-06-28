@@ -21,6 +21,39 @@
 ;;                                    (::replog/ns %)))
 ;;                        (replog/get-main-log)))
 
+
+(def ^:private EVENTFLAG_NONE  0),
+(def ^:private EVENTFLAG_CAPS_LOCK_ON (bit-shift-left 1 0))
+(def ^:private EVENTFLAG_SHIFT_DOWN (bit-shift-left 1 1))
+(def ^:private EVENTFLAG_CONTROL_DOWN (bit-shift-left 1 2))
+(def ^:private EVENTFLAG_ALT_DOWN (bit-shift-left 1 3))
+(def ^:private EVENTFLAG_LEFT_MOUSE_BUTTON (bit-shift-left 1 4))
+(def ^:private EVENTFLAG_MIDDLE_MOUSE_BUTTON (bit-shift-left 1 5))
+(def ^:private EVENTFLAG_RIGHT_MOUSE_BUTTON (bit-shift-left 1 6))
+;; /// Mac OS-X command key.
+(def ^:private EVENTFLAG_COMMAND_DOWN (bit-shift-left 1 7))
+(def ^:private EVENTFLAG_NUM_LOCK_ON (bit-shift-left 1 8))
+(def ^:private EVENTFLAG_IS_KEY_PAD (bit-shift-left 1 9))
+(def ^:private EVENTFLAG_IS_LEFT (bit-shift-left 1 10))
+(def ^:private EVENTFLAG_IS_RIGHT (bit-shift-left 1 11))
+(def ^:private EVENTFLAG_ALTGR_DOWN (bit-shift-left 1 12))
+(def ^:private EVENTFLAG_IS_REPEAT (bit-shift-left 1 13))
+
+(defn ^:private glfw-mods->cef-mods [mods repeat?]
+  (let [alt? (not (zero? (bit-and ui/ALT-MASK mods)))
+        super? (not (zero? (bit-and ui/SUPER-MASK mods)))
+        shift? (not (zero? (bit-and ui/SHIFT-MASK mods)))
+        ctrl? (not (zero? (bit-and ui/CONTROL-MASK mods)))
+        caps-lock? (not (zero? (bit-and ui/CAPS-LOCK-MASK mods)))]
+    (cond-> 0
+      alt? (bit-or EVENTFLAG_ALT_DOWN)
+      super? (bit-or EVENTFLAG_COMMAND_DOWN)
+      shift? (bit-or EVENTFLAG_SHIFT_DOWN)
+      ctrl? (bit-or EVENTFLAG_CONTROL_DOWN)
+      caps-lock? (bit-or EVENTFLAG_CAPS_LOCK_ON)
+      repeat? (bit-or EVENTFLAG_IS_REPEAT))))
+
+
 ;;;;;;;;;;;;;;;;;;
 ;; AUTO GENERATED
 ;;;;;;;;;;;;;;;;;;
@@ -253,7 +286,7 @@
   ;; always return nil. don't leak cache
   nil)
 
-(defrecord Browser [browser browser-id focused? content-scale width height resource draw-lock]
+(defrecord Browser [browser browser-id focused? content-scale width height resource draw-lock mods $mods]
   ui/IOrigin
   (-origin [_]
     [0 0])
@@ -333,13 +366,16 @@
                   )
                 (.charAt k 0))]
         (when c
-          (gen3/call (gen3/call browser :get_host)
+          (let [key-event {:type 3
+                           :modifiers (glfw-mods->cef-mods mods false)
+                           :character c
+                           :unmodified-character c}]
+            [[::send-key-event {:browser browser
+                                :key-event key-event}]])
+          #_(gen3/call (gen3/call browser :get_host)
                      :send_key_event
                      (gen3/map->key-event
-                      {:type 3
-                       :modifiers 0
-                       :character c
-                       :unmodified-character c}))
+                      ))
           #_(.sendKeyEvent (.getHost browser)
                          (cef/map->key-event
                           {:type 3
@@ -360,11 +396,14 @@
                                  :release 2
                                  :repeat 1
                                  )
-                         :modifiers mods
+                         :modifiers (glfw-mods->cef-mods mods (= action :repeat))
                          :native-key-code code
                          :character (char key)
                          :unmodified-character (char key)}]
-          (gen3/call (gen3/call browser :get_host)
+          [[::send-key-event {:browser browser
+                              :key-event key-event}]
+           [:set $mods mods]]
+          #_(gen3/call (gen3/call browser :get_host)
                      :send_key_event
                      (gen3/map->key-event key-event))
           #_(.sendKeyEvent (.getHost ^CefBrowser browser)
@@ -396,6 +435,11 @@
         browser-info (:browser-info this)
         ui-state (:ui-state this)
 
+        extra (:extra ui-state)
+        $extra (:$extra ui-state)
+        mods (:mods extra 0)
+        $mods [$extra '(keypath :mods)]
+
         view
         (assoc
          (->Browser (:browser browser-info)
@@ -405,7 +449,8 @@
                     (:width browser-info)
                     (:height browser-info)
                     (:resource browser-info)
-                    (:draw-lock browser-info))
+                    (:draw-lock browser-info)
+                    mods $mods)
          :id2 (:id this))
 
         view (if focus?
@@ -562,3 +607,11 @@
       (gen3/call :get_host)
       (gen3/call :set_focus (int 1)))
   ,)
+
+(defeffect ::send-key-event [{:keys [browser key-event]}]
+  (gen3/call (gen3/call browser :get_host)
+             :send_key_event
+             (gen3/map->key-event key-event)))
+
+
+
