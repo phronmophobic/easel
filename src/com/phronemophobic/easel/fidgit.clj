@@ -864,7 +864,7 @@
                                         (if focused?
                                           (assoc m ::key-intents-fn
                                                  (fn [s]
-                                                   g(case s
+                                                   (case s
                                                      ("d" "D")
                                                      [[::show-unified-diff {:fname (io/file
                                                                                     (:git-work-tree-dir git-info)
