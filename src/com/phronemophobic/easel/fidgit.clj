@@ -877,9 +877,24 @@
                                 modified)
                       [(title-row "Staged")]
                       (eduction map-file-row 
-                                (map (fn [{::keys [fname] :as m}]
-                                       (assoc m ::select-intents [[::unstage-file {:fname fname}]
-                                                                  [::load-git-info this]])))
+                                (comp
+                                 (map (fn [{::keys [fname] :as m}]
+                                        (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                                                   [::load-git-info this]])))
+                                 (map (fn [{::keys [fname] :as m}]
+                                        (if focused?
+                                          (assoc m ::key-intents-fn
+                                                 (fn [s]
+                                                   (case s
+                                                     ("d" "D")
+                                                     [[::show-staged-unified-diff
+                                                       {:fname (io/file
+                                                                (:git-work-tree-dir git-info)
+                                                                fname)}]]
+                                                     
+                                                     ;; else
+                                                     nil)))
+                                          m))))
                                 staged)
                       [(title-row "Added")]
                       (eduction map-file-row 
@@ -1006,8 +1021,6 @@
               
               source-chunk (.getSource delta)
               target-chunk (.getTarget delta)
-              
-              
               
               target-editor (clobber.text/editor-goto-line target-editor
                                                            (max 0 (- (Chunk/.getPosition target-chunk)
@@ -1171,3 +1184,10 @@
                             (clobber.editor/guess-mode {:file fname})))
              {}))
 
+(defeffect ::show-staged-unified-diff [{:keys [fname]}]
+  (dispatch! :com.phronemophobic.easel/add-component-as-applet
+             (constantly
+              (unified-diff (head-contents fname)
+                            (index-contents fname)
+                            (clobber.editor/guess-mode {:file fname})))
+             {}))
