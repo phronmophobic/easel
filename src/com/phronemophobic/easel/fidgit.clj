@@ -51,7 +51,12 @@
            
            io.lacuna.bifurcan.Rope))
 
-
+;; Notes
+;; The current work is ok a first pass, but could definitely be cleaned up and refactored
+;; The side by side and unified diffs could be easier to use a generic components
+;; Maybe they should move to their own namespace at some point.
+;; Additionally, the API should be updated to do a better job
+;; of considering which parts should be public vs private.
 
 (def ^:private
   default-font-families
