@@ -1156,8 +1156,8 @@
                         (->> (into []
                                    (map
                                     (fn [{:keys [x y width height]}]
-                                     (ui/translate x y
-                                                   (ui/rectangle width height))))
+                                      (ui/translate x y
+                                                    (ui/rectangle (max 4 width) height))))
                                    rects)
                              (ui/with-style ::ui/style-fill)
                              (ui/with-color (if (= side :target)
