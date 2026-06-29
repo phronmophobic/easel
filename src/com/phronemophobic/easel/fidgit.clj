@@ -852,67 +852,64 @@
                                   :text-style/font-style]
                                  {:font-style/weight :bold})))
 
-          rows (into []
-                     cat
-                     [[(title-row "Untracked")]
-                      (eduction map-file-row
-                                (map (fn [{::keys [fname] :as m}]
-                                       (assoc m ::select-intents [[::stage-file {:fname fname}]
-                                                                  [::load-git-info this]])))
-                                untracked)
-                      [(title-row "Modified")]
-                      (eduction map-file-row
-                                (comp
-                                 (map (fn [{::keys [fname] :as m}]
-                                        (assoc m ::select-intents [[::show-diff {:fname (io/file
-                                                                                         (:git-work-tree-dir git-info)
-                                                                                         fname)}]])))
-                                 (map (fn [{::keys [fname] :as m}]
-                                        (if focused?
-                                          (assoc m ::key-intents-fn
-                                                 (fn [s]
-                                                   (case s
-                                                     ("a" "A")
-                                                     [[::stage-file {:fname fname}]
-                                                      [::load-git-info this]]
-
-                                                     ("d" "D")
-                                                     [[::show-unified-diff {:fname (io/file
+          rows
+          (into []
+                cat
+                [[(title-row "Untracked")]
+                 (eduction map-file-row
+                           (map (fn [{::keys [fname] :as m}]
+                                  (assoc m ::select-intents [[::stage-file {:fname fname}]
+                                                             [::load-git-info this]])))
+                           untracked)
+                 [(title-row "Modified")]
+                 (eduction map-file-row
+                           (comp
+                            (map (fn [{::keys [fname] :as m}]
+                                   (assoc m ::select-intents [[::show-diff {:fname (io/file
                                                                                     (:git-work-tree-dir git-info)
-                                                                                    fname)}]]
-                                                     
-                                                     ;; else
-                                                     nil)))
-                                          m))))
-                                
-                                modified)
-                      [(title-row "Staged")]
-                      (eduction map-file-row 
-                                (comp
-                                 (map (fn [{::keys [fname] :as m}]
-                                        (assoc m ::select-intents [[::unstage-file {:fname fname}]
-                                                                   [::load-git-info this]])))
-                                 (map (fn [{::keys [fname] :as m}]
-                                        (if focused?
-                                          (assoc m ::key-intents-fn
-                                                 (fn [s]
-                                                   (case s
-                                                     ("d" "D")
-                                                     [[::show-staged-unified-diff
-                                                       {:fname (io/file
-                                                                (:git-work-tree-dir git-info)
-                                                                fname)}]]
-                                                     
-                                                     ;; else
-                                                     nil)))
-                                          m))))
-                                staged)
-                      [(title-row "Added")]
-                      (eduction map-file-row 
-                                (map (fn [{::keys [fname] :as m}]
-                                       (assoc m ::select-intents [[::unstage-file {:fname fname}]
-                                                                  [::load-git-info this]])))
-                                added)])
+                                                                                    fname)}]])))
+                            (map (fn [{::keys [fname] :as m}]
+                                   (assoc m ::key-intents-fn
+                                          (fn [s]
+                                            (case s
+                                              ("a" "A")
+                                              [[::stage-file {:fname fname}]
+                                               [::load-git-info this]]
+                                              
+                                              ("d" "D")
+                                              [[::show-unified-diff {:fname (io/file
+                                                                             (:git-work-tree-dir git-info)
+                                                                             fname)}]]
+                                              
+                                              ;; else
+                                              nil))))))
+                           
+                           modified)
+                 [(title-row "Staged")]
+                 (eduction map-file-row 
+                           (comp
+                            (map (fn [{::keys [fname] :as m}]
+                                   (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                                              [::load-git-info this]])))
+                            (map (fn [{::keys [fname] :as m}]
+                                   (assoc m ::key-intents-fn
+                                          (fn [s]
+                                            (case s
+                                              ("d" "D")
+                                              [[::show-staged-unified-diff
+                                                {:fname (io/file
+                                                         (:git-work-tree-dir git-info)
+                                                         fname)}]]
+                                              
+                                              ;; else
+                                              nil))))))
+                           staged)
+                 [(title-row "Added")]
+                 (eduction map-file-row 
+                           (map (fn [{::keys [fname] :as m}]
+                                  (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                                             [::load-git-info this]])))
+                           added)])
 
           table
           (grid/list-view
@@ -946,7 +943,7 @@
                                       select-intents)
                                     body)
                                    body)
-                            body (if (and hover? key-intents-fn)
+                            body (if (and hover? focused? key-intents-fn)
                                    (ui/on
                                     :key-press key-intents-fn
                                     body)
