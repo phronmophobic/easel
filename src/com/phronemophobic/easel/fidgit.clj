@@ -860,6 +860,17 @@
                            (map (fn [{::keys [fname] :as m}]
                                   (assoc m ::select-intents [[::stage-file {:fname fname}]
                                                              [::load-git-info this]])))
+                           (map (fn [{::keys [fname] :as m}]
+                                   (assoc m ::key-intents-fn
+                                          (fn [s]
+                                            (case s
+                                              ("o" "O")
+                                              [[::open-file {:fname (io/file
+                                                                     (:git-work-tree-dir git-info)
+                                                                     fname)}]]                                              
+                                              
+                                              ;; else
+                                              nil)))))
                            untracked)
                  [(title-row "Modified")]
                  (eduction map-file-row
@@ -875,6 +886,11 @@
                                               ("a" "A")
                                               [[::stage-file {:fname fname}]
                                                [::load-git-info this]]
+                                              
+                                              ("o" "O")
+                                              [[::open-file {:fname (io/file
+                                                                     (:git-work-tree-dir git-info)
+                                                                     fname)}]]
                                               
                                               ("d" "D")
                                               [[::show-unified-diff {:fname (io/file
@@ -900,6 +916,11 @@
                                                 {:fname (io/file
                                                          (:git-work-tree-dir git-info)
                                                          fname)}]]
+                                              
+                                              ("o" "O")
+                                              [[::open-file {:fname (io/file
+                                                                     (:git-work-tree-dir git-info)
+                                                                     fname)}]]                                              
                                               
                                               ;; else
                                               nil))))))
@@ -1199,3 +1220,9 @@
                             (index-contents fname)
                             (clobber.editor/guess-mode {:file fname})))
              {}))
+
+(defeffect ::open-file [{:keys [fname]}]
+  (dispatch! :com.phronemophobic.easel/add-applet
+             {:make-applet
+              (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
+                #(f % {:file fname}))}))
