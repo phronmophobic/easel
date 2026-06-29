@@ -872,6 +872,10 @@
                                           (assoc m ::key-intents-fn
                                                  (fn [s]
                                                    (case s
+                                                     ("a" "A")
+                                                     [[::stage-file {:fname fname}]
+                                                      [::load-git-info this]]
+
                                                      ("d" "D")
                                                      [[::show-unified-diff {:fname (io/file
                                                                                     (:git-work-tree-dir git-info)
