@@ -858,7 +858,9 @@
                 [[(title-row "Untracked")]
                  (eduction map-file-row
                            (map (fn [{::keys [fname] :as m}]
-                                  (assoc m ::select-intents [[::stage-file {:fname fname}]
+                                  (assoc m ::select-intents [[::stage-file {:fname (io/file
+                                                                                    (:git-work-tree-dir git-info)
+                                                                                    fname)}]
                                                              [::load-git-info this]])))
                            (map (fn [{::keys [fname] :as m}]
                                    (assoc m ::key-intents-fn
@@ -884,7 +886,9 @@
                                           (fn [s]
                                             (case s
                                               ("a" "A")
-                                              [[::stage-file {:fname fname}]
+                                              [[::stage-file {:fname (io/file
+                                                                     (:git-work-tree-dir git-info)
+                                                                      fname)}]
                                                [::load-git-info this]]
                                               
                                               ("o" "O")
@@ -905,7 +909,9 @@
                  (eduction map-file-row 
                            (comp
                             (map (fn [{::keys [fname] :as m}]
-                                   (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                   (assoc m ::select-intents [[::unstage-file {:fname (io/file
+                                                                                       (:git-work-tree-dir git-info)
+                                                                                       fname)}]
                                                               [::load-git-info this]])))
                             (map (fn [{::keys [fname] :as m}]
                                    (assoc m ::key-intents-fn
@@ -928,7 +934,9 @@
                  [(title-row "Added")]
                  (eduction map-file-row 
                            (map (fn [{::keys [fname] :as m}]
-                                  (assoc m ::select-intents [[::unstage-file {:fname fname}]
+                                  (assoc m ::select-intents [[::unstage-file {:fname (io/file
+                                                                                      (:git-work-tree-dir git-info)
+                                                                                      fname)}]
                                                              [::load-git-info this]])))
                            added)])
 
