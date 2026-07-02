@@ -416,7 +416,8 @@
 (defeffect ::load-diff [{:keys [$diff-state fname
                                 $highlight-index
                                 $staged
-                                $highlighted-highlight]}]
+                                $highlighted-highlight
+                                $deletes]}]
   (future
     (try
       (let [diff-state (highlight-file2 fname)
@@ -445,6 +446,7 @@
         (dispatch! :set $diff-state diff-state)
         (dispatch! :set $highlight-index nil)
         (dispatch! :set $staged nil)
+        (dispatch! :set $deletes nil)
         (dispatch! :set $highlighted-highlight nil))
       (catch Throwable e
         (tap> e)))))
