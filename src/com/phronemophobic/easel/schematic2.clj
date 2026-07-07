@@ -88,10 +88,7 @@
                          :eval-ns (:eval-ns this)
                          :extra (:extra this)
                          :$extra [(:$ref this) '(keypath :extra)]))]
-    (ui/scissor-view
-     [0 0]
-     size
-     (preview/editor state))))
+    (preview/editor state)))
 
 (defrecord PreviewApplet []
   model/IApplet
