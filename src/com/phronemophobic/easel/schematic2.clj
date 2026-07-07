@@ -184,7 +184,14 @@
      (component-picker/component-picker state))))
 
 
-
+(comment
+  ;; update components in component picker to defaults
+  (com.phronemophobic.easel/handler :update
+             '[(keypath :membrane.component/context)]
+             (fn [context]
+               (assoc context
+                      ::component-picker-components component-picker/component-starters)))
+  ,)
 
 (defrecord ComponentPickerApplet [dispatch!]
   model/IApplet
