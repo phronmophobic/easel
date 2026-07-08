@@ -602,7 +602,7 @@
                (into []
                      (map symbol)
                      (keys defaults)))]
-    `(defui ~name [{:keys ~args :as ~'this}]
+    `(defui ~(symbol (clojure.core/name name)) [{:keys ~args :as ~'this}]
        ~(compile body)))
   #_`(let [f#
            (fn ;; ~(symbol
