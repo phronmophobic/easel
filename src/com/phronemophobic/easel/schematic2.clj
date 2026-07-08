@@ -163,6 +163,10 @@
     (let [components (list-components)]
       (dispatch! :set $components components))))
 
+(declare toolbar-applet
+         preview-applet
+         tree-applet
+         detail-applet)
 (defeffect ::open-component [{:keys [component/name
                                      element/eval-ns]}]
   (let [eval-ns (the-ns eval-ns)]
