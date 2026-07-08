@@ -42,9 +42,12 @@
                        :element/children {:element/type ::sm/group
                                           :element/id (random-uuid)
                                           :element/children []}
+                       :flex/pad (->code nil)
                        :flex/layout {:gap 8
                                      :width (->code nil)
                                      :height (->code nil)}
+                       :membrane.ui/stretch-width (->code 1.0)
+                       :membrane.ui/stretch-height (->code 1.0)
                        :element/id (random-uuid)})
    ::inspector (fn []
                  {:element/type ::sm/defui
@@ -95,6 +98,10 @@
                   :element/text {:element/type ::sm/code
                                  :element/id (random-uuid)
                                  :element/code "doit"}
+                  :membrane.ui/width (->code nil)
+                  :membrane.ui/stretch-width (->code nil)
+                  :membrane.ui/height (->code nil)
+                  :membrane.ui/stretch-height (->code nil)
                   :element/id (random-uuid)})
    ::sm/checkbox (fn []
                    {:element/type ::sm/checkbox
