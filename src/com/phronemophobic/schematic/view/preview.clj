@@ -778,6 +778,7 @@
               (draw (ui/label e))))]
           (catch Throwable e
             (clojure.pprint/pprint e)
+            (tap> e)
             (ui/label "Error"))))))))
 
 (defui editor [{:keys [elem
