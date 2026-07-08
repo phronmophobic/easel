@@ -904,8 +904,8 @@
    (ant/button {:text "save"
                 :size :small
                 :on-click (fn []
-                            [[::replog-elem {:eval-ns eval-ns
-                                             :elem elem}]])})
+                            [[::save-elem {:eval-ns eval-ns
+                                           :elem elem}]])})
    (ant/button {:text "tap>"
                 :size :small
                 :on-click (fn []

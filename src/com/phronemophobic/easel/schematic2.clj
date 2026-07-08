@@ -278,6 +278,8 @@
     (when (not (dispatch! :get $elem))
       (dispatch! :set $elem component))))
 
+(defeffect ::save-elem [{:keys [elem]}]
+  (save-component! elem))
 
 (defn toolbar-ui [this component-state $context context]
   (let [size (:size this)
@@ -297,7 +299,11 @@
     (ui/scissor-view
      [0 0]
      size
-     (preview/toolbar state))))
+     (ui/on 
+      ::preview/save-elem
+      (fn [m]
+        [[::save-elem m]])
+      (preview/toolbar state)))))
 
 (defrecord ToolbarApplet []
   model/IApplet
