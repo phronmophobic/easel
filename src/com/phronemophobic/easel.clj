@@ -120,6 +120,12 @@
      (model/-add-applet easel m)))
   nil)
 
+(defeffect ::show-applet [{:keys [applet-id]}]
+  (dispatch! :update :easel
+             (fn [easel]
+               (model/-show-applet easel applet-id)))
+  nil)
+
 (defn add-component! [key f]
   (handler :update
            '[(keypath :membrane.component/context)
