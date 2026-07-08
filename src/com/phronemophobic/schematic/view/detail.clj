@@ -165,7 +165,28 @@
         :body
         (when (= click-type ::sm/code)
           (let [src (:element/code on-click)]
-            (code-editor {:code src})))})))))
+            (code-editor {:code src})))})))
+   
+   (ui/vlayout
+    (map (fn [kw]
+           (let [code (get elem kw)
+                 src (:element/code code)]
+             
+             (ui/vertical-layout
+              (ui/horizontal-layout
+               (ui/label kw)
+               (code-editor {:code src}))
+              (ant/radio-bar
+               {:size :small
+                :options
+                (into []
+                      (map (fn [num]
+                             {:text (pr-str num)
+                              :value num}))
+                      [nil 1.0 2.0])
+                :selection src})))))
+    [:membrane.ui/stretch-width
+     :membrane.ui/stretch-height])))
 
 (defeditor ::sm/text-input [{:keys [elem]}]
   (ui/vertical-layout
@@ -214,10 +235,10 @@
                   {:text (pr-str num)
                    :value num}))
            [nil 1.0 2.0])
-     :selection (:flex.grow/width elem)})
+     :selection (:membrane.ui/stretch-width elem)})
    (ui/horizontal-layout
-    (ui/label :flex.grow/width)
-    (let [src (get elem :flex.grow/width)]
+    (ui/label :membrane.ui/stretch-width)
+    (let [src (get elem :membrane.ui/stretch-width)]
       (code-editor {:code src})))))
 
 
@@ -336,7 +357,7 @@
              (map (fn [kw]
                     {:text (name kw)
                      :value kw}))
-             [:start :center :end])
+             [:start :center :end :stretch])
        :selection (:align layout)})
      (ant/radio-bar
       {:size :small
@@ -351,8 +372,12 @@
       (ui/label (name :gap))
       (let [src (get layout :gap)]
         (code-editor {:code src})))
-     (for [kw [:gap
-               :width
+     (ui/horizontal-layout
+      (ui/label "pad:")
+      (let [code (get elem :flex/pad)
+            src (get code :element/code)]
+        (code-editor {:code src})))
+     (for [kw [:width
                :height]]
        (ui/horizontal-layout
         (ui/label (name kw))

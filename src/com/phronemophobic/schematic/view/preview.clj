@@ -26,6 +26,14 @@
             #_[com.phronemophobic.replog :as replog]))
 
 
+(defui component-as-map* [{:as this}]
+  ((::->body this) this))
+(defn component-as-map
+  "We want the keys and values of the previewed component to match the keys/values of the component it represents.
+  
+  This is useful for stuff like membrane.ui/flex-layout which both `get`s and `assoc`s properties of the element."
+  [f props]
+  (component-as-map* (assoc props ::->body #(f %))))
 
 (defmulti compile*
   (fn [ctx o]
@@ -113,6 +121,10 @@
 (defmethod compile* ::sm/button [ctx
                                  {:keys [element/text
                                          element/on-click]
+                                  :membrane.ui/keys [width
+                                                     height
+                                                     stretch-width
+                                                     stretch-height]
                                   :as elem}]
   (let [{:keys [$elem extra $extra context $context]} ctx
         editing? (get extra :editing?)
@@ -131,54 +143,57 @@
           :$editing? $editing?
           :buf buf
           :$buf $buf}))
-      (ui/on
-       :mouse-down
-       (fn [_]
-         (when (and (map? text)
-                    (= ::sm/code
-                       (:element/type text)))
-           [[:set $buf (buffer/buffer (pr-str (:element/code text)) {:mode :insert})]
-            [:set $editing? true]]))
-       (ui/no-events
-        (ant/button
-         (let [props
-               (into
-                {:text (compile ctx text)}
-                (keep (fn [kw]
-                        (when-let [v (get elem kw)]
-                          [(keyword (name kw))
-                           (compile ctx v)])))
-                [:ant.style/size
-                 :ant.style/type
-                 :ant.style/danger?
-                 :ant.style/disabled?])]
-           props)))))))
-
-(defui no-events-text-input [{:as m}]
-  (ui/no-events
-   (ant/text-input (into {} m))))
+      (let [props
+            (into
+             {:text (compile ctx text)
+              :membrane.ui/width (compile ctx width)
+              :membrane.ui/stretch-width (compile ctx stretch-width)
+              :membrane.ui/height (compile ctx height)
+              :membrane.ui/stretch-height (compile ctx stretch-height)}
+             (keep (fn [kw]
+                     (when-let [v (get elem kw)]
+                       [(keyword (name kw))
+                        (compile ctx v)])))
+             [:ant.style/size
+              :ant.style/type
+              :ant.style/danger?
+              :ant.style/disabled?])
+            body
+            (ui/on :mouse-down
+                   (fn [_]
+                     (when (and (map? text)
+                                (= ::sm/code
+                                   (:element/type text)))
+                       [[:set $buf (buffer/buffer (pr-str (:element/code text)) {:mode :insert})]
+                        [:set $editing? true]]))
+                   (ant/button props))]
+        (component-as-map #'ant/button props)))))
 
 (defmethod compile* ::sm/text-input [ctx
                                      {:keys [element/text
-                                             flex.grow/width
                                              $elem
                                              extra
                                              context
                                              $context
                                              $extra]
+                                      :membrane.ui/keys [width
+                                                         stretch-width
+                                                         #_height]
                                       :as elem}]
   (let [props (into
                {:text (compile ctx text)
-                :flex.grow/width width}
+                :membrane.ui/width width
+                :membrane.ui/stretch-width stretch-width}
                (keep (fn [kw]
                        (when-let [v (get elem kw)]
                          [(keyword (name kw))
                           (compile ctx v)])))
                [:ant.style/size
                 :ant.style/status
-                :ant.style/disabled?])]
-   (no-events-text-input
-    props)))
+                :ant.style/disabled?
+                ])]
+
+    (component-as-map #'ant/text-input props)))
 
 (defmethod compile* ::sm/checkbox [ctx
                                    {:keys [element/checked?]}]
@@ -234,27 +249,35 @@
                                             component/defaults]}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
     (if body
-      (compile
-       (-> ctx
-           (assoc :$elem [$elem (list 'keypath :component/body)]
-                  :extra (get extra :component/body)
-                  :$extra [$extra (list 'keypath :component/body)])
-           (update-in [:context :bindings]
-                      (fn [bindings]
-                        (into (-> (or bindings {})
-                                  ;; add container size, if available
-                                  (update
-                                   'context
-                                   (fn [compile-context]
-                                     (let [compile-context (or compile-context {})]
-                                       (merge compile-context
-                                              (select-keys context [:membrane.stretch/container-size])))))
-                                  (assoc 'this defaults
-                                         'extra {}))
-                              (map (fn [[k v]]
-                                     [(symbol k) (eval+ (:eval-ns ctx) v)]))
-                              defaults))))
-       body)
+      (let [body (compile
+                  (-> ctx
+                      (assoc :$elem [$elem (list 'keypath :component/body)]
+                             :extra (get extra :component/body)
+                             :$extra [$extra (list 'keypath :component/body)])
+                      (update-in [:context :bindings]
+                                 (fn [bindings]
+                                   (into (-> (or bindings {})
+                                             ;; add container size, if available
+                                             (update
+                                              'context
+                                              (fn [compile-context]
+                                                (let [compile-context (or compile-context {})]
+                                                  (merge compile-context
+                                                         (select-keys context [:membrane.stretch/container-size])))))
+                                             (assoc 'this defaults
+                                                    'extra {}))
+                                         (map (fn [[k v]]
+                                                [(symbol k) (eval+ (:eval-ns ctx) v)]))
+                                         defaults))))
+                  body)
+            [cw ch] (:membrane.stretch/container-size context)
+            body (if (and cw (:membrane.ui/stretch-width body))
+                   (assoc body :membrane.ui/width cw)
+                   body)
+            body (if (and ch (:membrane.ui/stretch-height body))
+                   (assoc body :membrane.ui/height ch)
+                   body)]
+        body)
       (uicall drag-elem-target
               {:elem body
                :$elem [$elem (list 'keypath :component/body)]}))))
@@ -309,34 +332,42 @@
 
 (defmethod compile* ::sm/flex-layout [ctx
                                       {:keys [element/children
-                                              flex/layout]}]
+                                              flex/layout]
+                                       :as self}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
-    (ui/vertical-layout
-     ;; (ui/label "flex-layout")
-     (if children
-       (ui/flex-layout
-        (compile
-         (assoc ctx
-                :$elem [$elem (list 'keypath :element/children)]
-                :extra (get extra ::children)
-                :$extra [$extra (list 'keypath ::children)]
-                :context context
-                :$context $context)
-         children)
-        (into {}
-              (map (fn [[k v]]
-                     [k (compile
-                         (assoc ctx
-                                :$elem [$elem (list 'keypath :flex/layout) (list 'keypath k)]
-                                :extra (get extra [::flex k])
-                                :$extra [$extra (list 'keypath [::flex k])]
-                                :context context
-                                :$context $context)
-                         v)]))
-              layout))
-       (uicall drag-elem-target
-               {:elem children
-                :$elem [$elem (list 'keypath :element/children)]})))))
+    (if children
+      (let [pad (when-let [{:keys [flex/pad]} self]
+                  (compile ctx pad))
+            
+            layout (into {}
+                         (map (fn [[k v]]
+                                [k (compile
+                                    (assoc ctx
+                                           :$elem [$elem (list 'keypath :flex/layout) (list 'keypath k)]
+                                           :extra (get extra [::flex k])
+                                           :$extra [$extra (list 'keypath [::flex k])]
+                                           :context context
+                                           :$context $context)
+                                    v)]))
+                         layout)
+            elems (compile
+                   (assoc ctx
+                          :$elem [$elem (list 'keypath :element/children)]
+                          :extra (get extra ::children)
+                          :$extra [$extra (list 'keypath ::children)]
+                          :context context
+                          :$context $context)
+                   children)
+            body (basic/flex-layout
+                  {:elems elems
+                   :layout layout
+                   :pad pad
+                   ::ui/stretch-width (compile ctx (::ui/stretch-width self))
+                   ::ui/stretch-height (compile ctx (::ui/stretch-height self))})]
+        body)
+      (uicall drag-elem-target
+              {:elem children
+               :$elem [$elem (list 'keypath :element/children)]}))))
 
 (defn eval-relative-layout [bindings form]
   (cond
