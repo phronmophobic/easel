@@ -377,6 +377,14 @@
       (let [code (get elem :flex/pad)
             src (get code :element/code)]
         (code-editor {:code src})))
+     (ui/vlayout
+      (for [kw [::ui/stretch-width
+                ::ui/stretch-height]]
+        (ui/horizontal-layout
+         (ui/label (name kw))
+         (let [code (get elem kw)
+               src (get code :element/code)]
+           (code-editor {:code src})))))
      (for [kw [:width
                :height]]
        (ui/horizontal-layout
