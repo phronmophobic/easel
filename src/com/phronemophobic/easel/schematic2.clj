@@ -9,8 +9,10 @@
    [clojure.java.io :as io]
    [membrane.alpha.component.drag-and-drop :as dnd]
    [com.phronemophobic.membrandt.impl.grid :as grid]
+   [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [membrane.component.present :as present]
    [com.phronemophobic.easel.model :as model]
+   [com.phronemophobic.easel :as-alias easel]
    [com.phronemophobic.schematic.model :as sm]
    [com.phronemophobic.schematic.view.component-picker :as component-picker]
    [com.phronemophobic.schematic.view.tree :as tree]
@@ -47,23 +49,47 @@
   ,)
 
 (defn save-new-component! [component-name eval-ns]
+  (when (not (qualified-symbol? component-name))
+    (throw (ex-info "component name must be a qualified symbol"
+                    {:component-name component-name
+                     :eval-ns eval-ns})))
+
   (let [name-sym (symbol component-name)
         component-version (random-uuid)
-        component {:element/type :com.phronemophobic.schematic.model/component,
+        
+        component {:element/type ::sm/component,
                    :component/name name-sym
-                   ;; :component/body nil,
                    :element/eval-ns (ns-name eval-ns)
                    :save/inst (java.time.Instant/now)
                    :component/version component-version
-                   :element/id (random-uuid)
-                   }
+                   :element/id (random-uuid)}
         component-branch {:branch/component-name component-name
                           :branch/current-version [:component/version component-version]}]
     (d/transact! @db-conn
                  [component
                   component-branch])))
 
-
+(defn load-component [component-name]
+  (when (not (qualified-symbol? component-name))
+    (throw (ex-info "component name must be a qualified symbol"
+                    {:component-name component-name})))
+  (let [component
+        (ffirst
+         (d/q '[:find
+                (pull ?component [:component/version
+                                  :element/type
+                                  :component/name
+                                  :element/eval-ns
+                                  :save/inst
+                                  :element/id
+                                  :component/body])
+                :in $ ?component-name
+                :where
+                [?branch :branch/component-name ?component-name]
+                [?branch :branch/current-version ?component]]
+              (d/db @db-conn)
+              component-name))]
+    component))
 
 (defn list-components []
   (into []
@@ -111,23 +137,24 @@
 
 
   
-  (save-new-component! 'foo2 *ns*)
+  (save-new-component! `hello-world *ns*)
+  (load-component `foo2)
   ,)
 
-(defui with-row-hover [{:keys [row hover body cell-width cell-height]}]
-  (let [hover? (= hover row)]
-    (if hover?
-      [(ui/filled-rectangle 
-        [0.9 0.9 0.9]
-        cell-width cell-height)
-       body]
-      (ui/on
-       :mouse-move
-       (fn [_]
-         [[:set $hover row]])
-       (ui/fixed-bounds
-        [cell-width cell-height]
-        body)))))
+(defui with-row-hover [{:keys [hover? body]
+                        ::ui/keys [width height]}]
+  (if hover?
+    [(ui/filled-rectangle 
+      [0.9 0.9 0.9]
+      width height)
+     body]
+    (ui/on
+     :mouse-move
+     (fn [_]
+       [[::do-hover {}]])
+     (ui/fixed-bounds
+      [width height]
+      body))))
 
 
 
@@ -136,23 +163,53 @@
     (let [components (list-components)]
       (dispatch! :set $components components))))
 
-(defui component-row [{:keys [component]
+(defeffect ::open-component [{:keys [component/name
+                                     element/eval-ns]}]
+  (let [eval-ns (the-ns eval-ns)]
+    (doseq [applet-fn [toolbar-applet
+                       preview-applet
+                       tree-applet
+                       detail-applet]]
+      (dispatch!
+       :com.phronemophobic.easel/add-applet
+       {:make-applet
+        (fn [handler]
+          (applet-fn handler
+                     name
+                     eval-ns))}))))
+
+(comment
+  (load-component `foo2)
+  ,)
+
+(defui component-row [{:keys [component hover]
                        :membrane.ui/keys [width height]}]
-  (ui/on
-   :mouse-down
-   (fn [_]
-     [[::dnd/drag-start {::dnd/obj {:x
-                                    (delay
-                                      component)}}]
-      #_[::open-game component]])
-   (basic/flex-layout
-    {:$elems nil 
-     :elems
-     [(ui/label (:component/name component))]
-     :pad 4
-     :layout {:direction :row
-              :width width
-              :height height}})))
+  (let [hover? (= hover (:component/name component))]
+    (ui/on
+     ::do-hover
+     (fn [_]
+       [[:set $hover (:component/name component)]])
+     (with-row-hover
+      {:hover? hover?
+       ::ui/width width
+       ::ui/height height
+       :$body nil
+       :body 
+       (ui/on
+        :mouse-down
+        (fn [_]
+          [[::dnd/drag-start {::dnd/obj {:x
+                                         (delay
+                                           component)}}]
+           [::open-component component]])
+        (basic/flex-layout
+         {:$elems nil 
+          :elems
+          [(ui/label (:component/name component))]
+          :pad 4
+          :layout {:direction :row
+                   :width width
+                   :height height}}))}))))
 
 (defui component-list [{:keys [components]}]
   (case components
@@ -178,41 +235,53 @@
                               :col-index 0)
           hover (get extra ::hover)
           
+          menu-bar
+          (ui/on
+           :mouse-down
+           (fn [_]
+             [[:set $components ::loading]
+              [::load-components {:$components $components}]])
+           (icon.ui/icon {:name "reload"}))
+
+          table-height (- ch (ui/height menu-bar)) 
+
+
           table (grid/list-view
                  {:row-fn 
                   (fn [{:keys [row]}]
                     (component-row
                      {:component (nth components row)
+                      :hover hover
                       ::ui/width cw
                       ::ui/height 20}))
                   
                   :num-rows (count components)
                   :width cw
-                  :height ch
+                  :height table-height
                   :scroll-state scroll-state
                   :$scroll-state $scroll-state})]
-      table)))
+      (ui/vertical-layout
+       menu-bar
+       table))))
 
 (defn show-component-list! [] 
   ((requiring-resolve 'dev/add-component-as-applet)
    #'component-list
    {}))
 
+(defn load-shared-component [{:keys [dispatch! component-name $elem]}]
+  (let [component (load-component component-name)]
+    (when (not (dispatch! :get $elem))
+      (dispatch! :set $elem component))))
 
 
-
-(defn toolbar-ui [this $context context]
+(defn toolbar-ui [this component-state $context context]
   (let [size (:size this)
         
-        elem (get context ::elem)
-        $elem [$context
-               (list 'keypath ::elem)]
-
-        selection (get context ::selection)
-        $selection [$context
-                    (list 'keypath ::selection)]
+        elem (get component-state ::elem)
+        selection (get component-state ::selection)
         
-        state (-> (:state this)
+        state (-> this
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size size
@@ -220,12 +289,7 @@
                              (dissoc ::elem)))
                   (assoc :$context $context
                          :elem elem
-                         :$elem $elem
-                         :eval-ns (:eval-ns this)
-                         :selection selection
-                         :$selection $selection
-                         :extra (:extra this)
-                         :$extra [(:$ref this) '(keypath :extra)]))]
+                         :selection selection))]
     (ui/scissor-view
      [0 0]
      size
@@ -233,37 +297,67 @@
 
 (defrecord ToolbarApplet []
   model/IApplet
-  (-start [this {:keys [$ref size]}]
-    (assoc this
-           ;; :dispatch! dispatch!
-           :$ref $ref
-           :size size))
+  (-start [{:keys [component-name]
+            :as this} 
+           {:keys [$ref $shared size]}]
+    (let [$component-state [$shared '(keypath ::components) (list 'keypath component-name)]
+          $elem (conj $component-state '(keypath ::elem)) 
+          $selection (conj $component-state '(keypath ::selection))
+          this (assoc this
+                      :$shared $shared
+                      :extra {}
+                      :$extra [$ref '(keypath :extra)]
+                      :$elem $elem
+                      :$selection $selection
+                      ::easel/shared-keys [::components]
+                      :$ref $ref
+                      :size size)]
+      (assoc this ::model/queue
+             [(fn []
+                (load-shared-component this))])))
   (-stop [this])
   model/IUI
-  (-ui [this {:keys [$context context]}]
-    (toolbar-ui this $context context))
+  (-ui [{:keys [component-name] :as this} {:keys [$context context shared]}]
+    (let [component-state (-> shared
+                              ::components
+                              (get component-name))]
+      (toolbar-ui this component-state $context context)))
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
            :size size)))
 
-(defn toolbar-applet [handler eval-ns]
+(defn toolbar-applet [handler component-name eval-ns]
   (-> (->ToolbarApplet)
       (assoc :label "Toolbar"
+             :dispatch! handler
+             :component-name component-name
              :eval-ns eval-ns)))
 
-(defn preview-ui [this $context context]
-  (let [size (:size this)
-        
-        elem (get context ::elem)
-        $elem [$context
-               (list 'keypath ::elem)]
+(comment
+  
+  (com.phronemophobic.easel/handler
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    (fn [handler]
+      (toolbar-applet
+       handler
+       `foo2
+       *ns*))})
+  
+  ,)
 
-        selection (get context ::selection)
-        $selection [$context
-                    (list 'keypath ::selection)]
+(def preview-ui (constantly nil))
+(defn preview-ui [this component-state $context context]
+  (let [size (:size this)
+        elem (get component-state ::elem)
+
+
+        selection (get component-state ::selection)
+        $selection (get this :$selection)
         
-        state (-> (:state this)
+        state (-> this
+                  (assoc :elem elem)
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size size)
@@ -271,46 +365,77 @@
                              (assoc :selection selection
                                     :$selection $selection)
                              (dissoc ::elem)))
-                  (assoc :$context $context
-                         :elem elem
-                         :$elem $elem
-                         :eval-ns (:eval-ns this)
-                         :extra (:extra this)
-                         :$extra [(:$ref this) '(keypath :extra)]))]
-    (preview/editor state)))
+                  (assoc :$context $context))]
+
+    
+    (if elem
+      (preview/editor state)
+      (ui/label "loading..."))))
+
+
 
 (defrecord PreviewApplet []
   model/IApplet
-  (-start [this {:keys [$ref size]}]
-    (assoc this
-           ;; :dispatch! dispatch!
-           :$ref $ref
-           :size size))
+  (-start [{:keys [component-name]
+            :as this} 
+           {:keys [$ref $shared size]}]
+    (let [
+          $component-state [$shared '(keypath ::components) (list 'keypath component-name)]
+          $elem (conj $component-state '(keypath ::elem)) 
+          $selection (conj $component-state '(keypath ::selection))
+          this 
+          (assoc this
+                 :$shared $shared
+                 :extra {}
+                 :$extra [$ref '(keypath :extra)]
+                 :$elem $elem
+                 :$selection $selection
+                 ::easel/shared-keys [::components]
+                 :$ref $ref
+                 :size size)]
+      (assoc this ::model/queue
+             [(fn []
+                (load-shared-component this))])))
   (-stop [this])
   model/IUI
-  (-ui [this {:keys [$context context]}]
-    (preview-ui this $context context))
+  (-ui [{:keys [component-name] :as this} {:keys [$context context shared]}]
+    (let [component-state (-> shared
+                              ::components
+                              (get component-name))]
+      (preview-ui this component-state $context context)))
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
            :size size)))
 
-(defn preview-applet [handler eval-ns]
+(defn preview-applet [handler component-name eval-ns]
   (-> (->PreviewApplet)
       (assoc :label "Preview"
+             :dispatch! handler
+             :component-name component-name
              :eval-ns eval-ns)))
 
-(defn tree-ui [this $context context]
-  (let [size (:size this)
-        elem (get context ::elem)
-        $elem [$context
-               (list 'keypath ::elem)]
+(comment
+  
+  (com.phronemophobic.easel/handler
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    (fn [handler]
+      (preview-applet
+       handler
+       `foo2
+       *ns*))})
+  
+  ,)
 
-        selection (get context ::selection)
-        $selection [$context
-                    (list 'keypath ::selection)]
+(defn tree-ui [this component-state $context context]
+  (let [size (:size this)
+        elem (get component-state ::elem)
+
+        selection (get component-state ::selection)
+        $selection (get this :$selection)
                
-        state (-> (:state this)
+        state (-> this
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size (:size this))
@@ -319,10 +444,7 @@
                                     :$selection $selection)
                              (dissoc ::elem)))
                   (assoc :$context $context
-                         :elem elem
-                         :$elem $elem
-                         :extra (:extra this)
-                         :$extra [(:$ref this) '(keypath :extra)]))]
+                         :elem elem))]
     (ui/scissor-view
      [0 0]
      size
@@ -330,24 +452,54 @@
 
 (defrecord TreeApplet []
   model/IApplet
-  (-start [this {:keys [$ref size]}]
-    (assoc this
-           ;; :dispatch! dispatch!
-           :$ref $ref
-           :size size))
+  (-start [{:keys [component-name] :as this} {:keys [$ref size $shared]}]
+    
+    (let [$component-state [$shared '(keypath ::components) (list 'keypath component-name)]
+          $elem (conj $component-state '(keypath ::elem))
+          $selection (conj $component-state '(keypath ::selection))
+          this (assoc this
+                      :$shared $shared
+                      :extra {}
+                      :$extra [$ref '(keypath :extra)]
+                      :$elem $elem
+                      :$selection $selection
+                      ::easel/shared-keys [::components]
+                      :$ref $ref
+                      :size size)]
+      (assoc this ::model/queue
+             [(fn []
+                (load-shared-component this))])
+      ))
   (-stop [this])
   model/IUI
-  (-ui [this {:keys [$context context]}]
-    (tree-ui this $context context))
+  (-ui [{:keys [component-name] :as this} {:keys [$context context shared]}]
+    (let [component-state (-> shared
+                              ::components
+                              (get component-name))]
+      (tree-ui this component-state $context context))
+    )
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
            :size size)))
 
-(defn tree-applet [handler eval-ns]
+(defn tree-applet [handler component-name eval-ns]
   (-> (->TreeApplet)
       (assoc :label "Tree View"
+             :dispatch! handler
+             :component-name component-name
              :eval-ns eval-ns)))
+
+(comment
+  (com.phronemophobic.easel/handler
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    (fn [handler]
+      (tree-applet
+       handler
+       `foo2
+       *ns*))})
+  ,)
 
 (defn component-picker-ui [this $context context]
   (let [size (:size this)
@@ -387,7 +539,6 @@
   (-start [this {:keys [$ref size]}]
 
     (assoc this
-           ;; :dispatch! dispatch!
            :$ref $ref
            :size size
            ::model/queue
@@ -418,15 +569,14 @@
   ,)
 
 (def elem-by-id (memoize sm/elem-by-id))
-(defn detail-ui [this $context context]
+(defn detail-ui [this component-state $context context]
   (let [size (:size this)
-        root (get context ::elem)
-        $root [$context
-               (list 'keypath ::elem)]
+        root (get component-state ::elem)
+        $root (get this :$elem)
 
-        selection (get context ::selection)
-        $selection [$context
-                    (list 'keypath ::selection)]
+        selection (get component-state ::selection)
+        $selection (get this :$selection)
+        
 
         selection-id (first selection)
         path (when selection-id
@@ -436,7 +586,7 @@
         $elem (when elem
                 [$root (list 'path path)])
 
-        state (-> (:state this)
+        state (-> this
                   (assoc :context
                          (-> context
                              (assoc :membrane.stretch/container-size (:size this))
@@ -446,9 +596,7 @@
                          :root root
                          :$root $root
                          :elem elem
-                         :$elem $elem
-                         :extra (:extra this)
-                         :$extra [(:$ref this) '(keypath :extra)]))]
+                         :$elem $elem))]
     (ui/scissor-view
      [0 0]
      size
@@ -456,23 +604,57 @@
 
 (defrecord DetailApplet []
   model/IApplet
-  (-start [this {:keys [$ref size]}]
-    (assoc this
-           ;; :dispatch! dispatch!
-           :$ref $ref
-           :size size))
+  (-start [{:keys [component-name]
+            :as this}
+           {:keys [$ref size $shared]}]
+    
+    (let [$component-state [$shared '(keypath ::components) (list 'keypath component-name)]
+          $elem (conj $component-state '(keypath ::elem))
+          $selection (conj $component-state '(keypath ::selection))
+          this
+          (assoc this
+                 :$shared $shared
+                 :extra {}
+                 :$extra [$ref '(keypath :extra)]
+                 :$elem $elem
+                 :$selection $selection
+                 ::easel/shared-keys [::components]
+                 :$ref $ref
+                 :size size)]
+      (assoc this ::model/queue
+             [(fn []
+                (load-shared-component this))])))
   (-stop [this])
   model/IUI
-  (-ui [this {:keys [$context context]}]
-    (detail-ui this $context context))
+  (-ui [{:keys [component-name] :as this} {:keys [$context context shared]}]
+    (let [component-state (-> shared
+                              ::components
+                              (get component-name))]
+      (detail-ui this component-state $context context)))
   model/IResizable
   (-resize [this size _content-scale]
     (assoc this
            :size size)))
 
-(defn detail-applet [handler eval-ns]
+(defn detail-applet [handler component-name eval-ns]
   (-> (->DetailApplet)
       (assoc :label "Detail View"
+             :dispatch! handler
+             :component-name component-name
              :eval-ns eval-ns)))
 
 
+(comment
+  
+  (com.phronemophobic.easel/handler
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    (fn [handler]
+      (detail-applet
+       handler
+       `foo2
+       *ns*))})
+  
+
+
+  ,)
