@@ -721,8 +721,8 @@
 
   ,)
 
-(defui editor [{:keys [elem
-                       eval-ns]}]
+(defui editor-body [{:keys [elem
+                            eval-ns]}]
   (let [preview-container (:preview-container extra)
 
         subcontext (case preview-container
@@ -779,6 +779,19 @@
           (catch Throwable e
             (clojure.pprint/pprint e)
             (ui/label "Error"))))))))
+
+(defui editor [{:keys [elem
+                       eval-ns]}]
+  
+  (let [[cw ch] (:membrane.stretch/container-size context)
+        body (editor-body {:elem elem
+                           :eval-ns eval-ns})]
+    (basic/scrollview
+     {:$body nil
+      :body (ui/padding 12 body)
+      :scroll-bounds [(- cw 14)
+                      (- ch 14)]})))
+
 
 (defui editor+component-picker [{:keys [elem]}]
   (dnd/drag-and-drop
