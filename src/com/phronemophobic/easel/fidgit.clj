@@ -1215,13 +1215,36 @@
   
   ,)
 
-(defeffect ::show-unified-diff [{:keys [fname]}]
-  (dispatch! :com.phronemophobic.easel/add-component-as-applet
+
+(defeffect ::show-unified-diff
+ [{:keys [fname source target] :as m}]
+  (cond
+    fname
+    (dispatch! :com.phronemophobic.easel/add-component-as-applet
              (constantly
               (unified-diff (index-contents fname)
                             (file-contents fname)
                             (clobber.editor/guess-mode {:file fname})))
-             {}))
+             {})
+    
+    (and source target)
+    (do
+      (when (not (and (string? source)
+                      (string? target)))
+        (throw (ex-info "Source and target must be strings"
+                        m)))
+     
+      (dispatch! :com.phronemophobic.easel/add-component-as-applet
+                 (constantly
+                  (unified-diff source
+                                target
+                                (get m :mode :text)))
+                 {}))
+    
+    
+    :else
+    (throw (ex-info "Not enough info to show diff"
+                    m))))
 
 (defeffect ::show-staged-unified-diff [{:keys [fname]}]
   (dispatch! :com.phronemophobic.easel/add-component-as-applet
