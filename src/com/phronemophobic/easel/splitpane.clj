@@ -101,22 +101,22 @@
 (defn get-size [m direction]
   (if (= :column direction)
     (or (:height m)
-        (:flex-layout.stretch/height m))
+        (:membrane.ui/height m))
     ;; else
     (or (:width m)
-        (:flex-layout.stretch/width m))))
+        (:membrane.ui/width m))))
 (defn get-cross-size [m direction]
   (if (= :column direction)
     (or (:width m)
-        (:flex-layout.stretch/width m))
+        (:membrane.ui/width m))
     ;; else
     (or (:height m)
-        (:flex-layout.stretch/height m))))
+        (:membrane.ui/height m))))
 
 (defn get-stretch [m direction]
   (if (= :column direction)
-    (:flex.grow/height m)
-    (:flex.grow/width m 1)))
+    (:membrane.ui/stretch-height m)
+    (:membrane.ui/stretch-width m 1)))
 
 (defn set-size [m direction size]
   (let [k (if (= direction :column)
@@ -131,13 +131,13 @@
 
 (defn set-flex-size [m direction size]
   (let [k (if (= direction :column)
-            :flex-layout.stretch/height
-            :flex-layout.stretch/width)]
+            :membrane.ui/stretch-height
+            :membrane.ui/stretch-width)]
     (assoc m k size)))
 (defn set-flex-cross-size [m direction size]
   (let [k (if (= direction :column)
-            :flex-layout.stretch/width
-            :flex-layout.stretch/height)]
+            :membrane.ui/stretch-width
+            :membrane.ui/stretch-height)]
     (assoc m k size)))
 
 (defn stack-layout
