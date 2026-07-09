@@ -355,20 +355,30 @@
 
 (defmethod compile* ::button [{:element/keys [text on-click]
                                :as elem}]
-  `(ant/button
-    ~(let [args `{:text ~(compile text)}
-           args (into args
-                      (keep (fn [kw]
-                              (when-let [v (get elem kw)]
-                                [(keyword (name kw))
-                                 (compile v)])))
-                      [:ant.style/size
-                       :ant.style/type
-                       :ant.style/danger?
-                       :ant.style/disabled?])]
-       (if on-click
-         (assoc args :on-click (compile on-click))
-         args))))
+  
+  (let [args `{:text ~(compile text)}
+        args (into args
+                   (keep (fn [kw]
+                           (when-let [v (get elem kw)]
+                             [(keyword (name kw))
+                              (compile v)])))
+                   [:ant.style/size
+                    :ant.style/type
+                    :ant.style/danger?
+                    :ant.style/disabled?])
+        args (into args
+                   (keep (fn [kw]
+                           (when-let [v (get elem kw)]
+                             [kw
+                              (compile v)])))
+                   [::ui/width
+                    ::ui/height
+                    ::ui/stretch-width
+                    ::ui/stretch-height])
+        args (if on-click
+               (assoc args :on-click (compile on-click))
+               args)]
+    `(ant/button ~args)))
 
 (defmethod compile* ::text-input [{:element/keys [text]
                                    width :flex.grow/width
@@ -382,6 +392,16 @@
                     [:ant.style/size
                      :ant.style/status
                      :ant.style/disabled?])
+        props (into props
+                    (keep (fn [kw]
+                            (when-let [v (get elem kw)]
+                              [kw
+                               (compile v)])))
+                    [::ui/width
+                     ;; ::ui/height
+                     ::ui/stretch-width
+                     ;;::ui/stretch-height
+                     ])
         props (if width
                 (assoc props :flex.grow/width width)
                 props)]
