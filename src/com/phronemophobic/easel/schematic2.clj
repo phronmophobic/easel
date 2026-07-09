@@ -82,6 +82,7 @@
                                   :element/eval-ns
                                   :save/inst
                                   :element/id
+                                  :component/defaults
                                   :component/body])
                 :in $ ?component-name
                 :where
