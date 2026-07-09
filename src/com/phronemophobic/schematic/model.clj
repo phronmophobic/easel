@@ -202,16 +202,22 @@
 
 
 (defmethod compile* ::flex-layout [{:element/keys [children]
-                                    :flex/keys [layout]
-                                    :as m}]
+                                    :flex/keys [layout pad]
+                                    :as this}]
   ;; currently, all properties are literals and
   ;;    don't use compiled or calculated values
-  `(ui/flex-layout ~(compile children)
-                   ~(into {}
-                          (map (fn [[k v]]
-                                 [k (compile v)]))
-                          layout)))
+  (let [m {:elems (compile children)
+           :$elems nil
+           :$layout nil
+           :layout (into {}
+                      (map (fn [[k v]]
+                             [k (compile v)]))
+                      layout)
+           :pad (compile pad)
+           ::ui/stretch-width (compile (::ui/stretch-width this))
+           ::ui/stretch-height (compile (::ui/stretch-height this))}]
 
+    `(basic/flex-layout ~m)))
 
 
 (defn compile-relative-layout-form [bindings form]
@@ -603,26 +609,16 @@
                      (map symbol)
                      (keys defaults)))]
     `(defui ~(symbol (clojure.core/name name)) [{:keys ~args :as ~'this}]
-       ~(compile body)))
-  #_`(let [f#
-           (fn ;; ~(symbol
-             ;;   (clojure.core/name name))
-             [{:keys [~@(eduction
-                         (map symbol)
-                         args)]
-               :as m#}]
-             (let [~'extra (get m# :extra)
-                   ~'context (get m# :context)]
-               ~(component/path-replace
-                 (compile body)
-                 (into
-                  {}
-                  (map (fn [arg]
-                         [(symbol arg) [{} (delay [nil (list 'quote (list 'keypath arg))])]])
-                       (conj args :extra :context))))))
-           args# ~(compile defaults)]
-       (define ~id f# {:name ~name})
-       (f# args#)))
+       
+       (let [body# ~(compile body)
+             container-size# (:membrane.stretch/container-size ~'context)
+             body# (if (and container-size# (::ui/stretch-width body#))
+                     (assoc body# ::ui/width (nth container-size# 0))
+                     body#)
+             body# (if (and container-size# (::ui/stretch-height body#))
+                     (assoc body# ::ui/height (nth container-size# 1))
+                     body#)]
+         body#))))
 
 (defmethod compile* ::code [{:element/keys [code]}]
   code)
