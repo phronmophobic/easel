@@ -116,6 +116,7 @@
                       (assoc :save/inst (java.time.Instant/now)))
         component-branch {:branch/component-name (:component/name component)
                           :branch/current-version [:component/version component-version]}]
+    (tap> {:saving component})
     (d/transact! @db-conn
                  [component
                   component-branch])))
