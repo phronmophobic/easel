@@ -48,26 +48,28 @@
   (d/close @db-conn)
   ,)
 
-(defn save-new-component! [component-name eval-ns]
-  (when (not (qualified-symbol? component-name))
-    (throw (ex-info "component name must be a qualified symbol"
-                    {:component-name component-name
-                     :eval-ns eval-ns})))
+(defn save-new-component! 
+  ([component-name]
+   (when (not (qualified-symbol? component-name))
+     (throw (ex-info "component name must be a qualified symbol"
+                     {:component-name component-name})))
+   
+   (let [eval-ns (the-ns (symbol (namespace component-name)))
 
-  (let [name-sym (symbol component-name)
-        component-version (random-uuid)
-        
-        component {:element/type ::sm/component,
-                   :component/name name-sym
-                   :element/eval-ns (ns-name eval-ns)
-                   :save/inst (java.time.Instant/now)
-                   :component/version component-version
-                   :element/id (random-uuid)}
-        component-branch {:branch/component-name component-name
-                          :branch/current-version [:component/version component-version]}]
-    (d/transact! @db-conn
-                 [component
-                  component-branch])))
+         name-sym (symbol component-name)
+         component-version (random-uuid)
+         
+         component {:element/type ::sm/component,
+                    :component/name name-sym
+                    :element/eval-ns (ns-name eval-ns)
+                    :save/inst (java.time.Instant/now)
+                    :component/version component-version
+                    :element/id (random-uuid)}
+         component-branch {:branch/component-name component-name
+                           :branch/current-version [:component/version component-version]}]
+     (d/transact! @db-conn
+                  [component
+                   component-branch]))))
 
 (defn load-component [component-name]
   (when (not (qualified-symbol? component-name))
