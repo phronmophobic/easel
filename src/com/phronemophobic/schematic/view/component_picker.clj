@@ -153,6 +153,8 @@
                         :element/height {:element/type ::sm/code
                                          :element/id (random-uuid)
                                          :element/code :middle}
+                        :membrane.ui/stretch-width (->code 1.0)
+                        :membrane.ui/stretch-height (->code nil)                        
                         :element/id (random-uuid)})
    ::sm/number-slider (fn []
                         {:element/type ::sm/number-slider
