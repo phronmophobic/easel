@@ -1,6 +1,7 @@
 (ns com.phronemophobic.schematic.view.preview
   (:refer-clojure :exclude [compile load-file])
   (:require [membrane.component :refer [defui defeffect]]
+            [membrane.component.present :as present]
             [membrane.basic-components :as basic]
             [membrane.ui :as ui]
             [clojure.string :as str]
@@ -771,7 +772,8 @@
   ,)
 
 (defui editor-body [{:keys [elem
-                            eval-ns]}]
+                            eval-ns
+                            error]}]
   (let [preview-container (:preview-container extra)
 
         subcontext (case preview-container
@@ -782,8 +784,14 @@
                      :small-mobile
                      (assoc context :membrane.stretch/container-size [200 400])
 
+                     :other 
+                     (assoc context :membrane.stretch/container-size [400 70])
+
                      ;; else
-                     context)]
+                     context)
+        
+        error-view (when (get error elem)
+                     (ui/label "Error!"))]
     (ui/vertical-layout
      (ui/label (pr-str preview-container))
      (apply
@@ -791,7 +799,8 @@
       (for [container-button-info [{:icon-name "minus-square" :container-type nil}
                                    {:icon-name "mobile" :container-type :mobile}
                                    {:icon-name "mobile" :container-type :small-mobile}
-                                   {:icon-name "desktop" :container-type :desktop}]]
+                                   {:icon-name "desktop" :container-type :desktop}
+                                   {:icon-name "plus" :container-type :other}]]
         (ui/on-click
          (fn []
            [[:set $preview-container (:container-type container-button-info)]])
@@ -800,35 +809,37 @@
       4 4
       (if (nil? elem)
         (drag-elem-target {:elem elem})
-        (try
-          [(when preview-container
-             (case preview-container
-               :mobile
-               (ui/with-style :membrane.ui/style-stroke
-                 (ui/rectangle 375 812))
+        
+        (if error-view
+          error-view
+          (try
+            [(when preview-container
+               
+               (let [[cw ch] (:membrane.stretch/container-size subcontext)]
+                 (ui/with-style :membrane.ui/style-stroke
+                                (ui/rectangle cw ch))))
+             (ui/try-draw
+              (compile
+               {:$elem $elem
+                :extra extra
+                :$extra $extra
+                :context subcontext
+                :$context $context
+                :eval-ns eval-ns}
+               elem)
+              (fn [draw e]
+                ;; hack!
+                (com.phronemophobic.easel/handler
+                 :set $error{elem e})
 
-               :small-mobile
-               (ui/with-style :membrane.ui/style-stroke
-                 (ui/rectangle 200 400))
-
-               ;; else
-               nil
-               ))
-           (ui/try-draw
-            (compile
-             {:$elem $elem
-              :extra extra
-              :$extra $extra
-              :context subcontext
-              :$context $context
-              :eval-ns eval-ns}
-             elem)
-            (fn [draw e]
-              (draw (ui/label e))))]
-          (catch Throwable e
-            (clojure.pprint/pprint e)
-            (tap> e)
-            (ui/label "Error"))))))))
+                (draw (ui/label e))))]
+            (catch Throwable e
+              (tap> e)
+              (present/on-present
+               (fn []
+                 (tap> {:presenet-error e})
+                 [[:set $error {elem e}]])
+               (ui/label "Error"))))))))))
 
 (defui editor [{:keys [elem
                        eval-ns]}]
