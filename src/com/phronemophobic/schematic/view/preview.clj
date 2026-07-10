@@ -330,6 +330,54 @@
               {:elem body
                :$elem [$elem (list 'keypath :element/body)]})])))
 
+
+(defmethod compile* ::sm/listview [ctx
+                                   {:keys [element/body
+                                           element.for/x
+                                           element.for/xs]
+                                    :as this}]
+  (if body
+    (let [{:keys [$elem extra $extra context $context]} ctx
+          list-data (compile (assoc ctx
+                                    :elem xs
+                                    :$elem [$elem (list 'keypath :element/xs)]
+                                    :context context
+                                    :$context $context)
+                             xs)
+          listview (grid/list-view
+                    {:row-fn
+                     (fn [{:keys [row cell-width] :as cell-data}]
+                       (let [row-data (nth list-data row)
+                             elem (compile
+                                   (assoc ctx
+                                          :elem body
+                                          :$elem [$elem (list 'keypath :element/body)]
+                                          :context (update context
+                                                           :bindings
+                                                           (fn [bindings]
+                                                             (assoc bindings x row-data)))
+                                          :$context $context)
+                                   body)
+                             elem (if (and cell-width
+                                           (::ui/stretch-width elem))
+                                    (assoc elem ::ui/width cell-width)
+                                    elem)]
+                         elem))
+                     ::ui/stretch-width (compile ctx (::ui/stretch-width this))
+                     ::ui/stretch-height (compile ctx (::ui/stretch-height this))
+                     :num-rows (count list-data)
+                     :scroll-state (get extra ::scroll-state)
+                     :$scroll-state [$extra (list 'keypath ::scroll-state)]
+                     :extra (get extra ::list-view)
+                     :$extra [$extra (list 'keypath ::listview)]
+                     :context context
+                     :$context $context})]
+      listview)
+   (let [{:keys [$elem extra $extra context $context]} ctx]
+     (uicall drag-elem-target
+             {:elem body
+              :$elem [$elem (list 'keypath :element/body)]}))))
+
 (defmethod compile* ::sm/flex-layout [ctx
                                       {:keys [element/children
                                               flex/layout]
