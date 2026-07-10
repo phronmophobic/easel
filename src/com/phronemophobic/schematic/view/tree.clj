@@ -550,6 +550,55 @@
                 :$elem [$elem (list 'keypath :element/body)]})
        )))))
 
+
+(defmethod compile* ::sm/listview [{{:keys [element/body
+                                            element.for/x
+                                            element.for/xs
+                                            element/id]
+                                     :as elem} :elem
+                                    :keys [
+                                           $elem
+                                           extra
+                                           context
+                                           $context
+                                           $extra]}]
+  (ui/horizontal-layout
+   (uicall
+    component-title
+    {:text "(listview"
+     :elem elem
+     :$elem $elem
+     :selection (:selection context)
+     :$selection (:$selection context)
+     :id id})
+   (ui/translate
+    5 0
+    (ui/vertical-layout             
+     (uicall symbol-editor
+             {:symbol x
+              :$symbol [$elem (list 'keypath :element.for/x)]})
+     (compile
+      {:elem xs
+       :$elem [$elem (list 'keypath :element.for/xs)]
+       :extra (get extra ::xs)
+       :$extra [$extra (list 'keypath ::xs)]
+       :context context
+       :$context $context})
+     hr
+     (if body
+       (compile
+        {:elem body
+         :$elem [$elem (list 'keypath :element/body)]
+         :extra (get extra ::body)
+         :$extra [$extra (list 'keypath ::body)]
+         :context context
+         :$context $context})
+       ;; else
+       (uicall drag-elem-target
+               {:elem body
+                :$elem [$elem (list 'keypath :element/body)]})
+       )))))
+
 (defui drag-elem-wrap-target [{:keys [elem drag-object body]}]
   (dnd/on-drop
    (fn [pos obj]

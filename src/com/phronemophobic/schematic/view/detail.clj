@@ -188,6 +188,31 @@
     [:membrane.ui/stretch-width
      :membrane.ui/stretch-height])))
 
+
+(defeditor ::sm/listview [{:keys [elem]}]
+  (ui/vertical-layout
+   (ui/vlayout
+    (map (fn [kw]
+           (let [code (get elem kw)
+                 src (:element/code code)]
+             
+             (ui/vertical-layout
+              (ui/horizontal-layout
+               (ui/label kw)
+               (code-editor {:code src}))
+              (ant/radio-bar
+               {:size :small
+                :options
+                (into []
+                      (map (fn [num]
+                             {:text (pr-str num)
+                              :value num}))
+                      [nil 1.0 2.0])
+                :selection src})))))
+    [:membrane.ui/stretch-width
+     :membrane.ui/stretch-height])
+   ))
+
 (defeditor ::sm/text-input [{:keys [elem]}]
   (ui/vertical-layout
    (let [code (:element/text elem)
@@ -282,7 +307,9 @@
    ui/vertical-layout
    (for [kw [:element/value
              :element/width
-             :element/height]]
+             :element/height
+             ::ui/stretch-width
+             ::ui/stretch-height]]
      (ui/horizontal-layout
       (ui/label (name kw))
       (let [code (get elem kw)

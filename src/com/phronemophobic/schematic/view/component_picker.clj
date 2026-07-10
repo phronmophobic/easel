@@ -33,6 +33,15 @@
                :element.for/x 'x
                :element.for/xs {:element/type ::sm/code
                                 :element/code [1 2 3]}})
+   ::sm/listview (fn []
+                   {:element/type ::sm/listview
+                    :element/id (random-uuid)
+                    :element/body nil
+                    :element.for/x 'x
+                    :element.for/xs (->code ["1" "2" "3" "4"])
+                    :membrane.ui/stretch-width (->code 1.0)
+                    :membrane.ui/stretch-height (->code 1.0)
+                    })
    ::sm/code (fn []
                {:element/type ::sm/code
                 :element/id (random-uuid)

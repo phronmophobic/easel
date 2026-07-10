@@ -14,6 +14,7 @@
             [membrane.component :as component
              :refer [defui defeffect]]
             [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.membrandt.impl.grid :as grid]
             [membrane.ui :as ui]
             [membrane.skia :as skia]
             [membrane.skia.paragraph :as para]
@@ -336,6 +337,22 @@
   `(vec
     (for [~x ~(compile xs)]
       ~(compile body))))
+
+(defmethod compile* ::listview [{:element/keys [body]
+                                 :element.for/keys [x xs]
+                                 :as this}]
+  `(let [list-data# ~(compile xs)]
+     (grid/list-view
+      {:row-fn (fn [{row# :row}]
+                 (let [~x (nth list-data# row#)]
+                   ~(compile body)))
+       ::ui/width ~(compile (::ui/width this))
+       ::ui/height ~(compile (::ui/height this))
+       
+       ::ui/stretch-width ~(compile (::ui/stretch-width this))
+       ::ui/stretch-height ~(compile (::ui/stretch-height this))
+       :num-rows (count list-data#)}))
+  )
 
 (defmethod compile* ::let [{:element/keys [body bindings]}]
   `(let ~(into []
@@ -764,7 +781,7 @@
     (::component)
     (assoc elem :component/body child)
 
-    (::for)
+    (::for ::listview)
     (assoc elem :element/body child)))
 
 (defeffect ::delete-by-id [{:keys [$elem id]}]
