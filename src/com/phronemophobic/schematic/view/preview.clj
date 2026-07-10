@@ -82,13 +82,23 @@
 (defmethod compile* ::sm/progress-bar [ctx
                                        {:keys [element/value
                                                element/width
-                                               element/height]}]
+                                               element/height]
+                                        :as this}]
   (let [value (compile ctx value)
         width (compile ctx width)
-        height (compile ctx height)]
-    (ant/progress-bar {:progress value
-                       :width width
-                       :height height})))
+        height (compile ctx height)
+        
+        args {:progress value
+              :width width
+              :height height}
+        args (into args
+                   (keep (fn [kw]
+                           (when-let [v* (get this kw)]
+                             (when-let [v (compile ctx v*)]
+                               [kw v]))))
+                   [::ui/stretch-width
+                    ::ui/stretch-height])]
+    (ant/progress-bar args)))
 
 (defmethod compile* ::sm/number-slider [ctx
                                         {:keys [element/value
