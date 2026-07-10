@@ -176,7 +176,7 @@
                        :$context $context))
                (catch Exception e
                  (tap> e)
-                 (prn e)
+                 ;; (prn e)
                  (ui/label "Error!"))) 
 
           scroll-state (:scroll-state this)
@@ -197,7 +197,7 @@
         ui
         (fn [draw e]
           (tap> e)
-          (prn e)
+          ;; (prn e)
           (draw (ui/label "Error!")))))))
   model/IResizable
   (-resize [this size _content-scale]
@@ -266,11 +266,11 @@
           ui
           (catch Exception e
             (tap> e)
-            (prn e)
+            ;; (prn e)
             (ui/label "Error!")))
         (fn [draw e]
           (tap> e)
-          (prn e)
+          ;; (prn e)
           (draw (ui/label "Error!")))))))
   model/IResizable
   (-resize [this size _content-scale]
@@ -312,7 +312,9 @@
       (try
         (workf)
         (catch Throwable e
-          (prn e)))
+          (tap> e)
+          ;; (prn e)
+          ))
       (recur))))
 
 (defeffect :dispatch-main [f]
@@ -1415,7 +1417,8 @@
     (handler (present/present view))
     (catch Throwable e
       (tap> e)
-      (prn e))))
+      ;; (prn e)
+      )))
 
 (defn run []
   (let [
