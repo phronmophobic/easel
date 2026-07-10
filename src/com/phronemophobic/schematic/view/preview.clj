@@ -10,6 +10,7 @@
             [membrane.skia.paragraph :as para]
             [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.membrandt :as ant]
+            [com.phronemophobic.membrandt.impl.grid :as grid]
             [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.rpl.specter :as specter]
             [com.phronemophobic.schematic.model :as sm]
