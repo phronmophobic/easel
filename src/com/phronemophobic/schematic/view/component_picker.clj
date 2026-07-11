@@ -189,8 +189,12 @@
               (ui/on
                :mouse-down
                (fn [_]
-                 [[::dnd/drag-start {::dnd/obj {::sm/element
-                                                ((get components kind))}}]])
+                 
+                 (let [elem ((get components kind))]
+                   [[::dnd/drag-start {::dnd/obj
+                                       {:x (viscous/wrap elem)
+                                        ::sm/element
+                                        elem}}]]))
                (ant/button {:text (name kind)
                             :size :small
                             :extra (get extra [:button kind])
