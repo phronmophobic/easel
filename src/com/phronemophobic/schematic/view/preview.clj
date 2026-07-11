@@ -359,7 +359,11 @@
           listview (grid/list-view
                     {:row-fn
                      (fn [{:keys [row cell-width] :as cell-data}]
-                       (let [row-data (nth list-data row)
+                       (let [row-key [::row row]
+                             ctx (assoc ctx
+                                        :extra (get extra row-key)
+                                        :$extra [$extra (list 'keypath row-key)])
+                             row-data (nth list-data row)
                              elem (compile
                                    (assoc ctx
                                           :elem body

@@ -344,7 +344,8 @@
   `(let [list-data# ~(compile xs)]
      (grid/list-view
       {:row-fn (fn [{row# :row}]
-                 (let [~x (nth list-data# row#)]
+                 (let [~x (nth list-data# row#)
+                       ~'extra (get ~'extra [::row row#])]
                    ~(compile body)))
        ::ui/width ~(compile (::ui/width this))
        ::ui/height ~(compile (::ui/height this))
