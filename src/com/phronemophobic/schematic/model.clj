@@ -463,14 +463,13 @@
 
 
 (defmethod compile* ::defui [{:keys [element/function
-                                     element/data]}]
+                                     element/data]
+                              :as this}]
   (let [data-compiled (into {}
                             (map (fn [[k v]]
                                    [k (compile v)]))
                             data)
-        fsym (let [m (meta function)]
-               (symbol (name (ns-name (:ns m)))
-                       (name (:name m))))]
+        fsym (:element/name this)]
     `(~fsym ~data-compiled)))
 
 (defmethod compile* ::checkbox [{:element/keys [checked?]}]

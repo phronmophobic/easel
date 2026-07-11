@@ -739,7 +739,6 @@
 
 (defmethod compile* ::sm/defui [ctx
                                 {:keys [element/name
-                                        element/function
                                         element/data]}]
 
   (let [ctx (assoc-in ctx [:context :bindings 'extra] {})
@@ -748,7 +747,9 @@
                                    [:context :bindings 'context])}
                           (map (fn [[k node]]
                                  [k (compile ctx node)]))
-                          data)]
+                          data)
+        function (-> (find-ns (symbol (namespace name)))
+                     (clojure.lang.Namespace/.getMapping (-> name clojure.core/name symbol )))]
     (function data-evaled)))
 
 (defui debug [{}])
@@ -997,8 +998,7 @@
                                            (name (:component/name elem)))
                                   (fn []
                                     {:element/type ::sm/defui
-                                     :element/name (name (:component/name elem))
-                                     :element/function v
+                                     :element/name (:component/name elem)
                                      :element/data (update-vals
                                                     (:component/defaults elem)
                                                     (fn [v]

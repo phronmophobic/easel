@@ -309,7 +309,7 @@
                                         $extra]}]
   (uicall
    component-title
-   {:text name
+   {:text (clojure.core/name name)
     :elem elem
     :$elem $elem
     :selection (:selection context)

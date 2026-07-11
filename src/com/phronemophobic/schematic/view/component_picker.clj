@@ -61,7 +61,7 @@
    ::inspector (fn []
                  {:element/type ::sm/defui
                   :element/name "inspector"
-                  :element/function #'inspector
+                  :element/function `inspector
                   :element/data {:obj (->code nil)}
                   :element/id (random-uuid)})
 

@@ -100,8 +100,7 @@
   (let [mta (meta v)]
     (when (:membrane.component/special? mta)
       {:element/type ::sm/defui
-       :element/name (-> mta :name name)
-       :element/function v
+       :element/name (clojure.lang.Var/.toSymbol v)
        :element/data (into {}
                            (comp
                             (remove #{'extra 'context})
