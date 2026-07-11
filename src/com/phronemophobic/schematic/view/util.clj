@@ -96,13 +96,34 @@
        [[:set $object o]])
      body)))
 
+(defn var->component-elem [v]
+  (let [mta (meta v)]
+    (when (:membrane.component/special? mta)
+      {:element/type ::sm/defui
+       :element/name (-> mta :name name)
+       :element/function v
+       :element/data (into {}
+                           (comp
+                            (remove #{'extra 'context})
+                            (map (fn [sym]
+                                   [(keyword sym) 
+                                    {:element/type ::sm/code
+                                     :element/id (random-uuid)
+                                     :element/code nil}])))
+                           (-> mta :arglists ffirst :keys))
+       :element/id (random-uuid)})))
+
 (defui drag-elem-target [{:keys [elem drag-object]}]
   (dnd/on-drop
    (fn [pos obj]
      (let [intents [[:set $drag-object nil]]]
-       (if-let [new-elem (::sm/element obj)]
-         (conj intents [:set $elem new-elem])
-         intents)))
+       (or (if-let [new-elem (::sm/element obj)]
+             (conj intents [:set $elem new-elem])
+             (when-let [x (:x obj)]
+               (when (var? @x)
+                 (when-let [new-elem (var->component-elem @x)]
+                   (conj intents [:set $elem new-elem])))))
+           intents)))
    (on-drag-hover
     {:$body nil
      :object drag-object
