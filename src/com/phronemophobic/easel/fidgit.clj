@@ -716,6 +716,8 @@
                         ("d" "D")
                         [[::delete this]]
                         
+                        ("o" "O")
+                        [[::open-file {:fname fname}]]
                         
                         ("u" "U")
                         [[::unstage this]]
