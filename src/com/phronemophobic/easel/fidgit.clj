@@ -30,8 +30,14 @@
            org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
            [java.io ByteArrayOutputStream File]
-           [org.eclipse.jgit.api Git]
-           [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode]
+           [org.eclipse.jgit.api Git TransportConfigCallback] 
+           [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode BranchTrackingStatus BranchConfig]
+           (org.eclipse.jgit.api.errors TransportException)
+           [org.eclipse.jgit.transport
+            PushResult RemoteRefUpdate RemoteRefUpdate$Status
+             SshTransport]
+           [org.eclipse.jgit.transport.sshd SshdSessionFactory SshdSessionFactoryBuilder JGitKeyCache]
+
            [org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry]
            [org.eclipse.jgit.treewalk TreeWalk]
            [org.eclipse.jgit.treewalk.filter PathFilter]
@@ -143,6 +149,21 @@
       :untracked   (set untracked)
       :conflicting (set conflicting)
       :all         (set all)})))
+
+(defn commits-ahead-of-upstream
+  "Returns how many commits the currently checked-out local branch is ahead of its upstream (tracking) branch.
+
+   Returns nil if HEAD is detached or no upstream is configured."
+  [path]
+  (with-git
+   [git path]
+   (let [^Repository repo (.getRepository git)
+         full-branch (.getFullBranch repo)]
+     (when (and full-branch (str/starts-with? full-branch "refs/heads/"))
+       (let [short-branch (.getBranch repo)   ; e.g. \"main\"
+             status (BranchTrackingStatus/of repo short-branch)]
+         (when status
+           (long (max 0 (.getAheadCount status)))))))))
 
 (comment
   
@@ -737,11 +758,21 @@
       (let [changed (changed-files path)]
         (dispatch! :set $git-info
                    {:git-work-tree-dir (get-git-work-tree path)
+                    :commits-ahead (commits-ahead-of-upstream path)
                     :untracked (:untracked changed)
                     :modified (:modified changed)
                     :added (:added changed)
                     :staged (:changed changed)})
         (dispatch! :repaint!))
+      (catch Throwable t
+        (tap> t)))))
+
+
+(defeffect ::push-commits [{:keys [git-info path] :as this}]
+  (future
+    (try
+      (push-to-upstream! path)
+      (dispatch! ::load-git-info this)
       (catch Throwable t
         (tap> t)))))
 
@@ -837,6 +868,28 @@
                                        editor-ui)
                                       editor-ui)]
                       editor-ui)
+          
+          commits-ahead-ui (when-let [commits-ahead (:commits-ahead git-info)]
+                             
+                             (let [bold-style (assoc default-text-style
+                                                     :text-style/font-style
+                                                     {:font-style/weight :bold})]
+                               (when (pos? commits-ahead)
+                                 (para/paragraph 
+                                  ["--- commits ahead "
+                                   {:text "("
+                                    :style bold-style}
+                                   {:text (str commits-ahead)
+                                    :style bold-style}
+                                   {:text ")"
+                                    :style bold-style}
+                                   " ---"]
+                                  nil
+                                  default-paragraph-style))))
+
+          header (ui/vertical-layout
+                  editor-ui
+                  commits-ahead-ui)
 
 
           {:keys [untracked modified staged added]} git-info
@@ -990,7 +1043,7 @@
                                    body)]
                         body))
             :width cw
-            :height (- ch (ui/height editor-ui))
+            :height (- ch (ui/height header))
             :num-rows (count rows)})
           
           table (ui/wrap-on
@@ -1007,6 +1060,10 @@
                        (if (seq intents)
                          intents
                          (case s
+                           
+                           "P"
+                           [[::push-commits this]]
+
                            ("g" "G")
                            [[:set $git-info ::loading] 
                             [::load-git-info this]]
@@ -1015,7 +1072,7 @@
                    table)
                   table)]
       (ui/vertical-layout
-       editor-ui
+       header
        table))))
 
 (defeffect ::open-fidget [{:keys [editor]}]
@@ -1261,3 +1318,67 @@
              {:make-applet
               (let [f (requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)]
                 #(f % {:file fname}))}))
+
+
+(defn ^SshdSessionFactory ssh-session-factory
+  "Create an SSH session factory using a specific private key and known_hosts.
+   key-path: path to private key file (e.g. ~/.ssh/id_ed25519)
+   known-hosts-path: path to known_hosts (e.g. ~/.ssh/known_hosts)"
+  [{:keys [key-path known-hosts-path]}]
+  (.. (SshdSessionFactoryBuilder.)
+      (setHomeDirectory (io/file (System/getProperty "user.home")))
+      (setSshDirectory (io/file (System/getProperty "user.home") ".ssh"))
+      ;; (setDefaultKnownHostsFile (java.util.List/of (io/file (System/getProperty "user.home") ".ssh" "known_hosts")))
+      ;; Use only the identity you specify (prevents surprises if ssh-agent has many keys)
+      ;; (setDefaultIdentities (java.util.List/of (File. key-path)))
+      (build (JGitKeyCache.))))
+
+
+(defn ^TransportConfigCallback ssh-transport-callback
+  "TransportConfigCallback that injects the given SshdSessionFactory into JGit SSH transports."
+  [^SshdSessionFactory session-factory]
+  (reify TransportConfigCallback
+    (configure [_ transport]
+      (when (instance? SshTransport transport)
+        (.setSshSessionFactory ^SshTransport transport session-factory)))))
+
+(defn push-to-upstream!
+  "Pushes the currently checked-out local branch to its configured upstream (tracking) branch.
+
+  Notes:
+  - Uses the branch's configured remote (e.g. origin) and push refspec (or constructs one).
+  - Returns the PushResult iterable from JGit.
+  - Throws ex-info if HEAD is detached or no upstream/remote is configured, or push is rejected.
+  "
+  [path]
+  (with-git
+   [git path]
+   (let [^Repository repo (.getRepository git)]
+     
+     (let [session-factory (ssh-session-factory {})
+           tcc             (ssh-transport-callback session-factory)
+           results  (seq (.call (doto (.push git)
+                                  (.setTransportConfigCallback tcc)
+                                  #_(.setRemote remote)
+                                  #_(.setRefSpecs (into-array String [refspec])))))]
+       ;; Check for rejections
+       (doseq [^PushResult pr results
+               ^RemoteRefUpdate
+               rru (.getRemoteUpdates pr)]
+         (let [status (.getStatus rru)]
+           (when (#{RemoteRefUpdate$Status/REJECTED_NONFASTFORWARD
+                    RemoteRefUpdate$Status/REJECTED_NODELETE
+                    RemoteRefUpdate$Status/REJECTED_REMOTE_CHANGED
+                    RemoteRefUpdate$Status/REJECTED_OTHER_REASON
+                    RemoteRefUpdate$Status/NOT_ATTEMPTED} status)
+             (throw (ex-info "Push was rejected."
+                             {:status (str status)
+                              :message (.getMessage rru)})))))
+       results)
+
+)))
+
+(comment
+  (push-to-upstream! ".")
+  ,)
+
