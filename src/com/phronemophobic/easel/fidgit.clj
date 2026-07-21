@@ -32,7 +32,7 @@
            [java.io ByteArrayOutputStream File]
            [org.eclipse.jgit.api Git TransportConfigCallback] 
            [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode BranchTrackingStatus BranchConfig]
-           (org.eclipse.jgit.api.errors TransportException)
+           [org.eclipse.jgit.api.errors TransportException]
            [org.eclipse.jgit.transport
             PushResult RemoteRefUpdate RemoteRefUpdate$Status
              SshTransport]
@@ -42,18 +42,18 @@
            [org.eclipse.jgit.treewalk TreeWalk]
            [org.eclipse.jgit.treewalk.filter PathFilter]
            
-           (com.github.difflib.text
+           [com.github.difflib.text
             DiffRowGenerator
             DiffRowGenerator$Builder
-            DiffRow)
-           (com.github.difflib
-            DiffUtils)
-           (com.github.difflib.patch
+            DiffRow]
+           [com.github.difflib
+            DiffUtils]
+           [com.github.difflib.patch
             AbstractDelta
             InsertDelta DeleteDelta ChangeDelta
             Chunk
             DeltaType
-            Patch)
+            Patch]
            
            io.lacuna.bifurcan.Rope))
 
