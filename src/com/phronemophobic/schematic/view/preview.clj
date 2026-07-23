@@ -117,6 +117,19 @@
                         :min min
                         :integer? integer?})))
 
+(defmethod compile* ::sm/icon [ctx
+                               {:keys [icon/name
+                                       icon/size
+                                       element/on-click
+                                       ]}]
+  (let [props {:name name}
+        props (if name
+                (assoc props :name (compile ctx name))
+                props)
+        props (if size
+                (assoc props :size (compile ctx size))
+                props)]
+    (icon.ui/icon props)))
 
 (defmethod compile* ::sm/radio-bar [ctx
                                     {:keys [element/size

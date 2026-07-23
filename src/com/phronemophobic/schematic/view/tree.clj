@@ -371,6 +371,33 @@
              {:code checked?
               :$code [$elem (list 'keypath :element/checked?)]})))))
 
+(defmethod compile* ::sm/icon [{{:keys [icon/name
+                                        element/id]
+                                 :as elem} :elem
+                                :keys [$elem
+                                       extra
+                                       context
+                                       $context
+                                       $extra]}]
+  (ui/vertical-layout
+   (uicall
+    component-title
+    {:text "icon"
+     :elem elem
+     :$elem $elem
+     :selection (:selection context)
+     :$selection (:$selection context)
+     :id id})
+   (ui/translate
+    20 3
+    (ui/vertical-layout
+     (compile
+      {:elem name
+       :$elem [$elem (list 'keypath :icon/name)]
+       :extra (get extra ::icon-name)
+       :$extra [$extra (list 'keypath ::icon-name)]
+       :context context
+       :$context $context})))))
 
 (defmethod compile* ::sm/code [{{:keys [element/code
                                         element/id]

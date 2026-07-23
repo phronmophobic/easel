@@ -112,6 +112,20 @@
                   :membrane.ui/height (->code nil)
                   :membrane.ui/stretch-height (->code nil)
                   :element/id (random-uuid)})
+   ::sm/icon (fn []
+               {:element/type ::sm/icon
+                :element/on-click {:element/type ::sm/code
+                                   :element/id (random-uuid)
+                                   :element/code '(fn [] [])}
+                :icon/name {:element/type ::sm/code
+                            :element/id (random-uuid)
+                            :element/code "question-circle"}
+                :membrane.ui/width (->code nil)
+                :membrane.ui/stretch-width (->code nil)
+                :membrane.ui/height (->code nil)
+                :membrane.ui/stretch-height (->code nil)
+                :element/id (random-uuid)})
+
    ::sm/checkbox (fn []
                    {:element/type ::sm/checkbox
                     :element/checked? {:element/type ::sm/code

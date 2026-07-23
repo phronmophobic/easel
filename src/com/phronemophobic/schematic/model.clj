@@ -15,6 +15,7 @@
              :refer [defui defeffect]]
             [com.phronemophobic.membrandt :as ant]
             [com.phronemophobic.membrandt.impl.grid :as grid]
+            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [membrane.ui :as ui]
             [membrane.skia :as skia]
             [membrane.skia.paragraph :as para]
@@ -397,6 +398,17 @@
                (assoc args :on-click (compile on-click))
                args)]
     `(ant/button ~args)))
+
+(defmethod compile* ::icon [{:element/keys [on-click]
+                             :keys [icon/name]
+                             :as elem}]
+  
+  (let [args `{:name ~(compile name)}
+
+        args (if on-click
+               (assoc args :on-click (compile on-click))
+               args)]
+    `(icon.ui/icon ~args)))
 
 (defmethod compile* ::text-input [{:element/keys [text]
                                    width :flex.grow/width

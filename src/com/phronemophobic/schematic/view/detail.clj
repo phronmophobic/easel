@@ -188,6 +188,45 @@
     [:membrane.ui/stretch-width
      :membrane.ui/stretch-height])))
 
+(defeditor ::sm/icon [{:keys [elem]}]
+  (ui/vertical-layout
+   (let [code (:icon/name elem)
+         src (:element/code code)]
+     (ui/horizontal-layout
+      (ui/label "name:")
+      (code-editor {:code src})))
+   (let [on-click (:element/on-click elem)
+         click-type (:element/type on-click)]
+     (ui/on
+      ::var-drop
+      (fn [m]
+        [[::config-on-click (assoc m :element elem )]])
+      (var-drop
+       {:$body nil
+        :body
+        (when (= click-type ::sm/code)
+          (let [src (:element/code on-click)]
+            (code-editor {:code src})))})))
+   (ui/vlayout
+    (map (fn [kw]
+           (let [code (get elem kw)
+                 src (:element/code code)]
+             
+             (ui/vertical-layout
+              (ui/horizontal-layout
+               (ui/label kw)
+               (code-editor {:code src}))
+              (ant/radio-bar
+               {:size :small
+                :options
+                (into []
+                      (map (fn [num]
+                             {:text (pr-str num)
+                              :value num}))
+                      [nil 1.0 2.0])
+                :selection src})))))
+    [:membrane.ui/stretch-width
+     :membrane.ui/stretch-height])))
 
 (defeditor ::sm/listview [{:keys [elem]}]
   (ui/vertical-layout
