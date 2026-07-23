@@ -344,9 +344,13 @@
                                  :as this}]
   `(let [list-data# ~(compile xs)]
      (grid/list-view
-      {:row-fn (fn [{row# :row}]
+      {:row-fn (fn [{row# :row cell-width# :cell-width cell-height# :cell-height}]
                  (let [~x (nth list-data# row#)
-                       ~'extra (get ~'extra [::row row#])]
+                       ~'extra (get ~'extra [::row row#])
+                       ~'context (if (and cell-width# cell-height#)
+                                   (assoc ~'context :membrane.stretch/container-size [cell-width#
+                                                                                      cell-height#])
+                                   ~'context)]
                    ~(compile body)))
        ::ui/width ~(compile (::ui/width this))
        ::ui/height ~(compile (::ui/height this))
