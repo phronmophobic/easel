@@ -1,9 +1,9 @@
-{:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         net.java.dev.jna/jna {:mvn/version "5.15.0"}
         com.phronemophobic/membrane {;; :local/root "../membrane"
                                      :git/sha "8ecbc9fce17d74026564126623b455d47359097e"
                                      :git/url "https://github.com/phronmophobic/membrane"
+{:paths ["src" "resources"]
                                      }
         com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :local/root "../membrane/csource/macos-aarch64"
                                                             :mvn/version "0.18-beta"
