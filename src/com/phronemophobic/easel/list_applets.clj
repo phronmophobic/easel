@@ -261,6 +261,13 @@
                     (fn [handler]
                       ((requiring-resolve 'com.phronemophobic.easel.flow/flow-applet)
                        handler))}]])})
+       (button {:text "Schematic component list"
+               :on-click
+               (fn []
+                 [[:com.phronemophobic.easel/add-component-as-applet
+                   (requiring-resolve
+                    'com.phronemophobic.easel.schematic2/component-list)
+                   {}]])})
       #_(button {:text "Klein Bottle"
                  ;; :hover? (get applet [::hover?])
                  :on-click
