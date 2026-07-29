@@ -6,13 +6,14 @@
             [clojure.zip :as z]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [zippo.core :as zippo]
             loom.graph
             loom.alg
             [clojure.test.check.generators :as gen]
             [membrane.basic-components :as basic]
             [membrane.component :as component
-             :refer [defui defeffect]]
+             :refer [defeffect]]
             [com.phronemophobic.membrandt :as ant]
             [com.phronemophobic.membrandt.impl.grid :as grid]
             [com.phronemophobic.membrandt.icon.ui :as icon.ui]
@@ -661,17 +662,17 @@
                (into []
                      (map symbol)
                      (keys defaults)))]
-    `(defui ~(symbol (clojure.core/name name)) [{:keys ~args :as ~'this}]
-       
-       (let [body# ~(compile body)
-             container-size# (:membrane.stretch/container-size ~'context)
-             body# (if (and container-size# (::ui/stretch-width body#))
-                     (assoc body# ::ui/width (nth container-size# 0))
-                     body#)
-             body# (if (and container-size# (::ui/stretch-height body#))
-                     (assoc body# ::ui/height (nth container-size# 1))
-                     body#)]
-         body#))))
+    `(component/defui
+      ~(symbol (clojure.core/name name)) [{:keys ~args :as ~'this}]
+      (let [body# ~(compile body)
+            container-size# (:membrane.stretch/container-size ~'context)
+            body# (if (and container-size# (::ui/stretch-width body#))
+                    (assoc body# ::ui/width (nth container-size# 0))
+                    body#)
+            body# (if (and container-size# (::ui/stretch-height body#))
+                    (assoc body# ::ui/height (nth container-size# 1))
+                    body#)]
+        body#))))
 
 (defmethod compile* ::code [{:element/keys [code]}]
   code)
@@ -810,4 +811,76 @@
 
 
 
+
+(defmacro defui [definition]
+  (compile definition))
+
+(defn ^:private write-edn [w obj]
+  (binding [*print-length* nil
+            *print-level* nil
+            *print-dup* false
+            *print-meta* false
+            *print-readably* true
+            
+            ;; namespaced maps not part of edn spec
+            *print-namespace-maps* false
+            
+            *out* w]
+    (pr obj)))
+
+(defn file-for-component-name [component-name]
+  (let [fparts (conj (-> (namespace component-name)
+                         (str/split #"\.")
+                         vec)
+                     (str (name component-name)
+                          ".edn"))
+        resource-file (apply io/file
+                             "resources"
+                             fparts)]
+    resource-file))
+
+(defn resource-for-component-name [component-name]
+  (let [resource-name (str
+                       (str/replace (namespace component-name)
+                                    #"\."
+                                    "/")
+                       "/"
+                       (name component-name) ".edn")
+        
+        resource (io/resource resource-name)]
+    
+    resource))
+
+
+
+(defn save-as-resource [definition]
+  (when-not (= ::component
+               (:element/type definition))
+    (throw (ex-info "must be component"
+                    {:definition definition
+                     :element/type (:element/type definition)})))
+  (let [component-name (:component/name definition)
+        resource-file (file-for-component-name component-name)]
+    (-> resource-file
+        java.io.File/.getParentFile
+        java.io.File/.mkdirs)
+    (with-open [w (io/writer resource-file)]
+      (write-edn w definition))
+    resource-file))
+
+
+(defn load-resource [component-name]
+  (with-open [rdr (io/reader (resource-for-component-name component-name))
+              rdr (java.io.PushbackReader. rdr)]
+    (edn/read rdr)))
+
+
+
+(defmacro load-ui-resource [component-name]
+  (let [component-name (if (namespace component-name)
+                         component-name
+                         (symbol (name (ns-name *ns*))
+                                 (name component-name)))
+        definition (load-resource component-name)]
+    `(defui ~definition)))
 
