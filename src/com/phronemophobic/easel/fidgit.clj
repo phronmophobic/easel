@@ -768,6 +768,7 @@
         (tap> t)))))
 
 
+(declare push-to-upstream!)
 (defeffect ::push-commits [{:keys [git-info path] :as this}]
   (future
     (try
