@@ -9,6 +9,7 @@
    [clojure.java.io :as io]
    [membrane.alpha.component.drag-and-drop :as dnd]
    [com.phronemophobic.membrandt.impl.grid :as grid]
+   [com.phronemophobic.membrandt :as ant]
    [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [membrane.component.present :as present]
    [com.phronemophobic.easel.model :as model]
