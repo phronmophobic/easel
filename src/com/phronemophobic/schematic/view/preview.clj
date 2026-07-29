@@ -994,6 +994,12 @@
                 :on-click (fn []
                             [[::save-elem {:eval-ns eval-ns
                                            :elem elem}]])})
+   (ant/button {:text "save as resource"
+
+                :size :small
+                :on-click (fn []
+                            [[::save-as-resource {:eval-ns eval-ns
+                                                  :elem elem}]])})
    (ant/button {:text "tap>"
                 :size :small
                 :on-click (fn []
@@ -1019,6 +1025,7 @@
                                                        :element/id (random-uuid)
                                                        :element/code v}))
                                      :element/id (random-uuid)})]])))})
+
    (ant/button {:text "show!"
                 :size :small
                 :on-click (fn []
