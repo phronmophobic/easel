@@ -285,6 +285,9 @@
 (defeffect ::save-elem [{:keys [elem]}]
   (save-component! elem))
 
+(defeffect ::save-as-resource [{:keys [elem]}]
+  (sm/save-as-resource elem))
+
 (defn toolbar-ui [this component-state $context context]
   (let [size (:size this)
         
@@ -304,6 +307,9 @@
      [0 0]
      size
      (ui/on 
+      ::preview/save-as-resource
+      (fn [m]
+        [[::save-as-resource m]])
       ::preview/save-elem
       (fn [m]
         [[::save-elem m]])
