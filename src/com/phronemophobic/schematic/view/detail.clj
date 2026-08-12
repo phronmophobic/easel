@@ -313,7 +313,13 @@
      (symbol-editor {:symbol (:component/name elem)}))
     (ui/horizontal-layout
      (ui/label "defaults:")
-     (code-editor {:code (:component/defaults elem)}))]
+     (code-editor {:code (:component/defaults elem)}))
+    (ui/horizontal-layout
+     (ui/label "stretch-width?")
+     (basic/checkbox {:checked? (:component/stretch-width? elem)}))
+    (ui/horizontal-layout
+     (ui/label "stretch-height?")
+     (basic/checkbox {:checked? (:component/stretch-height? elem)}))]
    {:direction :column
     :gap 8}))
 
@@ -386,6 +392,15 @@
   (let [data (:element/data elem)]
     (apply
      ui/vertical-layout
+     (ui/vlayout
+      (for [kw [::ui/stretch-width
+                ::ui/stretch-height]]
+        (ui/horizontal-layout
+         (ui/label (name kw))
+         (let [code (get elem kw)
+               src (get code :element/code)]
+           (code-editor {:code src})))))
+
      (for [kw (keys data)]
        (ui/horizontal-layout
         (ui/label (name kw))

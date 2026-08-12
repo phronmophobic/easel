@@ -101,6 +101,12 @@
     (when (:membrane.component/special? mta)
       {:element/type ::sm/defui
        :element/name (clojure.lang.Var/.toSymbol v)
+       ::ui/stretch-width {:element/type ::sm/code
+                           :element/code nil
+                           :element/id (random-uuid)}
+       ::ui/stretch-height {:element/type ::sm/code
+                            :element/code nil
+                            :element/id (random-uuid)}
        :element/data (into {}
                            (comp
                             (remove #{'extra 'context})

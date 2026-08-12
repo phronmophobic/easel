@@ -28,7 +28,8 @@
             #_[com.phronemophobic.replog :as replog]))
 
 
-(defui component-as-map* [{:as this}]
+(defui component-as-map* [{:as this
+                           ::ui/keys [width height]}]
   ((::->body this) this))
 (defn component-as-map
   "We want the keys and values of the previewed component to match the keys/values of the component it represents.
@@ -271,7 +272,10 @@
                                     {:keys [component/name
                                             component/args
                                             component/body
-                                            component/defaults]}]
+                                            component/stretch-width?
+                                            component/stretch-height?
+                                            component/defaults]
+                                     :as this}]
   (let [{:keys [$elem extra $extra context $context]} ctx]
     (if body
       (let [body (compile
@@ -296,11 +300,11 @@
                                          defaults))))
                   body)
             [cw ch] (:membrane.stretch/container-size context)
-            body (if (and cw (:membrane.ui/stretch-width body))
-                   (assoc body :membrane.ui/width cw)
+            body (if (and cw stretch-width? (ui/stretch-width body))
+                   (ui/set-width body cw)
                    body)
-            body (if (and ch (:membrane.ui/stretch-height body))
-                   (assoc body :membrane.ui/height ch)
+            body (if (and ch stretch-height? (ui/stretch-height body))
+                   (ui/set-height body ch)
                    body)]
         body)
       (uicall drag-elem-target
@@ -355,14 +359,23 @@
               {:elem body
                :$elem [$elem (list 'keypath :element/body)]})])))
 
-
 (defmethod compile* ::sm/listview [ctx
                                    {:keys [element/body
                                            element.for/x
                                            element.for/xs]
                                     :as this}]
   (if body
-    (let [{:keys [$elem extra $extra context $context]} ctx
+    (let [
+          ctx (->> ctx
+                   (specter/setval
+                    [:context :membrane.stretch/container-size]
+                    specter/NONE)
+                   (specter/setval
+                    [:context :bindings (specter/keypath 'context :membrane.stretch/container-size)]
+                    specter/NONE))
+          {:keys [$elem extra $extra context $context]} ctx
+
+
           list-data (compile (assoc ctx
                                     :elem xs
                                     :$elem [$elem (list 'keypath :element/xs)]
@@ -388,8 +401,8 @@
                                           :$context $context)
                                    body)
                              elem (if (and cell-width
-                                           (::ui/stretch-width elem))
-                                    (assoc elem ::ui/width cell-width)
+                                           (ui/stretch-width elem))
+                                    (ui/set-width elem cell-width)
                                     elem)]
                          elem))
                      ::ui/stretch-width (compile ctx (::ui/stretch-width this))
@@ -752,7 +765,8 @@
 
 (defmethod compile* ::sm/defui [ctx
                                 {:keys [element/name
-                                        element/data]}]
+                                        element/data]
+                                 :as this}]
 
   (let [ctx (assoc-in ctx [:context :bindings 'extra] {})
         data-evaled (into {:context
@@ -762,8 +776,20 @@
                                  [k (compile ctx node)]))
                           data)
         function (-> (find-ns (symbol (namespace name)))
-                     (clojure.lang.Namespace/.getMapping (-> name clojure.core/name symbol )))]
-    (function data-evaled)))
+                     (clojure.lang.Namespace/.getMapping (-> name clojure.core/name symbol )))
+        body (function data-evaled)
+        
+        stretch-width (when-let [node (::ui/stretch-width this)]
+                        (compile ctx node))
+        stretch-height (when-let [node (::ui/stretch-height this)]
+                         (compile ctx node))
+        body (if stretch-width
+               (assoc body ::ui/stretch-width stretch-width)
+               body)
+        body (if stretch-height
+               (assoc body ::ui/stretch-height stretch-height)
+               body)]
+    body))
 
 (defui debug [{}])
 
@@ -1024,6 +1050,12 @@
                                                       {:element/type ::sm/code
                                                        :element/id (random-uuid)
                                                        :element/code v}))
+                                     ::ui/stretch-width {:element/type ::sm/code
+                                                         :element/code nil
+                                                         :element/id (random-uuid)}
+                                     ::ui/stretch-height {:element/type ::sm/code
+                                                          :element/code nil
+                                                          :element/id (random-uuid)}
                                      :element/id (random-uuid)})]])))})
 
    (ant/button {:text "show!"

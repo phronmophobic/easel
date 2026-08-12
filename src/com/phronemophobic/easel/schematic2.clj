@@ -85,6 +85,8 @@
                                   :element/eval-ns
                                   :save/inst
                                   :element/id
+                                  :component/stretch-width? 
+                                  :component/stretch-height?
                                   :component/defaults
                                   :component/body])
                 :in $ ?component-name

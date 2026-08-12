@@ -486,7 +486,15 @@
                             (map (fn [[k v]]
                                    [k (compile v)]))
                             data)
-        fsym (:element/name this)]
+        fsym (:element/name this)
+        data-compiled
+        (if-let [stretch-width (::ui/stretch-width this)]
+          (assoc data-compiled ::ui/stretch-width (compile stretch-width))
+          data-compiled)
+        data-compiled
+        (if-let [stretch-height (::ui/stretch-height this)]
+          (assoc data-compiled ::ui/stretch-height (compile stretch-height))
+          data-compiled)]
     `(~fsym ~data-compiled)))
 
 (defmethod compile* ::checkbox [{:element/keys [checked?]}]
@@ -656,23 +664,54 @@
                                          component/args
                                          component/body
                                          component/defaults
+                                         component/stretch-width?
+                                         component/stretch-height?
                                          element/id]}]
   (let [args (if args
                args
                (into []
                      (map symbol)
-                     (keys defaults)))]
+                     (keys defaults)))
+        
+        arg-map {:keys args
+                 :as 'this}
+        arg-map (cond
+                  (and stretch-width? stretch-height?)
+                  (assoc arg-map ::ui/keys '[width height])
+                  
+                  stretch-width?
+                  (assoc arg-map ::ui/keys '[width])
+                  
+                  stretch-height?
+                  (assoc arg-map ::ui/keys '[height])
+                  
+                  :else arg-map)
+        
+        body## (gensym "body-")
+        container-size## (gensym "container-size-")]
     `(component/defui
-      ~(symbol (clojure.core/name name)) [{:keys ~args :as ~'this}]
-      (let [body# ~(compile body)
-            container-size# (:membrane.stretch/container-size ~'context)
-            body# (if (and container-size# (::ui/stretch-width body#))
-                    (assoc body# ::ui/width (nth container-size# 0))
-                    body#)
-            body# (if (and container-size# (::ui/stretch-height body#))
-                    (assoc body# ::ui/height (nth container-size# 1))
-                    body#)]
-        body#))))
+      ~(symbol (clojure.core/name name)) [~arg-map]
+      (let [~body## ~(compile body)
+            ~container-size## (:membrane.stretch/container-size ~'context)
+            
+            ~@(when stretch-width?
+                [body##
+                 `(if (ui/stretch-width ~body##)
+                    (if-let [width# (or (::ui/width ~'this)
+                                        (nth ~container-size## 0 nil))]
+                      (ui/set-width ~body## width#)
+                      ~body##)
+                    ~body##)])
+            
+            ~@(when stretch-height?
+                [body##
+                 `(if (ui/stretch-height ~body##)
+                    (if-let [height# (or (::ui/height ~'this)
+                                         (nth ~container-size## 1 nil))]
+                      (ui/set-height ~body## height#)
+                      ~body##)
+                    ~body##)])]
+        ~body##))))
 
 (defmethod compile* ::code [{:element/keys [code]}]
   code)

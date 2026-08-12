@@ -79,6 +79,8 @@
                     {:element/type ::sm/component
                      :component/name 'my-component
                      :component/body nil
+                     :component/stretch-width? true
+                     :component/stretch-height? true
                      :element/id (random-uuid)})
    ::sm/paragraph (fn []
                     {:element/type ::sm/paragraph
