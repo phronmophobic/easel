@@ -348,11 +348,13 @@
       {:row-fn (fn [{row# :row cell-width# :cell-width cell-height# :cell-height}]
                  (let [~x (nth list-data# row#)
                        ~'extra (get ~'extra [::row row#])
-                       ~'context (if (and cell-width# cell-height#)
-                                   (assoc ~'context :membrane.stretch/container-size [cell-width#
-                                                                                      cell-height#])
-                                   ~'context)]
-                   ~(compile body)))
+                       
+                       elem# ~(compile body)
+                       elem# (if (and cell-width#
+                                      (ui/stretch-width elem#))
+                               (ui/set-width elem# cell-width#)
+                               elem#)]
+                   elem#))
        ::ui/width ~(compile (::ui/width this))
        ::ui/height ~(compile (::ui/height this))
        
