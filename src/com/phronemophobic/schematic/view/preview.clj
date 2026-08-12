@@ -985,6 +985,16 @@
   ;;   )
   )
 
+(defeffect ::print-elem [{:keys [elem]}]
+  (clojure.pprint/pprint
+   (sm/compile elem)))
+
+(defeffect ::print-elem-to-clipboard [{:keys [elem]}]
+  (dispatch! :clipboard-copy
+             (with-out-str
+               (clojure.pprint/pprint
+                (sm/compile elem)))))
+
 (defui toolbar [{:keys [elem selection
                         ^:membrane.component/contextual
                         eval-ns]}]
@@ -1005,9 +1015,11 @@
    (ant/button {:text "print"
                 :size :small
                 :on-click (fn []
-                            (clojure.pprint/pprint
-                             (sm/compile elem))
-                            nil)})
+                            [[::print-elem {:elem elem}]])})
+   (ant/button {:text "print-to-clipboard"
+                :size :small
+                :on-click (fn []
+                            [[::print-elem-to-clipboard {:elem elem}]])})
    (ant/button {:text "debug load"
                 :size :small
                 :on-click
