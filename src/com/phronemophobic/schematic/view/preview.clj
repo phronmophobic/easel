@@ -845,7 +845,12 @@
                      context)
         
         error-view (when (get error elem)
-                     (ui/label "Error!"))]
+                     
+                     (ui/on
+                      :mouse-down
+                      (fn [_]
+                        [[:set $error nil]])
+                      (ui/label "Error!")))]
     (ui/vertical-layout
      (ui/label (pr-str preview-container))
      (apply
