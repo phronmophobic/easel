@@ -404,7 +404,7 @@
 
 
 
-(defn clobber-applet [handler {:keys [file url ns string label] :as m}]
+(defn clobber-applet [handler {:keys [file url ns source label] :as m}]
   (let [name (cond
                label label
 
@@ -503,6 +503,13 @@
                            :label (str (:label editor) "*")
                            :ui (::ui editor)})})))
 
+(defn open-editor
+  "Open a new easel clobber widget."
+  [{:keys [file url source ns mode label] :as editor-info}]
+  (easel/handler
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    #(clobber-applet % editor-info)}))
 
 (defn clean-up-shared-editors [easel]
   (let [applets (:applets easel)
