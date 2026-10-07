@@ -600,6 +600,7 @@
         (.add editor
               (proxy [DirCacheEditor$PathEdit] [path]
                 (apply [^DirCacheEntry ent]
+                  (DirCacheEntry/.setLastModified ent (java.time.Instant/now))
                   (.setFileMode ent FileMode/REGULAR_FILE) ; adjust if needed
                   (.setObjectId ent blob-id))))
         (.finish editor)
