@@ -113,8 +113,14 @@
                         pty-builder (doto (PtyProcessBuilder. cmd-arr)
                                       (.setInitialColumns cols)
                                       (.setInitialRows rows)
-                                      (.setEnvironment (merge (into {} (System/getenv))
-                                                              {"TERM" "xterm-256color"})))
+                                      (.setEnvironment 
+                                       (or (:env this)
+                                           (merge (into {} (System/getenv))
+                                                  {"TERM" "xterm-256color"}))))
+                        pty-builder (if-let [dir (:dir this)]
+                                    (PtyProcessBuilder/.setDirectory pty-builder dir)
+                                    pty-builder)
+
                         pty (.start pty-builder)
                         is (io/reader (.getInputStream pty))
                         os (.getOutputStream pty)
