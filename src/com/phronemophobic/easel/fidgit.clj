@@ -799,7 +799,11 @@
 
 (defeffect ::commit [{:keys [editor $editor path] :as this}]
   (let [msg (-> editor :rope str)]
-    (commit path {:message msg})
+    (try
+      (commit path {:message msg})
+      (catch Throwable t
+        (tap> t)
+        (throw t)))
     (dispatch! ::load-git-info this)
     (dispatch! :update $editor clobber.text/editor-clear) ))
 
