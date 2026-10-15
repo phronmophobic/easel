@@ -15,6 +15,7 @@
    [com.phronemophobic.clobber.modes.text.ui :as text.ui]
    [com.phronemophobic.clobber.util.ui :as clobber.util.ui]
    [com.phronemophobic.clobber.util :as clobber.util]
+   [com.phronemophobic.env :as env]
    
    [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [com.phronemophobic.membrandt.impl.grid :as grid]
@@ -30,6 +31,7 @@
            org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
            [java.io ByteArrayOutputStream File]
+           org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
            [org.eclipse.jgit.api Git TransportConfigCallback] 
            [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode BranchTrackingStatus BranchConfig]
            [org.eclipse.jgit.api.errors TransportException]
@@ -791,6 +793,12 @@
    (let [commit-command (doto (.commit git)
                           (.setMessage message)
                           (.setAmend (boolean amend?)))
+         _ (when-let [pgp-passphrase (env/get-env :pgp/passphrase)]
+             
+             (let [credentials-provider (UsernamePasswordCredentialsProvider. 
+                                         (env/get-env :pgp/username "")
+                                         pgp-passphrase)]
+               (.setCredentialsProvider commit-command credentials-provider)))
          _ (when author
              (.setAuthor commit-command (:name author) (:email author)))
          
