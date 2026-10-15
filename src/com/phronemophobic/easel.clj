@@ -106,6 +106,14 @@
                  (.submit ^ExecutorService @app-starter-executor
                           ^Callable
                           run-queue)))))
+(defeffect ::update-shared-state [f & args]
+  (dispatch! :update :easel
+             (fn [easel]
+               (apply update easel :shared-applet-state f args)))
+  nil)
+
+(defn update-shared-state [f & args]
+  (apply handler ::update-shared-state f args))
 
 (defn add-applet [m]
   (handler
