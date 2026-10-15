@@ -24,6 +24,7 @@
    [com.phronemophobic.clobber.util.ui :as clobber.util.ui]
    [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
    [com.phronemophobic.easel :as-alias easel]
+   [com.phronemophobic.easel.nrepl :as easel.nrepl]
 
    [com.phronemophobic.membrandt :as ant]))
 
@@ -183,7 +184,10 @@
         editor (get editors (::editor-id this))
         focused? (= (:id this) focus)]
     (when editor
-      (let [buffer-select-state (::buffer-select-state this)
+      (let [nrepls (::easel.nrepl/nrepls shared)
+            editor (assoc editor :nrepls nrepls)
+            
+            buffer-select-state (::buffer-select-state this)
             body (ui/on
                   ::show-select-buffer
                   (fn [m]
@@ -353,7 +357,8 @@
            :tap-vals []
            :$ref $ref
            :$shared $shared
-           ::easel/shared-keys [::editors]
+           ::easel/shared-keys [::editors
+                                ::easel.nrepl/nrepls]
            :size size
            ::model/queue
            [(fn []
