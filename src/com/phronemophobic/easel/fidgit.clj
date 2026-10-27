@@ -762,10 +762,10 @@
         (dispatch! :set $git-info
                    {:git-work-tree-dir (get-git-work-tree path)
                     :commits-ahead (commits-ahead-of-upstream path)
-                    :untracked (:untracked changed)
-                    :modified (:modified changed)
-                    :added (:added changed)
-                    :staged (:changed changed)})
+                    :untracked  (apply sorted-set (:untracked changed))
+                    :modified (apply sorted-set (:modified changed))
+                    :added (apply sorted-set (:added changed))
+                    :staged (apply sorted-set (:changed changed))})
         (dispatch! :repaint!))
       (catch Throwable t
         (tap> t)))))
