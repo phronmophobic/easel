@@ -64,12 +64,12 @@
     (loop []
       (let [x (async/<! in)]
         (when x
-          (loop [to (async/timeout ms)
-                 x x]
-            (async/alt!
-              to ([_] (async/>! out x))
-              in ([x] (recur to x))))
-          (recur))))))
+          (when (loop [to (async/timeout ms)
+                       x x]
+                  (async/alt!
+                   to ([_] (async/>! out x))
+                   in ([x] (recur to x))))
+            (recur)))))))
 
 (defn repaint-chan []
   (let [debounced (async/chan (async/sliding-buffer 1))
@@ -77,10 +77,9 @@
     (debounce-chan in debounced 30)
     (async/thread
       (loop []
-        (let [x (async/<!! debounced)]
-          (when x
-            (repaint!)
-            (recur)))))
+        (when-let [x (async/<!! debounced)]
+          (repaint!)
+          (recur))))
     in))
 
 (defrecord Termlet [dispatch!]
