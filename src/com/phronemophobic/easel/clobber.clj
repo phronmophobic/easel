@@ -216,7 +216,7 @@
                       [[:com.phronemophobic.easel/add-applet
                         {:make-applet
                          #(clobber-applet % {:editor forked-editor
-                                             :label (str (:label editor) "*")
+                                             :label (:label editor)
                                              :ui (:ui this)})}]]))
                   ::focus-next
                   (fn [m]
