@@ -88,6 +88,7 @@
             (try
               (work)
               (catch Throwable e
+                (tap> e)
                 (println e))))
           queue)))
 
