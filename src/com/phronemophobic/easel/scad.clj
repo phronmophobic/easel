@@ -22,6 +22,34 @@
   (delay 
     (Executors/newSingleThreadExecutor)))
 
+;; This allows us to treat the pixmap with identity semantics
+;; otherwise, we have to pay the cost of hashing all of the pixel
+;; data each frame.
+(deftype WrapPixmap [pm]
+  ui/IOrigin
+  (-origin [_]
+    [0 0])
+  
+  ui/IBounds
+  (-bounds [_]
+    [(:width pm)
+     (:height pm)])
+  
+  clojure.lang.IDeref
+  (deref [_] pm)
+  
+  ui/IChildren
+  (-children [this]
+    [pm])
+
+  clojure.lang.IHashEq
+  (hasheq [_] (System/identityHashCode pm))
+  (hashCode [_] (System/identityHashCode pm))
+  (equals [this that]
+    (if (instance? WrapPixmap that)
+      (identical? pm (deref that))
+      false)))
+
 
 (def ^:private ^:dynamic *in-queue* false)
 (defmacro ^:private enqueue [& body]
@@ -51,7 +79,10 @@
                          :projection {:type :projection/perspective}
                          :draw
                          [draw]})
-        pm (d3/ctx->pixmap ctx3d pm)]
+        pm (if pm
+             (do (d3/ctx->pixmap ctx3d @pm)
+                 pm)
+             (->WrapPixmap (d3/ctx->pixmap ctx3d nil)))]
     {:pm pm
      :old-pm nil
      :mesh mesh
