@@ -486,7 +486,7 @@
      (for [y (range 0 size step)]
        (vec
         (for [x (range 0 size step)]
-          (+ (+ 0.1 amplitude)
+          (+ (+ 10.1 amplitude)
              (* amplitude
                 (Math/sin
                  (+ (* frequency (/ x size))
@@ -505,8 +505,12 @@
     (reductions
      (fn [m i]
        (if (odd? i)
-         (assoc m :frame (mf/translate (mf/frame 1) [10 0 (* i 10)]))
-         (assoc m :frame (mf/translate (mf/frame 1) [-10 0 (* i 10)]))))
+         (assoc m
+                :frame (mf/translate (mf/frame 1) [10 0 (* i 10)])
+                :cross-section  (mf/square 4 10  true)
+                )
+         (assoc m :frame (mf/translate (mf/frame 1) [-10 0 (* i 10)])
+                :cross-section (mf/circle 10))))
      {:cross-section (mf/square 20 20 true)
       :frame (mf/frame 1)}
      (range 10))))
