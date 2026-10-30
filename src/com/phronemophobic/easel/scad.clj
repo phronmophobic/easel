@@ -153,24 +153,25 @@
    (dispatch! :repaint!)))
 
 (defeffect ::reset-camera [{:keys [mesh $camera $ref]}]
-  (let [{:keys [minx miny minz
-                maxx maxy maxz]
-         :as exs}
-        (d3/extents2 mesh)
-        
-        radius (* 3
-                  (max
-                   (- maxx minx)
-                   (- maxy miny)
-                   (- maxz minz)))
-        target [(+ minx (/ (- maxx minx) 2))
-                (+ miny (/ (- maxy miny) 2))
-                (+ minz (/ (- maxz minz) 2))]
-        camera (orbit/make {:radius radius
-                            :target target
-                            :tilt (/ Math/PI -4)})]
-    (dispatch! :set $camera camera)
-    (dispatch! ::redraw {:$ref $ref})))
+  (enqueue
+   (let [{:keys [minx miny minz
+                 maxx maxy maxz]
+          :as exs}
+         (d3/extents2 mesh)
+         
+         radius (* 3
+                   (max
+                    (- maxx minx)
+                    (- maxy miny)
+                    (- maxz minz)))
+         target [(+ minx (/ (- maxx minx) 2))
+                 (+ miny (/ (- maxy miny) 2))
+                 (+ minz (/ (- maxz minz) 2))]
+         camera (orbit/make {:radius radius
+                             :target target
+                             :tilt (/ Math/PI -4)})]
+     (dispatch! :set $camera camera)
+     (dispatch! ::redraw {:$ref $ref}))))
 
 (defeffect ::update-mesh [{:keys [$ref mesh]}]
   (let [{:keys [minx miny minz
