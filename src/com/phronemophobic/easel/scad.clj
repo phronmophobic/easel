@@ -4,12 +4,15 @@
             [com.phronemophobic.clj-webgpu.compute :as wgpu]
             [com.phronemophobic.clj-webgpu.camera.orbit :as orbit]
             [clj-manifold3d.core :as mf]
+            [clojure.core.matrix :as mat]
+            [com.phronemophobic.clj-webgpu.d3.matrix-util :as mutil]
             [membrane.component :refer [defeffect]]
             [membrane.ui :as ui]
             [membrane.skia.paragraph :as para]
             [membrane.component :refer [defui
                                         defeffect]]
             [tech.v3.datatype.ffi :as dt-ffi]
+            [tech.v3.datatype :as dtype]
             [com.phronemophobic.membrandt.impl.grid :as grid]
             [com.phronemophobic.easel :as easel]
             [com.phronemophobic.easel.model :as easel.model]
@@ -64,21 +67,67 @@
           (catch Throwable t#
             (tap> t#)))))))
 
+(defn grid-draw []
+  (let [camera-inverse-buf (dtype/make-container :native-heap
+                                                 :float32 
+                                                 16)
+        grid-size-buf (dtype/make-container :native-heap
+                                            :float32 
+                                            [10])]
+    {:id ::grid-draw
+     :type :render-shader
+     :bindings {:camera-inverse {:type :buffer
+                                 :opts {:usage #{:Uniform
+                                                 :CopyDst}
+                                        :type :f32
+                                        :length 16}}
+                :grid-size {:type :buffer
+                            :opts {:usage #{:Uniform
+                                            :CopyDst}
+                                   :type :f32
+                                   :length 1}
+                            :data grid-size-buf}}
+     
+     :drawf (fn [ctx bindings]
+              {:vertex-count 6
+               :data {(:camera-inverse bindings)
+                      (dtype/copy! 
+                       (into []
+                             cat
+                             (mat/transpose
+                              (mat/inverse
+                               (let [camera-mat (mutil/->matrix (:camera ctx))
+                                     projection-mat (mutil/->matrix (assoc (:projection ctx)
+                                                                           :width (:width ctx)
+                                                                           :height (:height ctx)))
+                                     mat (mat/mmul
+                                          projection-mat
+                                          (mat/inverse camera-mat))]
+                                 mat))))
+                       camera-inverse-buf)}
+               :bindings [(-> ctx :uniform :view+projection)
+                          (:camera-inverse bindings)
+                          (:grid-size bindings)]})
+     :shader {:resource "../clj-webgpu/shaders/grid.wgsl"}}))
+
 ;; should only be run inside executor3d
 (defn ^:private calc-pm [{:keys [pm ctx3d mesh mesh-id camera size] :as m}]
   (let [[width height] size
         ctx3d (or ctx3d
-                  (d3/init! {:width width :height height}))
+                  (-> (d3/init! {:width (long width) :height (long height)})
+                      (assoc ::grid-draw (grid-draw))))
         draw (when mesh
                {:id mesh-id
                 :type :mesh
                 :mesh mesh})
         
+        
         ctx3d (d3/draw! ctx3d
                         {:camera camera
                          :projection {:type :projection/perspective}
                          :draw
-                         [draw]})
+                         [draw
+                          (::grid-draw ctx3d)]})
         pm (if pm
              (do (d3/ctx->pixmap ctx3d @pm)
                  pm)
@@ -177,14 +226,13 @@
       (loop []
         (when-let [[width height] (async/<!! debounced)]
           (enqueue
-           (let [ctx3d (d3/init! {:width (long width) :height (long height)})]
-             (dispatch! :update $ref 
-                        (fn [applet]
-                          (-> applet
-                              (assoc :ctx3d ctx3d)
-                              (assoc :old-pm (:pm applet))
-                              (dissoc :pm))))
-             (dispatch! ::redraw {:$ref $ref})))
+           (dispatch! :update $ref 
+                      (fn [applet]
+                        (-> applet
+                            (dissoc :ctx3d)
+                            (assoc :old-pm (:pm applet))
+                            (dissoc :pm))))
+             (dispatch! ::redraw {:$ref $ref}))
           (recur))))
     in))
 
@@ -328,9 +376,10 @@
             :$context (:$context ui-info))))
   easel.model/IResizable
   (-resize [this size _content-scale]
-    (let [[width height] size]
+    (let [[width height] size
+          this (assoc this :size size)]
       (async/put! (:resize-chan this) size)
-      (assoc this :size size))))
+      this)))
 
 (defn show-model-viewer [model]
   
