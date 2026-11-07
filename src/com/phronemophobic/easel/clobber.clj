@@ -25,6 +25,7 @@
    [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
    [com.phronemophobic.easel :as-alias easel]
    [com.phronemophobic.easel.nrepl :as easel.nrepl]
+   [com.phronemophobic.easel.search :as easel.search]
 
    [com.phronemophobic.membrandt :as ant]))
 
@@ -305,7 +306,8 @@
         editor (assoc editor
                       :label (:label editor-info)
                       :mx-commands (into (get editor :mx-commands [])
-                                         [::show-tap-watcher])
+                                         [::show-tap-watcher
+                                          :com.phronemophobic.easel.search/show-rgrep])
                       :key-bindings
                       (assoc (:key-bindings editor)
                              "C-x g" ::fidget/open-fidget
