@@ -374,6 +374,8 @@
 ;; create new flow
 ;; start flow
 (defeffect ::search [{:keys [$ref iter] :as m}]
+  (dispatch! :update $ref assoc :state :running)
+  (dispatch! :repaint!)
   (dispatch! ::stop-search m)
   (let [
         ;; query-string (-> query-editor
@@ -408,7 +410,7 @@
     (dispatch! :update $ref assoc :flow flow :search-id search-id )
     (-> flow flow/start monitoring)
     (flow/resume flow)
-    (dispatch! :update $ref assoc :state :running)
+    
     (async/go
      
      (try
@@ -905,9 +907,10 @@
         file-regexp-str (-> file-regexp-editor :rope str)
         file-regexp-value (Pattern/compile file-regexp-str)]
 
-    (dispatch! ::search (assoc search-state
+    (future
+      (dispatch! ::search (assoc search-state
                                :$ref $search-state
-                               :iter (->iter (rgrep folder file-regexp-value regexp-value))))))
+                               :iter (->iter (rgrep folder file-regexp-value regexp-value)))))))
 
 (defui simple-editor [{:keys [editor]}]
   (let [body (text.ui/editor-view {:editor editor
