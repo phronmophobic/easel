@@ -106,7 +106,7 @@
                   [[:com.phronemophobic.easel/add-applet
                     {:make-applet
                      (fn [handler]
-                       ((requiring-resolve 'com.phronmophobic.inquery/search-applet) handler {:query ""}))}]])})
+                       ((requiring-resolve 'com.phronemophobic.easel.search/search-applet) handler {}))}]])})
       
       (ui/horizontal-layout
        (button {:text "Add browser"
