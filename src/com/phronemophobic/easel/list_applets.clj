@@ -128,13 +128,20 @@
                    [[:com.phronemophobic.easel/add-applet
                      {:make-applet
                       (requiring-resolve 'com.phronemophobic.easel.schematic/schematlet)}]])})
-      (button {:text "Add Spreadsheet"
+       #_(button {:text "Add Spreadsheet"
                ;; :hover? (get applet [::hover?])
                :on-click
                (fn []
                  [[:com.phronemophobic.easel/add-applet
                    {:make-applet
                     (requiring-resolve 'com.phronemophobic.easel.spreadsheet/spreadsheet-applet)}]])})
+       (button {:text "SCAD"
+               ;; :hover? (get applet [::hover?])
+               :on-click
+               (fn []
+                 (require 'com.phronemophobic.easel.scad)
+                 [[:com.phronemophobic.easel.scad/show-model-viewer
+                   {:model ((requiring-resolve 'clj-manifold3d.core/import-mesh) "models/PolyGear.stl")}]])})
       #_(button {:text "Add Preview"
                  ;; :hover? (get applet [::hover?])
                  :on-click
