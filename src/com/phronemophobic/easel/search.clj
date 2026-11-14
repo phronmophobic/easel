@@ -200,6 +200,80 @@
             {:out [(:sentinel state)]}])))})))
 
 
+(def ^:private rsearch-step
+  (flow/map->step
+   (wrap-producer
+    {:describe
+     (fn []
+       {:params {:pred "pred"
+                 :xs "xs"
+                 :sentinel "sentinel"}
+        :outs {:out "out"}})
+     :init
+     (fn [params]
+       (assoc params
+              ::produce true
+              :root (:xs params)
+              :q (->queue [{:x (:xs params)
+                            :path []}])))
+     :transition
+     (fn [state transition]
+       state)
+     :transform
+     (fn [{:keys [rf q pred root] :as state} input msg]
+       (if-let [{:keys [x path mapseq nthseq n] :as search-item} (peek q)]
+         (let [[outs nextsearch] 
+               (cond
+                 mapseq (when-let [s (seq mapseq)]
+                          [(let [[k v] (first s)]
+                             [{:x k
+                               :path (conj path (list :key k))
+                               :root root}
+                              {:x v
+                               :path (conj path (list :get k))
+                               :root root}])
+                           
+                           (update search-item :mapseq rest)])
+                 ;; nil is a seq 
+                 (contains? search-item :nthseq)
+                 (when-let [s (seq nthseq)]
+                   [[{:x (first nthseq)
+                      :path (conj path (list :nth n))
+                      :root root}]
+                    (-> search-item
+                        (update :nthseq rest)
+                        (update :n inc))])
+
+                 :else [[{:x x
+                          :path path
+                          :root root}]])
+               
+
+               q (pop q)
+               newq (into q
+                          (keep (fn [{:keys [x path]}]
+                                  (cond
+                                    (map? x) {:x x :path path :mapseq x}
+                                    (seqable? x) {:x x :path path :nthseq x :n 0})))
+                          outs)
+
+               newq (if nextsearch
+                      (conj newq nextsearch)
+                      newq)
+
+               outs (into []
+                          (filter (fn [{:keys [x]}]
+                                    (pred x)))
+                          outs)
+
+               state (assoc state :q newq)]
+
+           [state {:out outs}])
+         (do
+           [(assoc state ::produce false)
+            {:out [(:sentinel state)]}])))})))
+
+
 
 (defn ^:private search-flow 
   ([pred value]
@@ -377,15 +451,7 @@
   (dispatch! :update $ref assoc :state :running)
   (dispatch! :repaint!)
   (dispatch! ::stop-search m)
-  (let [
-        ;; query-string (-> query-editor
-        ;;                  :rope
-        ;;                  str)
-        ;; value (binding [*ns* (:eval-ns query-editor)]
-        ;;         (eval (read-string query-string)))
-        
-
-        done-ch (async/chan 1)
+  (let [done-ch (async/chan 1)
         sentinel (Object.)
         accumulate-results-ch (async/chan 1 (take-while #(not= % sentinel)))
         g {:procs
@@ -437,6 +503,61 @@
          (flow/stop flow)))))
   nil)
 
+(defeffect ::rsearch [{:keys [$ref xs pred] :as m}]
+  (dispatch! :update $ref assoc :state :running)
+  (dispatch! :repaint!)
+  (dispatch! ::stop-search m)
+  (let [done-ch (async/chan 1)
+        sentinel (Object.)
+        accumulate-results-ch (async/chan 1 (take-while #(not= % sentinel)))
+        g {:procs
+           {:rsearch
+            {:args (merge {;; :xform xform
+                           :pred (or pred (constantly true))
+                           :xs xs
+                           :sentinel sentinel})
+             :proc (flow/process #'rsearch-step)}
+            
+            :accumulate-results
+            {:args {:chan accumulate-results-ch}
+             :proc (flow/process onto-chan-proc)}}
+           :conns
+           [[[:rsearch :out] [:accumulate-results :in]]
+            
+            ,]
+           
+           ,}
+        flow (-> (flow/create-flow g)
+                 track-flow)
+        search-id (random-uuid)]
+    (dispatch! :update $ref assoc :flow flow :search-id search-id )
+    (-> flow flow/start monitoring)
+    (flow/resume flow)
+    
+    (async/go
+     (try
+       (loop [results []
+              to nil]
+         (let [[val port] (async/alts! (if to
+                                         [to accumulate-results-ch]
+                                         [accumulate-results-ch]))]
+           (if (= port accumulate-results-ch)
+             (if val
+               (recur (conj results val)
+                      (or to (async/timeout 500)))
+               
+               (when to
+                 (dispatch! :update $ref assoc :results (viscous/wrap results))))
+             ;; else timeout
+             (do (dispatch! :update $ref assoc :results (viscous/wrap results))
+                 (recur results nil)))))
+       (catch Exception e
+         (tap> e)
+         (prn e))
+       (finally
+         (dispatch! :update $ref assoc :state :stopped)
+         (flow/stop flow)))))
+  nil)
 
 
 (deftype APNthWrapped [obj n ^:unsynchronized-mutable ^int _hash]
@@ -447,13 +568,13 @@
   clojure.lang.IHashEq
   (hasheq [_]
     (if (zero? _hash)
-      (let [h (int (clojure.core/hash-ordered-coll [::APNthWrapped obj n]))]
+      (let [h (int (clojure.core/hash-ordered-coll [::APNthWrapped (System/identityHashCode obj) n]))]
         (set! _hash h)
         h)
       _hash))
   (hashCode [_] 
     (if (zero? _hash)
-      (let [h (int (clojure.core/hash-ordered-coll [::APNthWrapped obj n]))]
+      (let [h (int (clojure.core/hash-ordered-coll [::APNthWrapped (System/identityHashCode obj) n]))]
         (set! _hash h)
         h)
       _hash))
@@ -474,9 +595,11 @@
     (let [query-string (-> query-editor
                            :rope
                            str)
-          value (binding [*ns* (:eval-ns query-editor)]
-                  (eval (read-string query-string)))]
-      (dispatch! ::search (assoc this :iter (->iter value))))
+          {:keys [xs pred view] :as result}
+          (binding [*ns* (:eval-ns query-editor)]
+            (eval (read-string query-string)))]
+      (dispatch! ::rsearch
+                 (merge this result)))
     (catch Throwable t
       (tap> t))))
 
@@ -542,6 +665,9 @@
      results-view)))
 
 
+(def initial-query
+  "{;; :pred (->pred true) \n ;; :view (fn [{:keys [root path x]}] (ui/label x))\n :xs [1 2 3 4]\n ,}")
+
 (defrecord SearchApplet [dispatch! initial-state]
   model/IApplet
   (-start [this {:keys [$ref size] :as info}]
@@ -554,13 +680,13 @@
            :query-editor 
            (let [width (first size)
                  height 200]
-             (-> (cui/make-editor {:source
+             (-> (cui/make-editor {:eval-ns (the-ns 'com.phronemophobic.easel.search)
+                                   :source
                                    (or (:query initial-state)
-                                       "")})
+                                       initial-query)})
                  (cui/editor-set-height height)
                  (assoc :width width
-                        :height height)
-                 (assoc :eval-ns (the-ns 'com.phronmophobic.inquery))))
+                        :height height)))
            :$query-editor [$ref '(keypath :query-editor)]
            :value (:value initial-state)
            :$value [$ref '(keypath :value)]))
@@ -588,7 +714,7 @@
   (com.phronemophobic.easel/add-applet 
    {:make-applet
     (fn [handler]
-      (search-applet handler {:query ""}))})
+      (search-applet handler {}))})
   
 
   (let [uuid ]
@@ -1263,4 +1389,73 @@
                                     assoc "TAB" ::focus-next))
     
     :search-state nil}))
+
+(defn container?
+  "Returns true if an object supports contains?"
+  [x]
+  (or (nil? x)
+      (associative? x)
+      (set? x)
+      (instance? java.util.Map x)
+      (instance? java.util.Set x)
+      ;; strings and arrays only support numeric contains
+      ;; we're just going to ignore them  
+      ;; (string? x)
+      ;; (-> x Object/.getClass .isArray)
+      (instance? clojure.lang.ITransientSet x)
+      (instance? clojure.lang.ITransientAssociative2 x)))
+
+;; macro helper function
+(defn ->pred* [form]
+  (cond
+    (true? form) `(constantly true)
+    (false? form) `(constantly false)
+    
+    (keyword? form)
+    `(fn [m#]
+       (and (container? m#)
+            (contains? m# ~form)))
+
+    (map? form) (let [m## (gensym "m")]
+                  `(fn [~m##]
+                     (and
+                      ~@(into []
+                              (map (fn [[k pred]]
+                                     (assert (keyword? k))
+                                     `(and
+                                       (map? ~m##)
+                                       (let [entry# (find ~m## ~k)]
+                                         (and entry#
+                                              (~(->pred* pred) 
+                                               (clojure.lang.MapEntry/.val entry#)))))))
+                              form))))
+    
+    (set? form) `(fn [xs#]
+                   (and
+                    (container? xs#)
+                    (every? #(contains? xs# %) ~form)))
+    :else form))
+
+(defmacro ->pred [form]
+  (->pred* form))
+
+
+(comment
+  
+  (->rsearch-pred* {:a {}
+                    :b {}})
+  
+  
+  ((->pred (and (->pred {:a number?
+                                 :b #{:a :b :c}})))
+   (and {:a 42
+            :b {:a :a :b :b :c :c}
+         :c 2}))
+
+  (contains? 42 42)
+
+  (str x-190209) 
+
+  
+  ,)
 
