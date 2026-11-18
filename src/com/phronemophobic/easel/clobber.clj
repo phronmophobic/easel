@@ -209,16 +209,11 @@
                     [[:com.phronemophobic.easel/close-other-panes {}]])
                   ::split-pane
                   (fn [{:keys [editor]}]
-                    (let [forked-editor (-> editor
-                                            (update :tree
-                                                    (fn [^org.treesitter.TSTree tree]
-                                                      (when tree
-                                                        (.copy tree)))))]
-                      [[:com.phronemophobic.easel/add-applet
-                        {:make-applet
-                         #(clobber-applet % {:editor forked-editor
-                                             :label (:label editor)
-                                             :ui (:ui this)})}]]))
+                    [[:com.phronemophobic.easel/add-applet
+                      {:make-applet
+                       #(clobber-applet % {:editor editor
+                                           :label (:label editor)
+                                           :ui (:ui this)})}]])
                   ::focus-next
                   (fn [m]
                     [[::focus-next {:this this
@@ -271,10 +266,16 @@
 
 (defn load-editor [{:keys [dispatch! id $ref editor-info size shared $shared $focus]}]
   (let [{:keys [editor ui]} (or
-                             (when (:editor editor-info)
-                               (update-in editor-info [:editor ::id]
-                                          (fn [id]
-                                            (or id (random-uuid)))))
+                             (when-let [editor (:editor editor-info)]
+                               (-> editor-info
+                                   (update-in [:editor ::id]
+                                              (fn [id]
+                                                (or id (random-uuid))))
+                                   (update-in [:editor :tree]
+                                              (fn [^org.treesitter.TSTree tree]
+                                                (when tree
+                                                  (.copy tree))))
+                                   (assoc :ui (::ui editor))))
                              
                              (when-let [editor-id (or (when-let [f (:file editor-info)]
                                                         (.getCanonicalFile f))
@@ -497,26 +498,19 @@
             (.isAfter last-file-load last-change)))))
 
 
-(defeffect ::open-editor [{:keys [editor]}]
-  (let [forked-editor (-> editor
-                          (update :tree
-                                  (fn [^org.treesitter.TSTree tree]
-                                    (when tree
-                                      (.copy tree)))))]
-    (dispatch! 
-     :com.phronemophobic.easel/add-applet
-      {:make-applet
-       #(clobber-applet % {:editor forked-editor
-                           :label (str (:label editor) "*")
-                           :ui (::ui editor)})})))
+
+(defeffect ::open-editor [{:keys [editor] :as editor-info}]
+  (dispatch! 
+   :com.phronemophobic.easel/add-applet
+   {:make-applet
+    #(clobber-applet % editor-info)}))
+
 
 (defn open-editor
   "Open a new easel clobber widget."
   [{:keys [file url source ns mode label] :as editor-info}]
-  (easel/handler
-   :com.phronemophobic.easel/add-applet
-   {:make-applet
-    #(clobber-applet % editor-info)}))
+  (easel/handler ::open-editor editor-info))
+
 
 (defn clean-up-shared-editors [easel]
   (let [applets (:applets easel)

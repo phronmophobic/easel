@@ -11,6 +11,7 @@
             [com.phronemophobic.clobber.modes.clojure.ui :as cui]
             [com.phronemophobic.clobber.modes.text.ui :as text.ui]
             [com.phronemophobic.clobber.modes.text :as text-mode]
+            [com.phronemophobic.easel.clobber :as easel.clobber]
             [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
             [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.phronemophobic.membrandt.impl.grid :as grid]
@@ -1198,8 +1199,8 @@
                             body (ui/on
                                   :mouse-down
                                   (fn [_]
-                                    [[::open-editor {:file file
-                                                     :line line}]])
+                                    [[::easel.clobber/open-editor {:file file
+                                                                   :line line}]])
                                   body)]
                         (basic/on-hover {:hover? hover?
                                          :body body})
@@ -1354,15 +1355,6 @@
 
   ,)
 
-
-(defeffect ::open-editor [{:keys [ns line file] :as m}]
-  (dispatch! 
-   :com.phronemophobic.easel/add-applet
-   {:make-applet
-    (fn [handler]
-      ((requiring-resolve 'com.phronemophobic.easel.clobber/clobber-applet)
-       handler
-       m))}))
 
 (defeffect ::show-rgrep [_]
   (dispatch! :com.phronemophobic.easel/add-component-as-applet
