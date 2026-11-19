@@ -32,6 +32,8 @@
       ((requiring-resolve 'com.phronemophobic.easel.tap-watcher/tap-watcher-applet)
        handler))}))
 
+(defeffect ::show-clj-kondo-finder [{}]
+  ((requiring-resolve 'com.phronemophobic.easel.clj-kondo/show-kondo)))
 
 (defui buffer-selector [{:keys [base-style
                                 buffer-select-state
@@ -300,7 +302,8 @@
                       :label (:label editor-info)
                       :mx-commands (into (get editor :mx-commands [])
                                          [::show-tap-watcher
-                                          :com.phronemophobic.easel.search/show-rgrep])
+                                          ::show-clj-kondo-finder
+                                          ::easel.search/show-rgrep])
                       :key-bindings
                       (assoc (:key-bindings editor)
                              "C-x g" ::fidget/open-fidget
