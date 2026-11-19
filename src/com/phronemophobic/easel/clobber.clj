@@ -269,7 +269,8 @@
                                               (fn [^org.treesitter.TSTree tree]
                                                 (when tree
                                                   (.copy tree))))
-                                   (assoc :ui (::ui editor))))
+                                   (assoc :ui (or (:ui editor-info)
+                                                  (::ui editor)))))
                              
                              (when-let [editor-id (or (when-let [f (:file editor-info)]
                                                         (.getCanonicalFile f))
