@@ -5,16 +5,10 @@
      defeffect]]
    [membrane.ui :as ui]
    [clojure.java.io :as io]
-   [membrane.alpha.component.drag-and-drop :as dnd]
    [com.phronemophobic.easel.model :as model]
-   [membrane.basic-components :as basic]
-   [clojure.core.async :as async]
-   [clojure.set :as set]
-   [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clj-libretro.skia :as retro-skia]
    [com.phronemophobic.clj-libretro.ui :as retro-ui]
-   [com.phronemophobic.clj-libretro.api :as retro]
-   [com.phronemophobic.membrandt :as ant]))
+   [com.phronemophobic.clj-libretro.api :as retro]))
 
 
 (defui emulator-view [{:keys [size view id]}]
@@ -106,6 +100,6 @@
 
 (defn emulator-applet [handler]
   (-> (->EmulatorWidget handler)
-      (assoc :label (str "Super Mario Bros") )))
+      (assoc :label "Super Mario Bros" )))
 
 

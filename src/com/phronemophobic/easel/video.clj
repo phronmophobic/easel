@@ -4,11 +4,6 @@
     [defui
      defeffect]]
    [membrane.ui :as ui]
-   [clojure.java.io :as io]
-   [membrane.alpha.component.drag-and-drop :as dnd]
-   [membrane.basic-components :as basic]
-   [clojure.core.async :as async]
-   [clojure.set :as set]
    [com.phronemophobic.clj-media.impl.skia :as video]
    [com.phronemophobic.easel.model :as model]
    [com.phronemophobic.membrandt :as ant]))
@@ -19,7 +14,6 @@
                          :$context $context
                          :extra (:extra this)
                          :$extra [(:$ref this) '(keypath :extra)]))]
-    (def video-state state)
     (video/video-player state)))
 
 

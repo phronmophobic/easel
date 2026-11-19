@@ -3,20 +3,21 @@
             [clojure.core.async :as async]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            clojure.pprint
             [membrane.ui :as ui]
             [membrane.basic-components :as basic]
+            membrane.skia
             [membrane.skia.paragraph :as para]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [com.phronemophobic.viscous :as viscous]
             [com.phronemophobic.clobber.modes.clojure.ui :as cui]
             [com.phronemophobic.clobber.modes.text.ui :as text.ui]
             [com.phronemophobic.clobber.modes.text :as text-mode]
-            [com.phronemophobic.easel.clobber :as easel.clobber]
+            [com.phronemophobic.easel.clobber :as-alias easel.clobber]
             [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
             [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.phronemophobic.membrandt.impl.grid :as grid]
             [com.phronemophobic.easel.model :as model]
-            [membrane.component.present :as present]
             [membrane.component :refer [defui defeffect]])
   (:import (java.util.regex Pattern
                             Matcher
@@ -196,9 +197,9 @@
                outs (when-let [val (rf nil x)]
                       {:out [val]})]
            [state outs])
-         (do
-           [(assoc state ::produce false)
-            {:out [(:sentinel state)]}])))})))
+         ;; else
+         [(assoc state ::produce false)
+          {:out [(:sentinel state)]}]))})))
 
 
 (def ^:private rsearch-step
@@ -237,7 +238,7 @@
                            (update search-item :mapseq rest)])
                  ;; nil is a seq 
                  (contains? search-item :nthseq)
-                 (when-let [s (seq nthseq)]
+                 (when (seq nthseq)
                    [[{:x (first nthseq)
                       :path (conj path (list :nth n))
                       :root root}]
@@ -270,9 +271,10 @@
                state (assoc state :q newq)]
 
            [state {:out outs}])
-         (do
-           [(assoc state ::produce false)
-            {:out [(:sentinel state)]}])))})))
+         
+         ;; else
+         [(assoc state ::produce false)
+          {:out [(:sentinel state)]}]))})))
 
 
 
@@ -452,8 +454,7 @@
   (dispatch! :update $ref assoc :state :running)
   (dispatch! :repaint!)
   (dispatch! ::stop-search m)
-  (let [done-ch (async/chan 1)
-        sentinel (Object.)
+  (let [sentinel (Object.)
         accumulate-results-ch (async/chan 1 (take-while #(not= % sentinel)))
         g {:procs
            {:search
@@ -508,8 +509,7 @@
   (dispatch! :update $ref assoc :state :running)
   (dispatch! :repaint!)
   (dispatch! ::stop-search m)
-  (let [done-ch (async/chan 1)
-        sentinel (Object.)
+  (let [sentinel (Object.)
         accumulate-results-ch (async/chan 1 (take-while #(not= % sentinel)))
         g {:procs
            {:rsearch
@@ -717,10 +717,6 @@
     (fn [handler]
       (search-applet handler {}))})
   
-
-  (let [uuid ]
-    (binding [*ns* ]
-      (def my-uuid uuid)))
   (stop-all-flows!)
   ,)
 
@@ -1081,7 +1077,6 @@
                   :as this}]
   (let [focus (:focus context)
         folder-picker-focus-id [$folder ::focus]
-        folder-picker-focused? (= focus folder-picker-focus-id)
         
         regexp-editor-focus-id [$regexp-editor ::focus]
         regexp-editor-focused? (= focus regexp-editor-focus-id)
@@ -1090,10 +1085,6 @@
         file-regexp-editor-focused? (= focus file-regexp-editor-focus-id)
 
         [cw ch] (:membrane.stretch/container-size context)
-
-        regexp-editor-focus-id [$regexp-editor ::focus]
-        regexp-editor-focused? (= focus regexp-editor-focus-id)
-
         
         results (:results search-state)
         search-id (:search-id search-state)
@@ -1432,22 +1423,4 @@
   (->pred* form))
 
 
-(comment
-  
-  (->rsearch-pred* {:a {}
-                    :b {}})
-  
-  
-  ((->pred (and (->pred {:a number?
-                                 :b #{:a :b :c}})))
-   (and {:a 42
-            :b {:a :a :b :b :c :c}
-         :c 2}))
-
-  (contains? 42 42)
-
-  (str x-190209) 
-
-  
-  ,)
 

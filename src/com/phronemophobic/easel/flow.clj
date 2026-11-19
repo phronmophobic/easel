@@ -4,18 +4,16 @@
                                         defeffect]]
             [membrane.basic-components :as basic]
             [com.phronemophobic.membrandt :as ant]
-            [com.phronemophobic.membrandt.icon.ui :as icon.ui]
             [com.phronemophobic.easel.model :as model]
             [euclidean.math.vector :as v]
             [euclidean.math.quaternion :as q]
             [membrane.alpha.component.drag-and-drop :as dnd]
             [membrane.ui :as ui]
             [clojure.string :as str]
-            [clojure.math :as math]
             [com.phronemophobic.viscous :as viscous]
+            clojure.datafy
             [clojure.core.async :as async]
-            [clojure.core.async.flow :as flow]
-            [clojure.core.async.flow.spi :as flow.spi]))
+            [clojure.core.async.flow :as flow]))
 
 (defn monitoring [{:keys [report-chan error-chan]}]
   (prn "========= monitoring start")
@@ -300,11 +298,6 @@
     (render-layout (graphviz/layout flow-graph)))
    {:view true})
   
-  (-> x-149459 
-      flow->graph
-      ;; graphviz/layout
-      ;; render-layout
-      )
 
   ,)
 
@@ -555,12 +548,11 @@
 (defrecord FlowWidget [dispatch!]
   model/IApplet
   (-start [this {:keys [$ref size]}]
-    (let []
-      (assoc this
-             :extra {}
-             :$extra [$ref '(keypath :extra)]
-             :$ref $ref
-             :size size)))
+    (assoc this
+           :extra {}
+           :$extra [$ref '(keypath :extra)]
+           :$ref $ref
+           :size size))
   (-stop [this]
     (dispatch! ::cleanup this)
     nil)
@@ -576,7 +568,7 @@
 
 (defn flow-applet [handler]
   (-> (->FlowWidget handler)
-      (assoc :label (str "Flow"))))
+      (assoc :label "Flow")))
 
 (comment
   

@@ -2,10 +2,8 @@
   (:require [membrane.skia :as skia]
             [membrane.skia.paragraph :as para]
             [membrane.ui :as ui]
-            [membrane.alpha.stretch :as stretch]
             [clojure.zip :as z]
             [com.rpl.specter :as specter]
-            [membrane.alpha.component.drag-and-drop :as dnd]
             [com.phronemophobic.membrandt :as ant]
 
             [membrane.component
@@ -327,7 +325,6 @@
                                   root))))
 
 (defui pane-test [{:keys [pane]}]
-  
   (ui/vertical-layout
      (ant/button {:text "add pane"
                   :on-click
@@ -386,9 +383,6 @@
   (skia/run
     (membrane.component/make-app #'pane-test app-state))
 
-  (layout-pane
-   {:panes [{} {} {:panes [{}]}]
-    :width 100})
 
   ,)
 

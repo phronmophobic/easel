@@ -8,12 +8,10 @@
             [com.phronemophobic.clj-webgpu.d3.matrix-util :as mutil]
             [membrane.component :refer [defeffect]]
             [membrane.ui :as ui]
-            [membrane.skia.paragraph :as para]
             [membrane.component :refer [defui
                                         defeffect]]
             [tech.v3.datatype.ffi :as dt-ffi]
             [tech.v3.datatype :as dtype]
-            [com.phronemophobic.membrandt.impl.grid :as grid]
             [com.phronemophobic.easel :as easel]
             [com.phronemophobic.easel.model :as easel.model]
             [com.phronemophobic.membrandt :as ant]
@@ -377,8 +375,7 @@
             :$context (:$context ui-info))))
   easel.model/IResizable
   (-resize [this size _content-scale]
-    (let [[width height] size
-          this (assoc this :size size)]
+    (let [this (assoc this :size size)]
       (async/put! (:resize-chan this) size)
       this)))
 

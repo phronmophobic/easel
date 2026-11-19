@@ -4,25 +4,17 @@
     [defui
      defeffect]]
    [membrane.ui :as ui]
-   [membrane.alpha.component.drag-and-drop :as dnd]
    [com.phronemophobic.easel.model :as model]
-   [membrane.basic-components :as basic]
    [membrane.skia.paragraph :as para]
-   [clojure.core.async :as async]
-   [clojure.set :as set]
    [clojure.string :as str]
    [com.phronemophobic.easel.splitpane :as splitpane]
    [com.phronemophobic.easel.fidgit :as fidget]
-   [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
    [com.phronemophobic.clobber.editor :as clobber-editor]  
-   [nextjournal.beholder :as beholder]
    [clojure.zip :as z]
 
-   [com.phronemophobic.clobber.modes.clojure :as clojure-mode]
    [com.phronemophobic.clobber.modes.text :as text-mode]
    [com.phronemophobic.clobber.util.ui :as clobber.util.ui]
-   [com.phronemophobic.clobber.util.ui.key-binding :as key-binding]
    [com.phronemophobic.easel :as-alias easel]
    [com.phronemophobic.easel.nrepl :as easel.nrepl]
    [com.phronemophobic.easel.search :as easel.search]
@@ -386,19 +378,20 @@
           (update ::model/queue
                   (fn [q]
                     (let [q (or q [])]
-                      [(fn []
-                         (when (and (get this ::editor-id)
-                                    (:$shared this))
-                           (let [$shared (:$shared this)
-                                 $editor [$shared
-                                          '(keypath ::editors)
-                                          (list 'keypath (get this ::editor-id))]]
-                             (dispatch! :update $editor
-                                        (fn [editor]
-                                          (-> editor
-                                              (clobber.util.ui/editor-set-height editor-height)
-                                              (assoc :width editor-width)
-                                              (assoc :height editor-height)))))))])))))))
+                      (into q
+                            [(fn []
+                               (when (and (get this ::editor-id)
+                                          (:$shared this))
+                                 (let [$shared (:$shared this)
+                                       $editor [$shared
+                                                '(keypath ::editors)
+                                                (list 'keypath (get this ::editor-id))]]
+                                   (dispatch! :update $editor
+                                              (fn [editor]
+                                                (-> editor
+                                                    (clobber.util.ui/editor-set-height editor-height)
+                                                    (assoc :width editor-width)
+                                                    (assoc :height editor-height)))))))]))))))))
 
 (defn ^:private truncate-string-end [s n]
   (if (> (count s) n)

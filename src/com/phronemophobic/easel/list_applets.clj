@@ -1,16 +1,12 @@
 (ns com.phronemophobic.easel.list-applets
   (:require
-   [com.phronemophobic.easel.model :as model]
-   [membrane.basic-components :as basic]
    [com.phronemophobic.membrandt :as ant]
    [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [membrane.skia.paragraph :as para]
    [membrane.component
     :refer [defui defeffect]]
    [membrane.ui :as ui]
-))
-
-
+   [clojure.java.io :as io]))
 
 (defui button [{:keys [text on-click]}]
   (ui/flex-layout
@@ -244,7 +240,7 @@
                    (requiring-resolve
                     'com.phronemophobic.bowsertalk.retro-api/file-list)
                    {:folder 
-                    (clojure.java.io/file "roms")}
+                    (io/file "roms")}
                    ]])})
       (button {:text "Save list"
                :on-click

@@ -6,9 +6,6 @@
    [membrane.ui :as ui]
    [membrane.alpha.component.drag-and-drop :as dnd]
    [com.phronemophobic.easel.model :as model]
-   [membrane.basic-components :as basic]
-   [clojure.core.async :as async]
-   [clojure.set :as set]
    [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.membrandt.impl.grid :as grid]
    [com.phronemophobic.membrandt :as ant]))
@@ -145,7 +142,7 @@
 
 (defn tap-watcher-applet [handler]
   (-> (->TapWatcher handler)
-      (assoc :label (str "tap watcher") )))
+      (assoc :label "tap watcher" )))
 
 
 (defn ^:private clear-taps [applet]

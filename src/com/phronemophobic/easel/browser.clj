@@ -8,9 +8,9 @@
    [com.phronemophobic.gen3 :as gen3]
    [com.phronemophobic.cef :as cef]
    [com.phronemophobic.cef.browser :as b]
+   [com.phronemophobic.membrandt :as ant]
    #_[com.phronemophobic.replog :as replog])
   (:import com.sun.jna.Pointer
-           com.sun.jna.Function
            com.phronemophobic.membrane.Skia
            com.phronemophobic.gen3.structs.cef_browser_host_t
            ;;com.phronemophobic.cljcef.CefBrowser

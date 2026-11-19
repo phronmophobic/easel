@@ -5,8 +5,8 @@
             [membrane.alpha.stretch :as stretch]
             [tiara.data :as tiara]
             [com.rpl.specter :as specter]
-            [clojure.java.io :as io]
             [clojure.zip :as z]
+            clojure.main
             [com.phronemophobic.easel.list-applets :as
              list-applets]
             [com.phronemophobic.easel.splitpane :as splitpane]

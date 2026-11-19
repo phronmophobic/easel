@@ -6,20 +6,16 @@
    [membrane.skia.paragraph :as para]
    [membrane.component.present :as present]
    [membrane.basic-components :as basic]
-   [membrane.alpha.component.drag-and-drop :as dnd]
-   [clojure.datafy :as datafy]
-   [com.phronemophobic.viscous :as viscous]
    [com.phronemophobic.clobber.modes.clojure.ui :as cui]
    [com.phronemophobic.clobber.editor :as clobber.editor]
    [com.phronemophobic.clobber.modes.text :as clobber.text]
    [com.phronemophobic.clobber.modes.text.ui :as text.ui]
    [com.phronemophobic.clobber.util.ui :as clobber.util.ui]
-   [com.phronemophobic.clobber.util :as clobber.util]
    [com.phronemophobic.env :as env]
+   membrane.skia
    
    [com.phronemophobic.membrandt.icon.ui :as icon.ui]
    [com.phronemophobic.membrandt.impl.grid :as grid]
-   [com.phronemophobic.easel.model :as model]
    [membrane.component :refer [defui defeffect]])
   
   (:import java.io.File
@@ -33,8 +29,7 @@
            [java.io ByteArrayOutputStream File]
            org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
            [org.eclipse.jgit.api Git TransportConfigCallback] 
-           [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode BranchTrackingStatus BranchConfig]
-           [org.eclipse.jgit.api.errors TransportException]
+           [org.eclipse.jgit.lib Repository ObjectInserter Constants FileMode BranchTrackingStatus]
            [org.eclipse.jgit.transport
             PushResult RemoteRefUpdate RemoteRefUpdate$Status
              SshTransport]
@@ -43,11 +38,6 @@
            [org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry]
            [org.eclipse.jgit.treewalk TreeWalk]
            [org.eclipse.jgit.treewalk.filter PathFilter]
-           
-           [com.github.difflib.text
-            DiffRowGenerator
-            DiffRowGenerator$Builder
-            DiffRow]
            [com.github.difflib
             DiffUtils]
            [com.github.difflib.patch
@@ -504,8 +494,9 @@
         (= highlight-index (count deltas))
         (let [[cw ch] (:membrane.stretch/container-size (:context this))
               total-height (ui/height (-> this :diff-state :target-diff-view))]
-          (do (dispatch! :set $scroll-offset [0 (- total-height ch)])
-              (dispatch! :set $highlighted-highlight nil)))
+          
+          (dispatch! :set $scroll-offset [0 (- total-height ch)])
+          (dispatch! :set $highlighted-highlight nil))
         
         :else
         (let [{:keys [highlights minx miny] :as delta} (nth deltas highlight-index)
@@ -1129,7 +1120,6 @@
       (if (seq deltas)
         (let [^AbstractDelta
               delta (first deltas)
-              delta-type (.getType delta)
               
               source-chunk (.getSource delta)
               target-chunk (.getTarget delta)
@@ -1334,10 +1324,11 @@
                 #(f % {:file fname}))}))
 
 
-(defn ^SshdSessionFactory ssh-session-factory
+(defn  ssh-session-factory
   "Create an SSH session factory using a specific private key and known_hosts.
    key-path: path to private key file (e.g. ~/.ssh/id_ed25519)
    known-hosts-path: path to known_hosts (e.g. ~/.ssh/known_hosts)"
+  ^SshdSessionFactory
   [{:keys [key-path known-hosts-path]}]
   (.. (SshdSessionFactoryBuilder.)
       (setHomeDirectory (io/file (System/getProperty "user.home")))
@@ -1347,9 +1338,9 @@
       ;; (setDefaultIdentities (java.util.List/of (File. key-path)))
       (build (JGitKeyCache.))))
 
-
-(defn ^TransportConfigCallback ssh-transport-callback
+(defn  ssh-transport-callback
   "TransportConfigCallback that injects the given SshdSessionFactory into JGit SSH transports."
+  ^TransportConfigCallback
   [^SshdSessionFactory session-factory]
   (reify TransportConfigCallback
     (configure [_ transport]
@@ -1367,30 +1358,28 @@
   [path]
   (with-git
    [git path]
-   (let [^Repository repo (.getRepository git)]
+   (let [^Repository repo (.getRepository git)
+         session-factory (ssh-session-factory {})
+         tcc             (ssh-transport-callback session-factory)
+         results  (seq (.call (doto (.push git)
+                                (.setTransportConfigCallback tcc)
+                                #_(.setRemote remote)
+                                #_(.setRefSpecs (into-array String [refspec])))))]
      
-     (let [session-factory (ssh-session-factory {})
-           tcc             (ssh-transport-callback session-factory)
-           results  (seq (.call (doto (.push git)
-                                  (.setTransportConfigCallback tcc)
-                                  #_(.setRemote remote)
-                                  #_(.setRefSpecs (into-array String [refspec])))))]
-       ;; Check for rejections
-       (doseq [^PushResult pr results
-               ^RemoteRefUpdate
-               rru (.getRemoteUpdates pr)]
-         (let [status (.getStatus rru)]
-           (when (#{RemoteRefUpdate$Status/REJECTED_NONFASTFORWARD
-                    RemoteRefUpdate$Status/REJECTED_NODELETE
-                    RemoteRefUpdate$Status/REJECTED_REMOTE_CHANGED
-                    RemoteRefUpdate$Status/REJECTED_OTHER_REASON
-                    RemoteRefUpdate$Status/NOT_ATTEMPTED} status)
-             (throw (ex-info "Push was rejected."
-                             {:status (str status)
-                              :message (.getMessage rru)})))))
-       results)
-
-)))
+     ;; Check for rejections
+     (doseq [^PushResult pr results
+             ^RemoteRefUpdate
+             rru (.getRemoteUpdates pr)]
+       (let [status (.getStatus rru)]
+         (when (#{RemoteRefUpdate$Status/REJECTED_NONFASTFORWARD
+                  RemoteRefUpdate$Status/REJECTED_NODELETE
+                  RemoteRefUpdate$Status/REJECTED_REMOTE_CHANGED
+                  RemoteRefUpdate$Status/REJECTED_OTHER_REASON
+                  RemoteRefUpdate$Status/NOT_ATTEMPTED} status)
+           (throw (ex-info "Push was rejected."
+                           {:status (str status)
+                            :message (.getMessage rru)})))))
+     results)))
 
 (comment
   (push-to-upstream! ".")

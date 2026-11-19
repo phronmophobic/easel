@@ -9,10 +9,7 @@
    [com.phronemophobic.easel.model :as model]
    [clojure.core.async :as async]
    [clojure.set :as set]
-   [com.phronemophobic.viscous :as viscous]
-
-   [com.phronemophobic.membrandt :as ant]
-   ))
+   [com.phronemophobic.viscous :as viscous]))
 
 (defonce watch-list* (atom {}))
 
@@ -173,6 +170,6 @@
 
 (defn ns-watcher-applet [handler ns]
   (-> (->NSWatcher handler ns)
-      (assoc :label (str "ns-watcher") )))
+      (assoc :label "ns-watcher" )))
 
 
